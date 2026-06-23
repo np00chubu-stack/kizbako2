@@ -2,331 +2,449 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="木箱依頼">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>木箱依頼フォーム</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic UI',sans-serif;background:#F5F6F8;color:#1a1a1a;min-height:100vh}
-.app-header{background:#1F4E79;color:#fff;padding:16px 20px;position:sticky;top:0;z-index:10}
-.app-header h1{font-size:18px;font-weight:600;letter-spacing:0.02em}
-.app-header p{font-size:12px;opacity:0.8;margin-top:2px}
-.form-body{padding:16px;max-width:480px;margin:0 auto}
-.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
-.card-label{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px}
-.field{margin-bottom:12px}
-.field:last-child{margin-bottom:0}
-.field label{display:block;font-size:13px;font-weight:500;color:#555;margin-bottom:6px}
-.field label .req{color:#e53e3e;font-size:11px;margin-left:4px}
-select,input[type=date],textarea{width:100%;padding:11px 14px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:15px;color:#1a1a1a;background:#fff;font-family:inherit;appearance:none;-webkit-appearance:none}
-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
-select:focus,input:focus,textarea:focus{outline:none;border-color:#2E75B6;box-shadow:0 0 0 3px rgba(46,117,182,0.12)}
-select:disabled{background:#f7f7f7;color:#aaa}
-textarea{resize:none;line-height:1.5}
-.delivery-block{margin-bottom:8px}
-.delivery-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.delivery-title{font-size:13px;font-weight:600;color:#2E75B6}
-.del-btn{background:none;border:none;color:#aaa;font-size:22px;cursor:pointer;padding:0 4px;line-height:1}
-.delivery-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.delivery-grid .field{margin-bottom:0}
-.add-row-btn{width:100%;padding:11px;border:1.5px dashed #CBD5E0;border-radius:8px;background:none;color:#888;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;font-family:inherit}
-.add-row-btn:hover{background:#F7FAFC;border-color:#2E75B6;color:#2E75B6}
-.add-row-btn:disabled{opacity:0.4;cursor:not-allowed}
-.submit-btn{width:100%;padding:16px;background:#1F4E79;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;letter-spacing:0.02em}
-.submit-btn:active{transform:scale(0.98);background:#185085}
-.submit-btn:disabled{background:#aaa;cursor:not-allowed}
-.success{display:none;text-align:center;padding:40px 20px}
-.success-icon{font-size:64px;margin-bottom:16px}
-.success-title{font-size:22px;font-weight:700;color:#1F4E79;margin-bottom:8px}
-.success-detail{background:#fff;border-radius:12px;padding:16px;margin:16px 0;text-align:left;font-size:14px;line-height:2;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
-.success-detail dt{font-size:11px;color:#888;font-weight:600}
-.success-detail dd{color:#1a1a1a;margin-bottom:8px}
-.reset-btn{padding:12px 32px;border:1.5px solid #CBD5E0;border-radius:8px;background:#fff;color:#555;font-size:14px;cursor:pointer;font-family:inherit}
-.loading{display:none;text-align:center;padding:20px;color:#888;font-size:14px}
-.error-msg{display:none;background:#FFF5F5;border:1.5px solid #FC8181;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;color:#C53030}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.container{max-width:720px;margin:24px auto;padding:0 12px 40px}
+h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
+.card{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);padding:18px;margin-bottom:14px}
+.card-title{font-size:12px;font-weight:bold;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.form-group{margin-bottom:12px}
+label{display:block;font-size:12px;font-weight:bold;color:#555;margin-bottom:3px}
+label .req{color:#e53e3e;margin-left:2px}
+select,input[type="date"],input[type="number"],textarea{
+  width:100%;padding:7px 9px;border:1px solid #ccc;border-radius:4px;
+  font-size:13px;font-family:inherit;background:#fff;
+}
+select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px rgba(49,130,206,.2)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 90px 90px;gap:8px;align-items:end}
+
+/* 品目カード */
+.item-block{background:#f7f9fc;border:1px solid #d0d8e4;border-radius:6px;padding:14px;margin-bottom:10px;position:relative}
+.item-block-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.item-num{font-size:12px;font-weight:bold;color:#2c5282;background:#dbeafe;padding:2px 8px;border-radius:10px}
+.btn-del-item{background:none;border:none;color:#999;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px}
+.btn-del-item:hover{color:#e53e3e}
+
+/* 納入日行 */
+.date-rows{display:flex;flex-direction:column;gap:6px}
+.date-row{display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:end}
+.btn-add-date{font-size:12px;color:#3182ce;background:none;border:1px dashed #3182ce;border-radius:4px;padding:4px 10px;cursor:pointer;margin-top:4px;display:inline-block}
+.btn-add-date:hover{background:#ebf8ff}
+
+/* ＋品目ボタン */
+.btn-add-item{width:100%;padding:10px;border:2px dashed #3182ce;border-radius:6px;background:none;color:#3182ce;font-size:14px;font-weight:bold;cursor:pointer;margin-bottom:14px}
+.btn-add-item:hover{background:#ebf8ff}
+
+/* 送信ボタン */
+.btn-submit{width:100%;padding:13px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:bold;cursor:pointer}
+.btn-submit:hover{background:#2c5282}
+.btn-submit:disabled{background:#aaa;cursor:not-allowed}
+
+/* 確認画面 */
+#confirm-screen{display:none}
+.confirm-table{width:100%;border-collapse:collapse;font-size:13px}
+.confirm-table th{background:#f0f4f8;text-align:left;padding:7px 10px;font-weight:bold;color:#555;width:120px;border:1px solid #e2e8f0}
+.confirm-table td{padding:7px 10px;border:1px solid #e2e8f0;vertical-align:top}
+.confirm-table td input,.confirm-table td select{width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:3px;font-size:13px;font-family:inherit}
+.item-confirm-block{background:#f7f9fc;border:1px solid #d0d8e4;border-radius:6px;padding:12px;margin-bottom:10px}
+.confirm-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.btn-back{padding:12px;background:#fff;border:2px solid #1a3a5c;color:#1a3a5c;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-back:hover{background:#f0f4f8}
+.btn-send{padding:12px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-send:hover{background:#2c5282}
+.btn-send:disabled{background:#aaa;cursor:not-allowed}
+
+#msg{margin-top:14px;font-size:14px;text-align:center;padding:10px;border-radius:4px}
+#msg.ok{color:#276749;background:#f0fff4;border:1px solid #9ae6b4}
+#msg.err{color:#c53030;background:#fff5f5;border:1px solid #fc8181}
+
+.subcat-group{display:none}
+.subcat-group.active{display:block}
 </style>
 </head>
 <body>
+<div class="container">
 
-<div class="app-header">
-  <h1>📦 木箱依頼フォーム</h1>
-  <p>選択して送信するだけで依頼が完了します</p>
-</div>
+<!-- ===== 入力画面 ===== -->
+<div id="input-screen">
+  <h1>🪵 木箱依頼フォーム</h1>
 
-<div class="form-body">
-
-<div id="mainForm">
-  <div id="errorMsg" class="error-msg"></div>
-
+  <!-- 依頼者・客先 -->
   <div class="card">
-    <div class="card-label">依頼者情報</div>
-    <div class="field">
-      <label>依頼者名<span class="req">必須</span></label>
-      <select id="requester">
-        <option value="">選択してください</option>
-        <!-- ↓ここに実際の名前を追加してください -->
-        <option>川島</option>
-        <option>田中</option>
-        <option>鈴木</option>
-        <option>山田</option>
-        <option>佐藤</option>
-        <option>伊藤</option>
-        <option>渡辺</option>
-        <option>中村</option>
-        <option>小林</option>
-        <option>加藤</option>
-      </select>
+    <div class="row2">
+      <div class="form-group">
+        <label>依頼者名<span class="req">*</span></label>
+        <select id="requester">
+          <option value="">-- 選択 --</option>
+          <option>佐藤</option><option>小林</option><option>長谷川</option><option>堀</option>
+          <option>中村</option><option>宮地</option><option>苅谷</option><option>平野</option>
+          <option>福田</option><option>東</option><option>田中</option><option>澤田</option>
+          <option>丹羽</option><option>八島</option><option>八木</option><option>鈴木</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>客先名</label>
+        <select id="client">
+          <option value="">-- なし / 選択 --</option>
+          <option>TSMC</option><option>O-PRO</option><option>SMIC</option><option>IMEC</option>
+          <option>Infineon</option><option>Micron</option><option>Yongxin</option><option>TI</option>
+          <option>松下電子材料</option><option>SMOC</option><option>SK Hynix</option>
+          <option>VisEra</option><option>SPIL</option><option>Nexchip</option>
+          <option>ASE</option><option>Applied</option><option>Officemate</option><option>共通</option>
+        </select>
+      </div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-label">品目選択</div>
-    <div class="field">
-      <label>カテゴリ<span class="req">必須</span></label>
-      <select id="category" onchange="updateItems()">
-        <option value="">カテゴリを選択</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>品目・サイズ<span class="req">必須</span></label>
-      <select id="item" disabled>
-        <option value="">先にカテゴリを選択してください</option>
-      </select>
-    </div>
-  </div>
+  <!-- 品目ブロック -->
+  <div id="items-container"></div>
 
-  <div class="card">
-    <div class="card-label">納入日・数量</div>
-    <div id="deliveries"></div>
-    <button class="add-row-btn" id="addBtn" onclick="addDelivery()">
-      ＋ 納入日を追加する（最大5日）
-    </button>
-  </div>
+  <button class="btn-add-item" onclick="addItem()">＋ 品目を追加する</button>
 
+  <!-- 備考 -->
   <div class="card">
-    <div class="card-label">備考</div>
-    <div class="field">
+    <div class="form-group">
       <label>備考（任意）</label>
-      <textarea id="memo" rows="3" placeholder="急ぎ・特殊指定など特記事項があれば入力してください"></textarea>
+      <textarea id="note" rows="3" placeholder="特記事項があれば入力してください"></textarea>
     </div>
   </div>
 
-  <div class="loading" id="loadingMsg">送信中...</div>
-  <button class="submit-btn" id="submitBtn" onclick="submitForm()">送信する</button>
+  <button class="btn-submit" onclick="goConfirm()">内容を確認する →</button>
+  <div id="msg"></div>
 </div>
 
-<div class="success" id="successView">
-  <div class="success-icon">✅</div>
-  <div class="success-title">依頼を送信しました</div>
-  <div class="success-detail" id="successDetail"></div>
-  <button class="reset-btn" onclick="resetForm()">続けて依頼する</button>
+<!-- ===== 確認画面 ===== -->
+<div id="confirm-screen">
+  <h1>🪵 依頼内容の確認</h1>
+  <p style="font-size:13px;color:#666;margin-bottom:14px">内容を直接編集できます。よければ「送信する」を押してください。</p>
+  <div id="confirm-content"></div>
+  <div class="confirm-btns">
+    <button class="btn-back" onclick="goBack()">← 戻る</button>
+    <button class="btn-send" id="btn-send" onclick="submitForm()">送信する</button>
+  </div>
+  <div id="msg2"></div>
 </div>
 
-</div>
+</div><!-- /container -->
 
 <script>
-// ====================================================
-// ★ GASのウェブアプリURLをここに貼り付けてください ★
-// ====================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwlz_VBvH5vV1RIUFGXh7hyIjFpNcUYea7Mych4Sfa5PkLV5SS5vQskerIdXw7Czcs/exec';
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwlz_VBvH5vV1RIUFGXh7hyIjFpNcUYea7Mych4Sfa5PkLV5SS5vQskerIdXw7Czcs/exec";
 
-const ITEMS = {
-  "洋箱":["650×500×550","700×590×400","800×300×300","800×400×250","800×500×300","800×500×400","800×590×400","800×600×500","850×400×400","900×300×300","900×400×300","900×600×300","950×800×400","1000×300×300","1000×400×300","1000×400×400","1000×500×300","1000×800×500","1050×300×300","1050×600×500","1100×300×300","1100×400×300","1100×400×400","1100×600×300","1150×300×300","1150×500×300","1200×300×300","1200×500×300","1200×550×300","1200×590×490","1200×600×300","1200×900×400","1300×400×300","1350×300×300","1350×350×300","1400×300×300","1400×600×500","1450×300×300","1500×300×300","1500×400×450","1550×300×300","1600×300×300","1600×550×550","1650×300×300","1700×300×300","1800×300×300","1800×500×300","1900×300×300","1900×500×400","1900×600×500","1950×300×300","2000×300×300","2100×300×300","2100×550×550","2100×600×500","2150×600×500","2200×300×300","2200×400×400","2200×650×300","2300×600×500","2400×300×300","2600×300×300","2650×300×300","3100×300×300","3150×400×300","3200×220×80","3200×250×200","3200×300×300","3200×400×300","3900×400×400","4100×300×300","4100×400×300","4110×420×400","4110×460×370","4110×490×410","4200×300×300"],
-  "部材":["1430×1100×1100","1430×1150×1550","1430×1150×1700","1430×1150×1800","1430×1150×2100","1430×1350×775","1430×1350×1125","1430×1350×1550","1600×1100×1100","1600×1150×1550","1600×1150×1700","1600×1150×1800","1600×1150×2540","1600×1350×775","1600×1350×1125","1600×1350×1550","1600×1350×1800","1600×1600×775","1700×1700×2100","1800×1100×1100","1800×1350×775","2250×1100×850","2250×1100×1100","2250×1150×775","2250×1150×1300","2250×1150×1550","2250×1150×2400","2250×1350×775","2250×1350×1125","2250×1600×775","2250×1600×1300","2250×1600×1550","2250×1700×775","2250×1800×2540","2640×1100×1100","2640×1150×1550","2640×1150×1700","2640×1350×775","2640×1350×1125","2640×1600×775","2640×1800×2540","2640×2000×775","2640×2100×775","2800×1150×775","2800×1150×1125","2800×1150×1300","2800×2000×775","3000×1150×1550","3120×1150×1125","3150×1150×1125","3200×1150×775","3300×1800×775","3600×1150×775","3600×1150×1125","3960×1150×775","3960×1150×1125","3960×1350×1800","4200×1150×1125","4300×1150×775","4300×1600×1100","4600×1150×1125","4800×1500×1800","4800×1600×1550","5300×1350×1125","5400×1600×1800","5600×1600×1800"],
-  "MST":["1430×1150×1550","1430×1150×1600","1430×1150×1800","1430×1150×2000","1430×1150×2100","1430×1150×2250","1430×1150×2290","1430×1150×2400","1430×1150×2540","1430×1250×2400","1430×1350×775","1430×1350×1550","1430×1350×2290","1430×1350×2100","1430×1600×2290","1600×1150×1550","1600×1150×2000","1600×1150×2100","1600×1150×2290","1650×1150×2250","1600×1150×2540","1600×1350×775","1700×1150×1300","1700×1150×1550","1700×1150×2100","1700×1150×2250","1700×1150×2290","1700×1350×2100","1700×1400×2100","1700×1430×2100","1700×1450×2100","1700×1450×2290","1700×1700×2100","1750×1400×2100","1800×1150×775","1800×1150×2540","2000×1450×1800","2250×1150×1300","2250×1150×1400","2250×1150×1550","2250×1450×2100","2640×1150×1450","2640×1150×1550","2640×1150×1600","2640×1150×1700","2640×1150×2000","2640×1150×2100","2640×1150×2290","2850×1150×1650","3120×1150×1550","3200×1150×1600","3200×1150×1700","4600×2250×1300"],
-  "安全柵":["1430×1250×775","1430×1250×900","1430×1250×1125","1430×1250×1300","1600×1250×600","1600×1500×775","1700×1250×900","2200×1250×1125","2250×1250×775","2250×1250×800","2250×1250×950","2250×1250×1125","2250×1250×1300","2250×1350×1300","2250×1700×600","2250×1700×775","2250×1700×1300","2350×1250×900","2350×1250×1000","2350×1250×1050","2300×1250×1125","2300×1250×1300","2300×1250×1400","2350×1250×1125","2400×1350×775","2400×1700×775","2400×1750×775","2640×1250×950","2640×1250×1125","2640×1250×1300","2640×1700×850","2640×1700×800","2640×1700×900","2640×1700×950","2640×1700×1050","2640×1700×1125","2640×1700×1200","2640×1700×1250","2640×1700×1300","2640×1700×1400","2800×1350×775","2800×1350×850","2950×2300×950","2950×2350×950","3000×2350×900","3000×1250×900","3120×1250×1125","3900×1250×1125","3960×1250×775"],
-  "ドラム":["1430×1300×1000","1430×1350×1300","2640×1300×1000","2640×1350×1300"],
-  "クレーン":["1600×1150×1300","2250×1150×1550","2640×1150×1550","2800×1150×1550","3000×1150×1550","3300×1100×1550","3300×1150×1125","3600×1150×1125","3600×1150×1550","3960×1150×1125","3960×1150×1550","4200×1150×1125","4300×1150×1550","4400×1150×1125","4400×1150×1550","4500×1150×1125","4600×1150×1125","4600×1150×1550","4800×1150×1550","5200×1100×1800"],
-  "防火扉":["2250×1150×1800","2250×1150×1850","2250×1150×2000","3000×1150×2000","3200×1150×1800","3250×1150×1800","3250×1150×2000","3550×1150×2000","3600×1150×1800","3600×1150×2000","3700×1150×2000","3960×1150×1850"],
-  "パーテーション":["2250×1350×775","2250×1350×1125","2250×1600×1125","2640×1350×775","2640×1350×1125","2640×1600×1125","3300×1350×775","3300×1600×1125","3600×1350×775","3600×1600×1125","3700×1600×1125"],
-  "マスト":["1430×1350×1125","1430×1350×1300","1800×1350×1125","2250×1350×1125","2250×1350×1300","2250×1450×1125","2640×1350×1125","3300×1350×1125","3300×1350×1300","3600×1350×1300","4400×1450×1125","4600×1800×1125","4600×1800×1150"],
-  "ラック":["1600×1150×1550","1600×1350×1125","2250×1150×1300","2250×1150×1350","2640×1100×775","2640×1150×1125","2640×1150×1300","2640×1150×1550","2640×1150×1700","3300×1150×1125"],
-  "カート":["1430×1150×1550","1430×1150×1700","1600×1150×1700","1600×1350×1700","2250×1150×1700","2640×1150×1550"],
-  "かくてい箱":["C775","Cタイプ","C1300","C1550","バンダクト","バンダクト775","バンダクトH1300","Dタイプ","D775","D1300","D1550","ドックB","定尺3.0","定尺H1300"],
-  "PSP":["1600×1150×2540","1600×1150×2290","2640×1150×1700","2640×1150×2290","2640×1150×2540"],
-  "EMOBOX":["1800×1100×850","1800×1100×1100","2250×1100×850"],
-  "CDRX":["CDRX 2900","CDRX 2880"],
-  "支給品":["1600×1150×775","1600×1150×1125","2250×1150×1300","3100×1150×775"],
-  "製函":["洋箱","他","2250以下"],
-  "その他(3000まで)":["BAR1430×1150×775","フード1430×1150×1550","フード1430×1150×1800","トロリー1430×1300×775","プレート1430×1350×775","フード1430×1350×1800","フード1600×1150×1550","フード1600×1150×1800","フード1600×1350×1300","フード1700×1150×1800","フード1700×1150×2000","フード1800×1150×1550","フード1800×1350×1550","BAR2250×1150×775","フード2250×1150×1300","フード2250×1150×1550","制御盤2250×1350×775","フード2640×1150×1300","梱包依頼2640×1700×775","検査架台2640×2000×2850","BAR2640×1150×775","フード2800×1150×1125","防火扉3000×1150×2000"],
-  "その他(3001以上)":["昇降台3200×1150×1300","シェルフ3300×1150×1550","制御盤3300×1350×1100","棚3300×2200×1850","レール3600×1150×1125","ツールステーション3600×1600×3300","レール3960×1150×1125","レール4100×1150×1125","レール4200×1150×1125","680K 4300×1150×775","トロリー4400×1150×850","バナナクレーン4500×1150×1125","レール4600×1150×1125","フレーム5100×1600×1550","フレーム5400×1600×1800"],
-  "基礎":["2000×1150×775","2250×1450×775","2640×1150×775","2640×1350×775","2640×2250×775","2900×2250×1000","3000×1150×1125","3120×1600×775","3200×1150×775","3500×1900×800","3960×2250×800"],
-  "チップコンベア":["3600×1150×1750","3600×1150×1850","3960×1150×1750"],
-  "コンベヤ":["4100×1150×2000"],
-  "スラグコンベア":["4700×1600×2450"],
-  "トランスファー":["2300×1150×2540"],
-  "ガントリー":["4850×1500×1700"],
-  "クーラントタンク":["3120×2100×775"],
-  "テーブル":["2000×1550×800"],
-  "テーブル天板":["テーブル天板2250×1400×1125"],
-  "補助テーブル":["補助テーブル"],
-  "BED台木":["BED台木"],
-  "IAC":["3120×1700×2100"],
-  "MTA-170α":["1600×1600×1950"],
-  "R40":["2100×1350×1750"],
-  "カバー":["2250×1300×1125","1800×1300×1125"],
-  "サイドガード":["1900×1350×1150"],
-  "クロスビーム":["クロスビーム5100×1100×775"],
-  "ケーブルベア":["1400×600×500"],
-  "フートスイッチ":["3000×550×850"],
-  "メンテナンスステップ":["1800×1600×775"],
-  "治具":["3300×1150×650"],
-  "改造部品":["3300×1600×1125"],
-  "鉄パレット":["3800×1850×1000"],
-  "ビデーレ":["3120×1150×1250","3120×1150×1300"],
-  "プレス部材":["2250×1500×1125"],
-  "ワークフィーダ":["2250×1700×1700"],
-  "展示会部材":["部材2800×2250×1125"],
-  "昇降台":["2810×1970×2550"],
-  "検査架台":["検査架台"],
-  "本体":["本体8600×2250×2540"],
-  "フェンス":["2500×1800×1000"],
-  "追従装置":["2650×1450×1400"],
+const itemData = {
+  "ﾏｽﾄ": ["該当なし","1430×1350×1125","1430×1350×1300","1800×1350×1125","2250×1350×1125","2250×1350×1300","2250×1450×1125","2640×1350×1125","3300×1350×1125","3300×1350×1125台木ﾘﾌﾄ","3300×1350×1300","3600×1350×1125台木ﾘﾌﾄ","3600×1350×1300台木ﾘﾌﾄ","4400×1450×1125","4600×1800×1125","4600×1800×1150"],
+  "CDRX": ["該当なし","CDRX 2880","CDRX 2900"],
+  "EMOBOX": ["該当なし","1800×1100×850","1800×1100×1100","2250×1100×850"],
+  "MST": ["該当なし","1430×1150×1550","1430×1150×1600","1430×1150×1800","1430×1150×1900","1430×1150×2000","1430×1150×2100","1430×1150×2250","1430×1150×2290","1430×1150×2400","1430×1150×2540","1430×1250×2400","1430×1350×775","1430×1350×1550","1430×1350×2100","1430×1350×2290","1430×1600×2290","1600×1150×1550","1600×1150×2000","1600×1150×2100","1600×1150×2290","1600×1150×2540","1600×1350×775","1650×1150×2250","1700×1150×1300","1700×1150×1550","1700×1150×2100","1700×1150×2250","1700×1150×2290","1700×1350×2100","1700×1400×2100","1700×1430×2100","1700×1450×2100","1700×1450×2290","1700×1700×2100","1750×1400×2100","1800×1150×775","1800×1150×2540","2000×1450×1800","2250×1150×1300","2250×1150×1400","2250×1150×1550","2250×1450×2100","2640×1150×1450","2640×1150×1550","2640×1150×1600","2640×1150×1700","2640×1150×2000","2640×1150×2100","2640×1150×2290","2850×1150×1650","3120×1150×1550","3200×1150×1600","3200×1150×1700","4600×2250×1300"],
+  "PSP": ["該当なし","1600×1150×2290","1600×1150×2540","2640×1150×1700","2640×1150×2290","2640×1150×2540"],
+  "かくてい箱": ["該当なし","Cタイプ","ﾊﾞﾝﾀﾞｸﾄ","Dタイプ","ﾄﾞｯｸB","定尺3.0","C775","ﾊﾞﾝﾀﾞｸﾄ775","D775","Ｃ1300","ﾊﾞﾝﾀﾞｸﾄH1300","D1300","定尺H1300","C1550","D1550"],
+  "ｶｰﾄ": ["該当なし","1430×1150×1550","1430×1150×1700","1600×1150×1700","1600×1350×1700","2250×1150×1700","2640×1150×1550"],
+  "ｸﾚｰﾝ": ["該当なし","1600×1150×1300","2250×1150×1550","2640×1150×1550","2800×1150×1550","3000×1150×1550","3300×1100×1550","3300×1150×1125","3600×1150×1125","3600×1150×1550","3960×1150×1125","3960×1150×1550","4200×1150×1125","4300×1150×1550","4400×1150×1125","4400×1150×1550","4500×1150×1125","4600×1150×1125","4600×1150×1550","4800×1150×1550","5200×1100×1800"],
+  "ドラム": ["該当なし","1430×1300×1000","1430×1350×1300","2640×1300×1000","2640×1350×1300"],
+  "ﾊﾟｰﾃｰｼｮﾝ": ["該当なし","2250×1350×775","2250×1350×1125","2250×1600×1125","2640×1350×775","2640×1350×1125","2640×1600×1125","3300×1350×775","3300×1600×1125","3300×1600×1125 (2)","3600×1350×775","3600×1600×1125","3700×1600×1125"],
+  "洋箱": ["該当なし","650×500×550","700×590×400","800×300×300","800×400×250","800×500×300","800×500×400","800×590×400","800×600×500","850×400×400","900×300×300","900×400×300","900×600×300","950×800×400","1000×300×300","1000×400×300","1000×400×400","1000×500×300","1000×800×500","1050×300×300","1050×600×500","1100×300×300","1100×400×300","1100×400×400","1100×600×300","1150×300×300","1150×500×300","1200×300×300","1200×500×300","1200×550×300","1200×590×490","1200×600×300","1200×900×400","1300×400×300","1350×300×300","1350×350×300","1400×300×300","1400×600×500","1450×300×300","1500×300×300","1500×400×450","1550×300×300","1600×300×300","1600×550×550","1650×300×300","1700×300×300","1800×300×300","1800×500×300","1900×300×300","1900×500×400","1900×600×500","1950×300×300","2000×300×300","2100×300×300","2100×550×550","2100×600×500","2150×600×500","2200×300×300","2200×400×400","2200×650×300","2300×600×500","2400×300×300","2600×300×300","2650×300×300","3100×300×300","3150×400×300","3200×220×80","3200×250×200","3200×300×300","3200×400×300","3900×400×400","4100×300×300","4100×400×300","4110×420×400","4110×460×370","4110×460×370(ｽﾘH110)","4110×490×410","4200×300×300"],
+  "防火扉": ["該当なし","2250×1150×1800","2250×1150×1850","2250×1150×2000","3000×1150×2000","3200×1150×1800","3250×1150×1800","3250×1150×2000","3550×1150×2000","3600×1150×1800","3600×1150×2000","3700×1150×2000","3960×1150×1850"],
+  "ﾗｯｸ": ["該当なし","1600×1150×1550","1600×1350×1125","2250×1150×1300","2250×1150×1350","2640×1100×775","2640×1150×1125","2640×1150×1300","2640×1150×1550","2640×1150×1700","3300×1150×1125"],
+  "安全柵": ["該当なし","1430×1250×775","1430×1250×900","1430×1250×1125","1430×1250×1300","1600×1250×600","1600×1500×775","1700×1250×900","2200×1250×1125","2250×1250×775","2250×1250×800","2250×1250×950","2250×1250×1125","2250×1250×1300","2250×1350×1300","2250×1700×600","2250×1700×775","2250×1700×1300","2300×1250×1125","2300×1250×1300","2300×1250×1400","2350×1250×900","2350×1250×1000","2350×1250×1050","2350×1250×1125","2400×1350×775","2400×1700×775","2400×1750×775","2640×1250×950","2640×1250×1125","2640×1250×1300","2640×1700×800","2640×1700×850","2640×1700×900","2640×1700×950","2640×1700×1050","2640×1700×1125","2640×1700×1200","2640×1700×1250","2640×1700×1300","2640×1700×1400","2800×1350×775","2800×1350×850","2950×2300×950","2950×2350×950","3000×1250×900","3000×2350×900","3120×1250×1125","3900×1250×1125","3960×1250×775"],
+  "支給品": ["該当なし","1600×1150×775","1600×1150×1125","2250×1150×1300","3100×1150×775"],
+  "部材": ["該当なし","1430×1100×1100","1430×1150×1550","1430×1150×1700","1430×1150×1800","1430×1150×2100","1430×1350×775","1430×1350×1125","1430×1350×1550","1600×1100×1100","1600×1150×1550","1600×1150×1700","1600×1150×1800","1600×1150×2540","1600×1350×775","1600×1350×1125","1600×1350×1550","1600×1350×1800","1600×1600×775","1700×1700×2100","1800×1100×1100","1800×1350×775","2250×1100×850","2250×1100×1100","2250×1150×775","2250×1150×1300","2250×1150×1550","2250×1150×2400","2250×1350×775","2250×1350×1125","2250×1600×775","2250×1600×1300","2250×1600×1550","2250×1700×775","2250×1800×2540","2640×1100×1100","2640×1150×1550","2640×1150×1700","2640×1350×775","2640×1350×1125","2640×1600×775","2640×1800×2540","2640×2000×775","2640×2100×775","2800×1150×775","2800×1150×1125","2800×1150×1300","2800×2000×775","3000×1150×1550","3120×1150×1125","3150×1150×1125","3200×1150×775","3300×1800×775","3600×1150×775","3600×1150×1125","3960×1150×775","3960×1150×1125","3960×1350×1800","4200×1150×1125","4300×1150×775","4300×1600×1100","4600×1150×1125","4800×1500×1800","4800×1600×1550","5300×1350×1125","5400×1600×1800","5600×1600×1800"],
+  "工機": {
+    "IAC":["該当なし","3120×1700×2100"],
+    "基礎":["該当なし","2000×1150×775","2250×1450×775","2640×1150×775","2640×1350×775","2640×2250×775","2900×2250×1000","3000×1150×1125","3120×1600×775","3200×1150×775","3500×1900×800","3960×2250×800"],
+    "部材":["該当なし","1800×1150×775","2250×1150×775","3300×1150×1700","3500×1150×775","4700×2200×2540"],
+    "安全柵":["該当なし","2640×1700×775","2640×1700×1300"],
+    "補助ﾃｰﾌﾞﾙ":["該当なし","3120×2000×1300","3960×2250×1300","4600×1900×1300","4700×2100×1300"],
+    "ﾁｯﾌﾟｺﾝﾍﾞｱ":["該当なし","3600×1150×1750","3600×1150×1850","3960×1150×1750"],
+    "ﾋﾞﾃﾞｰﾚ":["該当なし","3120×1150×1250","3120×1150×1300"],
+    "コンベヤ":["該当なし","4100×1150×2000"],
+    "改造部品":["該当なし","3300×1600×1125"],
+    "ｶﾞﾝﾄﾘｰ":["該当なし","4850×1500×1700"],
+    "ｽﾗｸﾞｺﾝﾍﾞｱ":["該当なし","4700×1600×2450"],
+    "ﾃｰﾌﾞﾙ天板":["該当なし","ﾃｰﾌﾞﾙ天板2250×1400×1125"],
+    "ﾌｪﾝｽ":["該当なし","2500×1800×1000"],
+    "BED台木":["該当なし","BED台木"],
+    "追従装置":["該当なし","2650×1450×1400"],
+    "ｶﾊﾞｰ":["該当なし","2250×1300×1125"],
+    "MTA-170α":["該当なし","1600×1600×1950"],
+    "鉄ﾊﾟﾚｯﾄ":["該当なし","3800×1850×1000"],
+    "ﾃｰﾌﾞﾙ":["該当なし","2000×1550×800"],
+    "ﾜｰｸﾌｨｰﾀﾞ":["該当なし","2250×1700×1700"],
+    "R40":["該当なし","2100×1350×1750"],
+    "治具":["該当なし","3300×1150×650"],
+    "ｸｰﾗﾝﾄﾀﾝｸ":["該当なし","3120×2100×775"],
+    "ｻｲﾄﾞｶﾞｰﾄﾞ":["該当なし","1900×1350×1150"],
+    "ﾌﾟﾚｽ部材":["該当なし","2250×1500×1125"]
+  },
+  "その他": {
+    "3000まで":["該当なし","680K 2800×1150×1125","BAR1430×1150×775","ｷｬｯﾄｳｫｰｸ1430×1150×1300","ｷｬｯﾄｳｫｰｸ1430×1150×1550","ﾌｰﾄﾞ1430×1150×1550","ﾌｰﾄﾞ1430×1150×1600","ﾋﾟｯｸ&ﾌﾟﾚｰｽ1430×1150×1800","ﾌｰﾄﾞ1430×1150×1800","ﾄﾛﾘｰ1430×1300×775","ｹｰﾌﾞﾙﾍﾞｱ1430×1300×775","ﾌﾟﾚｰﾄ1430×1350×775","ﾍﾞｰｽﾌﾟﾚｰﾄ1430×1350×775","ﾍﾞｰｽﾌﾟﾚｰﾄ1430×1350×1125","分岐ﾚｰﾙ1430×1350×1125","ﾌｰﾄﾞ1430×1350×1800","ﾌｰﾄﾞ1430×1750×1800","ﾄﾛﾘｰ1500×1500×775","ﾄﾛﾘｰ1500×1500×1125","分岐ﾚｰﾙ1600×1150×1125","ﾌｰﾄﾞ1600×1150×1550","ﾌｰﾄﾞ1600×1150×1800","ﾋﾟｯｸ&ﾌﾟﾚｰｽ1600×1150×1800","ﾍﾞｰｽﾌﾟﾚｰﾄ1600×1350×775","分岐ﾚｰﾙ1600×1350×1125","ﾌｰﾄﾞ1600×1350×1125","ﾌｰﾄﾞ1600×1350×1300","ﾌｰﾄﾞ1600×1350×1550","ﾌｰﾄﾞ1600×1500×1550","ﾄﾛﾘｰ1600×1600×775","ﾌｰﾄﾞ1700×1150×1800","ﾌｰﾄﾞ1700×1150×2000","ﾕﾆｼｬﾄﾙ1700×1350×2050","ﾌｰﾄﾞ1700×1800×2000","ﾌﾟﾚｰﾄ1800×1150×775","ﾌｰﾄﾞ1800×1150×1550","分岐ﾚｰﾙ 1800×1350×1125","ﾌｰﾄﾞ1800×1350×1550","OHT台車1800×1350×2000","ﾍﾞｰｽﾌﾟﾚｰﾄ1800×1600×775","制御盤1800×1600×775","ﾛﾎﾞﾄﾚ2000×2000×1400","ﾌﾚｰﾑ2100×1850×775","EPLC 2250×1100×850","BAR2250×1150×775","定尺ﾚｰﾙ2250×1150×1300","ﾌｰﾄﾞ2250×1150×1300","PCﾗｯｸ2250×1150×1350","ﾘﾌﾄﾄﾞﾗｲﾌﾞ2250×1150×1400","ﾌｰﾄﾞ2250×1150×1550","ｼｪﾙﾌ2250×1150×1550","ﾘﾌﾄﾄﾞﾗｲﾌﾞ2250×1150×1900","防煙扉2250×1150×2000","防火ｼｬｯﾀｰ2250×1150×2050","ﾕﾆｼｬﾄﾙ2250×1150×2200","MLT2250×1150×2400","ｼﾞｪﾆｰ2250×1150×2400","ﾄﾗﾝｽﾌｧｰ2250×1150×2540","梱包依頼2250×1250×775","制御盤2250×1350×775","防火ﾀﾞﾝﾊﾟｰ2250×1350×1125","ﾌｰﾄﾞ2250×1350×1300","吊り 2250×1450×1000","ﾍﾞｰｽﾌﾟﾚｰﾄ2250×1600×775","制御盤2250×1600×775","ﾍﾞｰｽﾌﾟﾚｰﾄ2250×1700×775","ﾍﾞｰｽﾌﾟﾚｰﾄ2250×1800×775","ﾌﾚｰﾑ2250×1800×1125","ｹｰﾌﾞﾙﾍﾞｱ2400×1400×775","BAR2640×1150×775","依頼品(D) 2640×1150×1125","ｷｬｯﾄｳｫｰｸ2640×1150×1300","ｷｬｯﾄｳｫｰｸ2640×1150×1550","ｼｪﾙﾌ2640×1150×1550","防火ｼｬｯﾀｰ2640×1300×2350","ﾌﾚｰﾑ2640×1350×775","ﾚｰﾙ2640×1350×775","分岐ﾚｰﾙ2640×1350×1125","防火ｼｬｯﾀｰ2640×1350×2450","梱包依頼2640×1700×775","制御盤2640×1700×775","梱包依頼2640×1700×1125","ﾌﾚｰﾑ2640×2000×775","検査架台2640×2000×2850","ﾍﾞｰｽﾌﾟﾚｰﾄ2640×2100×775","ﾋﾞｰﾑ2800×1150×775","ﾚｰﾙ2800×1150×775","ｷｬｯﾄｳｵｰｸｹﾞｰﾄ2800×1150×775","ｹﾞｰﾄ2800×1150×775","ｷｬｯﾄｳｫｰｸ2800×1150×1125","ﾀｰﾐﾅﾙ2800×1150×1125","ｷｬｯﾄｳｫｰｸ2800×1150×1300","ﾀｰﾐﾅﾙBOX 2800×1150×1300","ﾀｰﾐﾅﾙ2800×1150×1550","ｷｬｯﾄｳｫｰｸ2800×1150×1550","分岐ﾚｰﾙ2800×1350×1125","ﾌﾚｰﾑ2800×2000×775","梱包依頼品2850×1150×775","梱包依頼2850×1150×1125","ﾗﾀﾞｰ2900×1150×775","BAR2900×1150×775","ｹｰﾌﾞﾙﾍﾞｱ3000×1100×1100","ﾌｧｲｱｰﾚｰﾙ3000×1150×1125","防火扉3000×1150×2000"],
+    "3001以上":["該当なし","680Q 3100×1150×775","680Q 3500×1150×775","680K 4300×1150×775","上部ﾌﾚｰﾑ3000×1450×775","ﾋﾞｰﾑ3100×1150×775","ﾌﾞﾚｽ3100×1150×775","ｵｰﾄﾘﾌﾀｰ3100×1150×2100","ｵｰﾄﾘﾌﾀｰ3100×1150×2250","ﾌﾞﾚｽ3200×1150×775","BAR 3200×1150×1125","昇降台3200×1150×1300","昇降台3200×1150×1380","防火ｼｬｯﾀｰ3200×1150×2000","ﾊｼｺﾞ3300×1150×775","昇降台3300×1150×1300","ｼｪﾙﾌﾕﾆｯﾄ3300×1150×1550","ｼｪﾙﾌﾕﾆｯﾄ3300×1150×2000","ｼｪﾙﾌ3300×1150×2100","制御盤3300×1350×1100","RSV 3300×1700×1100","ｼｬｯﾀｰ3300×2100×1100","棚3300×2200×1850","棚3300×2200×2250","ﾌﾚｰﾑ3350×1150×775","ﾋﾞｰﾑ3400×1150×775","上部ﾌﾚｰﾑ3500×1150×775","ﾋﾞｰﾑ3500×1150×775","ﾚｰﾙ3600×1150×1125","ﾋﾞｰﾑ3600×1150×1125(台木ﾘﾌﾄ)","ﾋﾞｰﾑ3600×1150×1125","ﾂｰﾙｽﾃｰｼｮﾝ3600×1600×3300","ｵｰﾄﾘﾌﾀｰ3600×2000×1300","防火ｼｬｯﾀｰ3950×1150×2050","ﾚｰﾙ3960×1150×1125","ﾚｰﾙ3960×1150×1125(台木ﾘﾌﾄ)","ｵｰﾄﾘﾌﾀｰ3960×2250×1300","防火ｼｬｯﾀｰ4050×1150×2050","ﾚｰﾙ4100×1150×1125","下部ﾌﾚｰﾑ4100×1150×1550","ﾚｰﾙ4200×1150×1125","ﾄﾛﾘｰ4400×1150×850","ﾊﾞﾅﾅｸﾚｰﾝ4500×1150×1125","ﾚｰﾙ4600×1150×1125","ﾚｰﾙ4700×1100×1100","ｵｰﾄﾘﾌﾀｰ4950×2250×1300","ﾌﾚｰﾑ5100×1600×1550","ﾌﾚｰﾑ5100×1600×1800","ﾌﾚｰﾑ5400×1600×1800","5403 3600×1150×775"]
+  }
 };
 
-const QTY_OPTIONS = ['1c/s','2c/s','3c/s','4c/s','5c/s','6c/s','7c/s','8c/s','9c/s','10c/s','10以上'];
-let deliveryCount = 0;
+let itemCount = 0;
 
-// カテゴリ初期化
-const catSel = document.getElementById('category');
-Object.keys(ITEMS).forEach(cat => {
-  const o = document.createElement('option');
-  o.value = cat; o.textContent = cat;
-  catSel.appendChild(o);
-});
-
-function updateItems() {
-  const cat = catSel.value;
-  const itemSel = document.getElementById('item');
-  itemSel.innerHTML = '';
-  if (!cat) {
-    itemSel.disabled = true;
-    itemSel.innerHTML = '<option value="">先にカテゴリを選択してください</option>';
-    return;
-  }
-  itemSel.disabled = false;
-  itemSel.innerHTML = '<option value="">サイズを選択してください</option>';
-  (ITEMS[cat] || []).forEach(item => {
-    const o = document.createElement('option');
-    o.value = item; o.textContent = item;
-    itemSel.appendChild(o);
-  });
+function makeSelect(name, optArr, selVal){
+  let h = `<select name="${name}" style="width:100%;padding:7px 9px;border:1px solid #ccc;border-radius:4px;font-size:13px;font-family:inherit">`;
+  optArr.forEach(o=>{ h+=`<option value="${o}"${o===selVal?' selected':''}>${o}</option>`; });
+  return h+'</select>';
 }
 
-function makeQtySelect(n) {
-  let s = `<select id="qty${n}"><option value="">数量</option>`;
-  QTY_OPTIONS.forEach(q => s += `<option>${q}</option>`);
-  s += '</select>';
-  return s;
-}
-
-function addDelivery() {
-  if (deliveryCount >= 5) return;
-  deliveryCount++;
-  const n = deliveryCount;
+function addItem(data){
+  itemCount++;
+  const id = itemCount;
   const div = document.createElement('div');
-  div.className = 'delivery-block';
-  div.id = `delivery${n}`;
+  div.className = 'item-block';
+  div.id = `item-${id}`;
+
+  // カテゴリ選択肢
+  const normalCats = Object.keys(itemData).filter(k=>!['工機','その他'].includes(k));
+  let catOpts = '<option value="">-- 選択 --</option>';
+  normalCats.forEach(c=>{ catOpts+=`<option value="${c}">${c}</option>`; });
+  catOpts += '<option value="工機">工機</option><option value="その他">その他</option>';
+
   div.innerHTML = `
-    <div class="delivery-header">
-      <span class="delivery-title">納入日 ${n}${n===1?' （必須）':' （任意）'}</span>
-      ${n > 1 ? `<button class="del-btn" onclick="removeDelivery(${n})" aria-label="削除">×</button>` : ''}
+    <div class="item-block-header">
+      <span class="item-num">品目 ${id}</span>
+      ${id>1?`<button class="btn-del-item" onclick="removeItem(${id})" title="削除">×</button>`:''}
     </div>
-    <div class="delivery-grid">
-      <div class="field"><label>日付</label><input type="date" id="date${n}"></div>
-      <div class="field"><label>数量</label>${makeQtySelect(n)}</div>
-    </div>`;
-  document.getElementById('deliveries').appendChild(div);
-  document.getElementById('addBtn').disabled = deliveryCount >= 5;
+    <div class="form-group">
+      <label>カテゴリ<span class="req">*</span></label>
+      <select id="cat-${id}" onchange="onCatChange(${id})">
+        ${catOpts}
+      </select>
+    </div>
+    <div class="subcat-group" id="subcat-koki-${id}">
+      <div class="form-group">
+        <label>工機 サブカテゴリ<span class="req">*</span></label>
+        <select id="subcat-${id}" onchange="onSubCatChange(${id})">
+          <option value="">-- 選択 --</option>
+          ${Object.keys(itemData['工機']).map(k=>`<option value="${k}">${k}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="subcat-group" id="subcat-sonota-${id}">
+      <div class="form-group">
+        <label>その他 区分<span class="req">*</span></label>
+        <select id="sonota-${id}" onchange="onSonotaChange(${id})">
+          <option value="">-- 選択 --</option>
+          <option value="3000まで">3000まで</option>
+          <option value="3001以上">3001以上</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>品目・サイズ<span class="req">*</span></label>
+      <select id="item-sel-${id}">
+        <option value="">-- カテゴリを先に選択 --</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>納入日・数量<span class="req">*</span></label>
+      <div class="date-rows" id="dates-${id}">
+        <div class="date-row">
+          <div><label style="font-size:11px;color:#777">日付</label><input type="date" class="date-input"></div>
+          <div><label style="font-size:11px;color:#777">数量(c/s)</label><input type="number" class="qty-input" min="1" placeholder="個"></div>
+        </div>
+      </div>
+      <button class="btn-add-date" onclick="addDateRow(${id})">＋ 日付・数量を追加</button>
+    </div>
+  `;
+  document.getElementById('items-container').appendChild(div);
 }
 
-function removeDelivery(n) {
-  const el = document.getElementById(`delivery${n}`);
-  if (el) el.remove();
-  deliveryCount--;
-  document.getElementById('addBtn').disabled = false;
+function removeItem(id){
+  const el = document.getElementById(`item-${id}`);
+  if(el) el.remove();
 }
 
-function showError(msg) {
-  const el = document.getElementById('errorMsg');
-  el.textContent = msg;
-  el.style.display = 'block';
-  el.scrollIntoView({behavior:'smooth', block:'center'});
+function addDateRow(id){
+  const container = document.getElementById(`dates-${id}`);
+  const row = document.createElement('div');
+  row.className = 'date-row';
+  row.innerHTML = `
+    <div><label style="font-size:11px;color:#777">日付</label><input type="date" class="date-input"></div>
+    <div style="display:flex;gap:4px;align-items:end">
+      <div style="flex:1"><label style="font-size:11px;color:#777">数量(c/s)</label><input type="number" class="qty-input" min="1" placeholder="個"></div>
+      <button onclick="this.closest('.date-row').remove()" style="background:none;border:none;color:#999;font-size:16px;cursor:pointer;padding:7px 4px">×</button>
+    </div>
+  `;
+  container.appendChild(row);
 }
 
-async function submitForm() {
-  document.getElementById('errorMsg').style.display = 'none';
-  const req = document.getElementById('requester').value;
-  const cat = catSel.value;
-  const item = document.getElementById('item').value;
-  const date1 = document.getElementById('date1') ? document.getElementById('date1').value : '';
-  const qty1 = document.getElementById('qty1') ? document.getElementById('qty1').value : '';
+function onCatChange(id){
+  const cat = document.getElementById(`cat-${id}`).value;
+  document.getElementById(`subcat-koki-${id}`).classList.remove('active');
+  document.getElementById(`subcat-sonota-${id}`).classList.remove('active');
+  const itemSel = document.getElementById(`item-sel-${id}`);
+  itemSel.innerHTML = '<option value="">-- 選択 --</option>';
 
-  if (!req) { showError('依頼者名を選択してください'); return; }
-  if (!cat) { showError('カテゴリを選択してください'); return; }
-  if (!item) { showError('品目・サイズを選択してください'); return; }
-  if (!date1) { showError('納入日①を入力してください'); return; }
-  if (!qty1) { showError('数量①を選択してください'); return; }
-
-  const payload = { requester: req, category: cat, item: item, memo: document.getElementById('memo').value };
-  for (let i = 1; i <= 5; i++) {
-    const dEl = document.getElementById(`date${i}`);
-    const qEl = document.getElementById(`qty${i}`);
-    payload[`date${i}`] = dEl ? dEl.value : '';
-    payload[`qty${i}`] = qEl ? qEl.value : '';
+  if(cat === '工機'){
+    document.getElementById(`subcat-koki-${id}`).classList.add('active');
+  } else if(cat === 'その他'){
+    document.getElementById(`subcat-sonota-${id}`).classList.add('active');
+  } else if(cat && itemData[cat]){
+    itemData[cat].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; itemSel.appendChild(o); });
   }
+}
 
-  const btn = document.getElementById('submitBtn');
-  const loading = document.getElementById('loadingMsg');
-  btn.disabled = true;
-  loading.style.display = 'block';
+function onSubCatChange(id){
+  const sub = document.getElementById(`subcat-${id}`).value;
+  const itemSel = document.getElementById(`item-sel-${id}`);
+  itemSel.innerHTML = '<option value="">-- 選択 --</option>';
+  if(sub && itemData['工機'][sub]){
+    itemData['工機'][sub].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; itemSel.appendChild(o); });
+  }
+}
 
-  try {
-    const params = new URLSearchParams(payload);
-    const res = await fetch(GAS_URL + '?' + params.toString(), {
-      method: 'GET',
-      mode: 'no-cors',
-    });
+function onSonotaChange(id){
+  const sub = document.getElementById(`sonota-${id}`).value;
+  const itemSel = document.getElementById(`item-sel-${id}`);
+  itemSel.innerHTML = '<option value="">-- 選択 --</option>';
+  if(sub && itemData['その他'][sub]){
+    itemData['その他'][sub].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; itemSel.appendChild(o); });
+  }
+}
 
-    // 送信成功
-    let detail = `<dt>依頼者</dt><dd>${req}</dd><dt>品目</dt><dd>${cat}：${item}</dd>`;
-    for (let i = 1; i <= 5; i++) {
-      const d = payload[`date${i}`];
-      const q = payload[`qty${i}`];
-      if (d && q) detail += `<dt>納入日${i}</dt><dd>${d}　${q}</dd>`;
+function collectItems(){
+  const blocks = document.querySelectorAll('.item-block');
+  const items = [];
+  blocks.forEach(block=>{
+    const id = block.id.replace('item-','');
+    const cat = document.getElementById(`cat-${id}`).value;
+    let catDisplay = cat;
+    if(cat==='工機'){
+      const sub = document.getElementById(`subcat-${id}`).value;
+      catDisplay = sub ? `工機_${sub}` : '工機';
+    } else if(cat==='その他'){
+      const sub = document.getElementById(`sonota-${id}`).value;
+      catDisplay = sub ? `その他（${sub}）` : 'その他';
     }
-    if (payload.memo) detail += `<dt>備考</dt><dd>${payload.memo}</dd>`;
-    document.getElementById('successDetail').innerHTML = `<dl>${detail}</dl>`;
-    document.getElementById('mainForm').style.display = 'none';
-    document.getElementById('successView').style.display = 'block';
-    window.scrollTo(0, 0);
-  } catch (err) {
-    showError('送信に失敗しました。通信状況を確認して再度お試しください。');
-    btn.disabled = false;
-    loading.style.display = 'none';
-  }
+    const itemVal = document.getElementById(`item-sel-${id}`).value;
+    const dates = [];
+    const dateInputs = block.querySelectorAll('.date-input');
+    const qtyInputs = block.querySelectorAll('.qty-input');
+    dateInputs.forEach((d,i)=>{ if(d.value||qtyInputs[i].value){ dates.push({date:d.value, qty:qtyInputs[i].value}); } });
+    items.push({cat:catDisplay, item:itemVal, dates});
+  });
+  return items;
 }
 
-function resetForm() {
-  document.getElementById('requester').value = '';
-  catSel.value = '';
-  updateItems();
-  document.getElementById('deliveries').innerHTML = '';
-  deliveryCount = 0;
-  addDelivery();
-  document.getElementById('addBtn').disabled = false;
-  document.getElementById('memo').value = '';
-  document.getElementById('errorMsg').style.display = 'none';
-  document.getElementById('mainForm').style.display = 'block';
-  document.getElementById('successView').style.display = 'none';
-  document.getElementById('submitBtn').disabled = false;
-  document.getElementById('loadingMsg').style.display = 'none';
-  window.scrollTo(0, 0);
+function goConfirm(){
+  const requester = document.getElementById('requester').value;
+  if(!requester){ showMsg('依頼者名を選択してください。','err'); return; }
+
+  const items = collectItems();
+  let valid = true;
+  items.forEach((it,i)=>{
+    if(!it.cat||it.cat==='工機'||it.cat==='その他'||!it.item){ valid=false; showMsg(`品目${i+1}のカテゴリ・品目を選択してください。`,'err'); }
+    if(!it.dates.length||!it.dates[0].date||!it.dates[0].qty){ valid=false; showMsg(`品目${i+1}の納入日・数量を入力してください。`,'err'); }
+  });
+  if(!valid) return;
+  if(!items.length){ showMsg('品目を1つ以上追加してください。','err'); return; }
+
+  const client = document.getElementById('client').value;
+  const note = document.getElementById('note').value;
+
+  // 確認画面を組み立て
+  let html = `
+    <div class="card">
+      <table class="confirm-table">
+        <tr><th>依頼者名</th><td><input id="c-requester" value="${requester}"></td></tr>
+        <tr><th>客先名</th><td><input id="c-client" value="${client}"></td></tr>
+      </table>
+    </div>`;
+
+  items.forEach((it,i)=>{
+    const dateRows = it.dates.map((d,j)=>`
+      <tr>
+        <th>納入日${j+1}・数量</th>
+        <td style="display:flex;gap:6px">
+          <input type="date" class="c-date-${i}" value="${d.date}" style="flex:1">
+          <input type="number" class="c-qty-${i}" value="${d.qty}" min="1" style="width:70px"> c/s
+        </td>
+      </tr>`).join('');
+    html += `
+      <div class="item-confirm-block">
+        <div style="font-size:12px;font-weight:bold;color:#2c5282;margin-bottom:8px">品目 ${i+1}</div>
+        <table class="confirm-table">
+          <tr><th>カテゴリ</th><td><input id="c-cat-${i}" value="${it.cat}"></td></tr>
+          <tr><th>品目・サイズ</th><td><input id="c-item-${i}" value="${it.item}"></td></tr>
+          ${dateRows}
+        </table>
+      </div>`;
+  });
+
+  html += `
+    <div class="card">
+      <table class="confirm-table">
+        <tr><th>備考</th><td><textarea id="c-note" rows="3" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:3px;font-size:13px">${note}</textarea></td></tr>
+      </table>
+    </div>`;
+
+  document.getElementById('confirm-content').innerHTML = html;
+  document.getElementById('input-screen').style.display = 'none';
+  document.getElementById('confirm-screen').style.display = 'block';
+  window.scrollTo(0,0);
+  window._confirmItems = items;
 }
 
-// 初期化：納入日①を追加
-addDelivery();
+function goBack(){
+  document.getElementById('confirm-screen').style.display = 'none';
+  document.getElementById('input-screen').style.display = 'block';
+  window.scrollTo(0,0);
+}
+
+function submitForm(){
+  const btn = document.getElementById('btn-send');
+  btn.disabled = true; btn.textContent = '送信中...';
+
+  const requester = document.getElementById('c-requester').value;
+  const client = document.getElementById('c-client').value;
+  const note = document.getElementById('c-note').value;
+  const items = window._confirmItems;
+
+  // パラメータ組み立て（品目ごとにフラット化）
+  const params = new URLSearchParams();
+  params.set('依頼者名', requester);
+  params.set('客先名', client);
+  params.set('品目数', items.length);
+
+  items.forEach((it,i)=>{
+    const catVal = document.getElementById(`c-cat-${i}`).value;
+    const itemVal = document.getElementById(`c-item-${i}`).value;
+    params.set(`品目${i+1}_カテゴリ`, catVal);
+    params.set(`品目${i+1}_品目サイズ`, itemVal);
+    const dates = document.querySelectorAll(`.c-date-${i}`);
+    const qtys = document.querySelectorAll(`.c-qty-${i}`);
+    dates.forEach((d,j)=>{ params.set(`品目${i+1}_納入日${j+1}`, d.value); params.set(`品目${i+1}_数量${j+1}`, qtys[j].value); });
+  });
+  params.set('備考', note);
+
+  fetch(`${GAS_URL}?${params.toString()}`)
+    .then(r=>r.text())
+    .then(()=>{
+      document.getElementById('confirm-content').innerHTML = '';
+      document.getElementById('msg2').className = 'ok';
+      document.getElementById('msg2').textContent = '✅ 送信が完了しました！';
+      btn.textContent = '送信済み';
+    })
+    .catch(()=>{
+      document.getElementById('msg2').className = 'err';
+      document.getElementById('msg2').textContent = '❌ 送信に失敗しました。もう一度お試しください。';
+      btn.disabled = false; btn.textContent = '送信する';
+    });
+}
+
+function showMsg(text, type){
+  const m = document.getElementById('msg');
+  m.className = type; m.textContent = text;
+}
+
+// 初期品目を1つ追加
+addItem();
 </script>
 </body>
 </html>
