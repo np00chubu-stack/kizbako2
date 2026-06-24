@@ -135,7 +135,7 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
   </div>
   <div class="after-send-btns" id="after-send-btns">
     <button class="btn-continue" onclick="continueForm()">続けて依頼する</button>
-    <button class="btn-close" onclick="window.close()">閉じる</button>
+    <button class="btn-close" onclick="closeForm()">閉じる</button>
   </div>
   <div id="msg2"></div>
 </div>
@@ -245,7 +245,7 @@ function addItem(data){
   const normalCats = Object.keys(itemData).filter(k=>!['工機','その他'].includes(k));
   let catOpts = '<option value="">-- 選択 --</option>';
   normalCats.forEach(c=>{ catOpts+=`<option value="${c}">${c}</option>`; });
-  catOpts += '<option value="工機">工機</option><option value="その他">その他</option>';
+  catOpts += '<option value="工機">工機</option><option value="その他">その他</option><option value="__other__">その他（直接入力）</option>';
 
   div.innerHTML = `
     <div class="item-block-header">
@@ -262,10 +262,15 @@ function addItem(data){
     <div class="subcat-group" id="subcat-koki-${id}">
       <div class="form-group">
         <label>工機 サブカテゴリ<span class="req">*</span></label>
-        <select id="subcat-${id}" onchange="onSubCatChange(${id})">
-          <option value="">-- 選択 --</option>
-          ${Object.keys(itemData['工機']).map(k=>`<option value="${k}">${k}</option>`).join('')}
-        </select>
+        <div class="input-toggle">
+          <select id="subcat-${id}" onchange="onSubCatChange(${id})">
+            <option value="">-- 選択 --</option>
+            ${Object.keys(itemData['工機']).map(k=>`<option value="${k}">${k}</option>`).join('')}
+            <option value="__other__">その他（直接入力）</option>
+          </select>
+          <input type="text" id="subcat-text-${id}" placeholder="サブカテゴリとサイズを入力" style="display:none">
+          <button type="button" class="btn-free" id="subcat-back-${id}" onclick="clearSubcatOther(${id})" style="display:none">← 一覧</button>
+        </div>
       </div>
     </div>
     <div class="subcat-group" id="subcat-sonota-${id}">
@@ -332,19 +337,68 @@ function onCatChange(id){
   const cat = document.getElementById(`cat-${id}`).value;
   if(cat==='工機') document.getElementById(`subcat-koki-${id}`).classList.add('active');
   else if(cat==='その他') document.getElementById(`subcat-sonota-${id}`).classList.add('active');
+  else if(cat==='__other__'){
+    // カテゴリ自由入力 → サイズも自由入力に切り替え
+    const itemSel=document.getElementById(`item-sel-${id}`);
+    itemSel.innerHTML='<option value="__other__">直接入力</option>';
+    itemSel.style.display='none';
+    document.getElementById(`item-text-${id}`).style.display='';
+    document.getElementById(`item-back-${id}`).style.display='';
+    document.getElementById(`item-back-${id}`).onclick=()=>{ clearSizeSelect(id); document.getElementById(`cat-${id}`).value=''; };
+    document.getElementById(`daimoku-group-${id}`).style.display='';
+    updateDaimokuStyle(id);
+  }
   else if(cat && itemData[cat]) populateSize(id, itemData[cat]);
 }
 
 function onSubCatChange(id){
-  const sub=document.getElementById(`subcat-${id}`).value;
+  const sel=document.getElementById(`subcat-${id}`);
   clearSizeSelect(id);
-  if(sub&&itemData['工機'][sub]) populateSize(id, itemData['工機'][sub]);
+  if(sel.value==='__other__'){
+    // サブカテゴリ自由入力
+    sel.style.display='none';
+    document.getElementById(`subcat-text-${id}`).style.display='';
+    document.getElementById(`subcat-back-${id}`).style.display='';
+    const itemSel=document.getElementById(`item-sel-${id}`);
+    itemSel.innerHTML='<option value="__other__">直接入力</option>';
+    itemSel.style.display='none';
+    document.getElementById(`item-text-${id}`).style.display='';
+    document.getElementById(`item-text-${id}`).placeholder='サイズを入力';
+    document.getElementById(`item-back-${id}`).style.display='none';
+    document.getElementById(`daimoku-group-${id}`).style.display='';
+    updateDaimokuStyle(id);
+  } else if(sel.value && itemData['工機'][sel.value]){
+    populateSize(id, itemData['工機'][sel.value]);
+  }
+}
+
+function clearSubcatOther(id){
+  const sel=document.getElementById(`subcat-${id}`);
+  sel.value=''; sel.style.display='';
+  document.getElementById(`subcat-text-${id}`).style.display='none';
+  document.getElementById(`subcat-text-${id}`).value='';
+  document.getElementById(`subcat-back-${id}`).style.display='none';
+  clearSizeSelect(id);
 }
 
 function onSonotaChange(id){
   const sub=document.getElementById(`sonota-${id}`).value;
   clearSizeSelect(id);
-  if(sub&&itemData['その他'][sub]) populateSize(id, itemData['その他'][sub]);
+  if(sub&&itemData['その他'][sub]){
+    // 数字順にソートして表示
+    const arr=[...itemData['その他'][sub]];
+    arr.sort((a,b)=>{
+      if(a==='該当なし') return -1;
+      if(b==='該当なし') return 1;
+      const na=a.match(/\d+/g)||[]; const nb=b.match(/\d+/g)||[];
+      for(let i=0;i<Math.max(na.length,nb.length);i++){
+        const d=(parseInt(na[i])||0)-(parseInt(nb[i])||0);
+        if(d!==0) return d;
+      }
+      return 0;
+    });
+    populateSize(id, arr);
+  }
 }
 
 function populateSize(id, arr){
@@ -395,6 +449,14 @@ function getSizeVal(id){
   return sel.value==='__other__'?txt.value.trim():sel.value;
 }
 
+function getSubcatVal(id){
+  const sel=document.getElementById(`subcat-${id}`);
+  const txt=document.getElementById(`subcat-text-${id}`);
+  if(!sel) return '';
+  if(sel.style.display==='none') return txt.value.trim();
+  return sel.value==='__other__'?txt.value.trim():sel.value;
+}
+
 function updateDaimokuStyle(id){
   const radios=document.querySelectorAll(`input[name="daimoku-${id}"]`);
   radios.forEach(r=>{
@@ -414,10 +476,19 @@ function collectItems(){
   const items=[];
   blocks.forEach(block=>{
     const id=block.id.replace('item-','');
-    const cat=document.getElementById(`cat-${id}`).value;
+    const catSel=document.getElementById(`cat-${id}`);
+    let cat=catSel.value;
     let catDisplay=cat;
-    if(cat==='工機'){ const sub=document.getElementById(`subcat-${id}`).value; catDisplay=sub?`工機_${sub}`:'工機'; }
-    else if(cat==='その他'){ const sub=document.getElementById(`sonota-${id}`).value; catDisplay=sub?`その他（${sub}）`:'その他'; }
+    if(cat==='工機'){
+      const sub=getSubcatVal(id);
+      catDisplay=sub?`工機_${sub}`:'工機';
+    } else if(cat==='その他'){
+      const sub=document.getElementById(`sonota-${id}`).value;
+      catDisplay=sub?`その他（${sub}）`:'その他';
+    } else if(cat==='__other__'){
+      // カテゴリ自由入力の場合、サイズ欄に全部入力してもらう
+      catDisplay='その他';
+    }
     const sizeVal=getSizeVal(id);
     const daimoku=getDaimoku(id);
     const client=getClientVal(id);
@@ -524,11 +595,13 @@ function submitForm(){
   fetch(`${GAS_URL}?${params.toString()}`)
     .then(r=>r.text())
     .then(()=>{
-      document.getElementById('confirm-content').innerHTML='<p style="text-align:center;font-size:15px;color:#276749;padding:20px">✅ 送信が完了しました！</p>';
+      document.getElementById('confirm-content').innerHTML='<p style="text-align:center;font-size:16px;color:#276749;padding:30px">✅ 送信が完了しました！</p>';
       document.getElementById('msg2').className='';
       document.getElementById('msg2').textContent='';
       document.getElementById('confirm-btns').style.display='none';
       document.getElementById('after-send-btns').style.display='grid';
+      // btn-sendをリセット（続けて送信用）
+      btn.disabled=false; btn.textContent='送信する';
     })
     .catch(()=>{
       document.getElementById('msg2').className='err';
@@ -546,8 +619,28 @@ function continueForm(){
   addItem();
   document.getElementById('confirm-screen').style.display='none';
   document.getElementById('input-screen').style.display='block';
+  document.getElementById('confirm-btns').style.display='grid';
+  document.getElementById('after-send-btns').style.display='none';
   document.getElementById('msg').textContent='';
+  document.getElementById('msg').className='';
   window.scrollTo(0,0);
+}
+
+function closeForm(){
+  // スマホではwindow.close()が効かないためトップに戻す
+  if(!window.close()){
+    document.getElementById('confirm-screen').style.display='none';
+    document.getElementById('input-screen').style.display='block';
+    document.getElementById('confirm-btns').style.display='grid';
+    document.getElementById('after-send-btns').style.display='none';
+    document.getElementById('items-container').innerHTML='';
+    itemCount=0; addItem();
+    document.getElementById('requester').value='';
+    document.getElementById('note').value='';
+    document.getElementById('msg').textContent='';
+    window.scrollTo(0,0);
+    showMsg('送信が完了しました。続けて入力できます。','ok');
+  }
 }
 
 function showMsg(text,type){
