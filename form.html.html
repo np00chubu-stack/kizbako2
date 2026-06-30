@@ -140,7 +140,7 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyzA3f5QkS0KEgYaH4PaHeBMdnbKyMFCEBJSqtHSkGkcnRPYDvlNi9_rOWkGFZOsLPD/exec";
 
-const CLIENTS = ["TSMC","O-PRO","SMIC","IMEC","Infineon","Micron","Yongxin","TI","松下電子材料","SMOC","SK Hynix","VisEra","SPIL","Nexchip","ASE","Applied","Officemate","共通"];
+let CLIENTS = ["TSMC","O-PRO","SMIC","IMEC","Infineon","Micron","Yongxin","TI","松下電子材料","SMOC","SK Hynix","VisEra","SPIL","Nexchip","ASE","Applied","Officemate","共通"]; // 起動時にスプシの最新データで上書きされる（読み込み完了までは初期値を表示）
 
 const itemData = {
   "マスト": ["該当なし","1430×1350×1125","1430×1350×1300","1800×1350×1125","2250×1350×1125","2250×1350×1300","2250×1450×1125","2640×1350×1125","3300×1350×1125","3300×1350×1300","3600×1350×1300","4400×1450×1125","4600×1800×1125","4600×1800×1150"],
@@ -687,8 +687,49 @@ function loadRequesters(){
   document.body.appendChild(script);
 }
 
+// =============================================
+// 客先名一覧をGAS（カレンダースプシ「客先名一覧」シート）から取得
+// 取得後、既に表示されている品目ブロックの客先名プルダウンも更新する
+// =============================================
+function loadClients(){
+  const cbName = 'onClientsLoaded_' + Date.now();
+
+  window[cbName] = function(res){
+    delete window[cbName];
+    if(script.parentNode) script.parentNode.removeChild(script);
+
+    const names = (res && res.clients) ? res.clients : [];
+    if(!names.length) return; // 取得失敗時は初期値（埋め込み済みの18社）のまま維持
+
+    CLIENTS = names;
+    refreshAllClientSelects();
+  };
+
+  const script = document.createElement('script');
+  script.src = `${GAS_URL}?action=getClients&callback=${cbName}`;
+  script.onerror = function(){ delete window[cbName]; }; // 失敗時は初期値のまま維持
+  document.body.appendChild(script);
+}
+
+// 表示中の全品目ブロックの客先名プルダウンを、最新のCLIENTSで再構築する
+// （選択中の値は可能な範囲で維持する）
+function refreshAllClientSelects(){
+  document.querySelectorAll('.item-block').forEach(block=>{
+    const id = block.id.replace('item-','');
+    const sel = document.getElementById(`client-sel-${id}`);
+    if(!sel) return;
+    const current = sel.value;
+    let opts = `<option value="">-- なし / 選択 --</option>`;
+    CLIENTS.forEach(c=>{ opts+=`<option value="${c}">${c}</option>`; });
+    opts += `<option value="__other__">その他（直接入力）</option>`;
+    sel.innerHTML = opts;
+    if(current && CLIENTS.includes(current)) sel.value = current;
+  });
+}
+
 addItem();
 loadRequesters();
+loadClients();
 </script>
 </body>
 </html>
