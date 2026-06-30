@@ -237,11 +237,11 @@ function addItem(data){
   const div = document.createElement('div');
   div.className='item-block'; div.id=`item-${id}`;
 
-  const normalCats = Object.keys(itemData).filter(k=>!['工機','その他'].includes(k));
+  const normalCats = Object.keys(itemData).filter(k=>!['工機','その他'].includes(k)).sort((a,b)=>a.localeCompare(b,'ja'));
   let catOpts = '<option value="">-- 選択 --</option>';
   normalCats.forEach(c=>{ catOpts+=`<option value="${c}">${c}</option>`; });
   catOpts += '<option value="3000まで">3000まで</option><option value="3001以上">3001以上</option>';
-  catOpts += '<option value="工機">工機</option><option value="その他">その他</option><option value="__other__">その他（直接入力）</option>';
+  catOpts += '<option value="工機">工機</option><option value="__other__">その他（直接入力）</option>';
 
   div.innerHTML = `
     <div class="item-block-header">
@@ -267,16 +267,6 @@ function addItem(data){
           <input type="text" id="subcat-text-${id}" placeholder="サブカテゴリとサイズを入力" style="display:none">
           <button type="button" class="btn-free" id="subcat-back-${id}" onclick="clearSubcatOther(${id})" style="display:none">← 一覧</button>
         </div>
-      </div>
-    </div>
-    <div class="subcat-group" id="subcat-sonota-${id}">
-      <div class="form-group">
-        <label>その他 区分<span class="req">*</span></label>
-        <select id="sonota-${id}" onchange="onSonotaChange(${id})">
-          <option value="">-- 選択 --</option>
-          <option value="3000まで">3000まで</option>
-          <option value="3001以上">3001以上</option>
-        </select>
       </div>
     </div>
     <div class="form-group">
@@ -328,11 +318,9 @@ function addDateRow(id){
 
 function onCatChange(id){
   document.getElementById(`subcat-koki-${id}`).classList.remove('active');
-  document.getElementById(`subcat-sonota-${id}`).classList.remove('active');
   clearSizeSelect(id);
   const cat = document.getElementById(`cat-${id}`).value;
   if(cat==='工機') document.getElementById(`subcat-koki-${id}`).classList.add('active');
-  else if(cat==='その他') document.getElementById(`subcat-sonota-${id}`).classList.add('active');
   else if(cat==='3000まで' || cat==='3001以上'){
     // カテゴリ一覧から直接「3000まで」「3001以上」を選んだ場合、サブカテゴリを経由せずそのままサイズ一覧を表示
     populateSizeSorted(id, itemData['その他'][cat]);
@@ -379,14 +367,6 @@ function clearSubcatOther(id){
   document.getElementById(`subcat-text-${id}`).value='';
   document.getElementById(`subcat-back-${id}`).style.display='none';
   clearSizeSelect(id);
-}
-
-function onSonotaChange(id){
-  const sub=document.getElementById(`sonota-${id}`).value;
-  clearSizeSelect(id);
-  if(sub&&itemData['その他'][sub]){
-    populateSizeSorted(id, itemData['その他'][sub]);
-  }
 }
 
 // 数字（サイズ）順にソートしてサイズ一覧を表示（「3000まで」「3001以上」用）
@@ -486,9 +466,6 @@ function collectItems(){
     if(cat==='工機'){
       const sub=getSubcatVal(id);
       catDisplay=sub?`工機_${sub}`:'工機';
-    } else if(cat==='その他'){
-      const sub=document.getElementById(`sonota-${id}`).value;
-      catDisplay=sub?`その他（${sub}）`:'その他';
     } else if(cat==='__other__'){
       // カテゴリ自由入力の場合、サイズ欄に全部入力してもらう
       catDisplay='その他';
@@ -512,7 +489,7 @@ function goConfirm(){
   if(!items.length){ showMsg('品目を1つ以上追加してください。','err'); return; }
   let valid=true;
   items.forEach((it,i)=>{
-    if(!it.cat||it.cat==='工機'||it.cat==='その他'){ valid=false; showMsg(`品目${i+1}：カテゴリを選択してください。`,'err'); }
+    if(!it.cat||it.cat==='工機'){ valid=false; showMsg(`品目${i+1}：カテゴリを選択してください。`,'err'); }
     if(!it.size){ valid=false; showMsg(`品目${i+1}：サイズを選択または入力してください。`,'err'); }
     if(!it.dates.length||!it.dates[0].date||!it.dates[0].qty){ valid=false; showMsg(`品目${i+1}：納入日と数量を入力してください。`,'err'); }
   });
