@@ -245,6 +245,7 @@ function addItem(data){
   const normalCats = Object.keys(itemData).filter(k=>!['工機','その他'].includes(k));
   let catOpts = '<option value="">-- 選択 --</option>';
   normalCats.forEach(c=>{ catOpts+=`<option value="${c}">${c}</option>`; });
+  catOpts += '<option value="3000まで">3000まで</option><option value="3001以上">3001以上</option>';
   catOpts += '<option value="工機">工機</option><option value="その他">その他</option><option value="__other__">その他（直接入力）</option>';
 
   div.innerHTML = `
@@ -337,6 +338,10 @@ function onCatChange(id){
   const cat = document.getElementById(`cat-${id}`).value;
   if(cat==='工機') document.getElementById(`subcat-koki-${id}`).classList.add('active');
   else if(cat==='その他') document.getElementById(`subcat-sonota-${id}`).classList.add('active');
+  else if(cat==='3000まで' || cat==='3001以上'){
+    // カテゴリ一覧から直接「3000まで」「3001以上」を選んだ場合、サブカテゴリを経由せずそのままサイズ一覧を表示
+    populateSizeSorted(id, itemData['その他'][cat]);
+  }
   else if(cat==='__other__'){
     // カテゴリ自由入力 → サイズも自由入力に切り替え
     const itemSel=document.getElementById(`item-sel-${id}`);
@@ -385,20 +390,24 @@ function onSonotaChange(id){
   const sub=document.getElementById(`sonota-${id}`).value;
   clearSizeSelect(id);
   if(sub&&itemData['その他'][sub]){
-    // 数字順にソートして表示
-    const arr=[...itemData['その他'][sub]];
-    arr.sort((a,b)=>{
-      if(a==='該当なし') return -1;
-      if(b==='該当なし') return 1;
-      const na=a.match(/\d+/g)||[]; const nb=b.match(/\d+/g)||[];
-      for(let i=0;i<Math.max(na.length,nb.length);i++){
-        const d=(parseInt(na[i])||0)-(parseInt(nb[i])||0);
-        if(d!==0) return d;
-      }
-      return 0;
-    });
-    populateSize(id, arr);
+    populateSizeSorted(id, itemData['その他'][sub]);
   }
+}
+
+// 数字（サイズ）順にソートしてサイズ一覧を表示（「3000まで」「3001以上」用）
+function populateSizeSorted(id, list){
+  const arr=[...list];
+  arr.sort((a,b)=>{
+    if(a==='該当なし') return -1;
+    if(b==='該当なし') return 1;
+    const na=a.match(/\d+/g)||[]; const nb=b.match(/\d+/g)||[];
+    for(let i=0;i<Math.max(na.length,nb.length);i++){
+      const d=(parseInt(na[i])||0)-(parseInt(nb[i])||0);
+      if(d!==0) return d;
+    }
+    return 0;
+  });
+  populateSize(id, arr);
 }
 
 function populateSize(id, arr){
