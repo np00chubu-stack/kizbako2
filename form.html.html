@@ -97,12 +97,7 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
     <div class="form-group">
       <label>依頼者名<span class="req">*</span></label>
       <select id="requester">
-        <option value="">-- 選択してください --</option>
-        <option>東</option><option>苅谷</option><option>小林</option><option>佐藤</option>
-        <option>澤田</option><option>鈴木</option><option>田中</option><option>丹羽</option>
-        <option>中村</option><option>八木</option><option>八島</option>
-        <option>平野</option><option>福田</option><option>堀</option><option>宮地</option>
-        <option>長谷川</option>
+        <option value="">-- 読み込み中... --</option>
       </select>
     </div>
   </div>
@@ -657,7 +652,43 @@ function showMsg(text,type){
   m.className=type; m.textContent=text;
 }
 
+// =============================================
+// 依頼者一覧をGAS（カレンダースプシ「依頼者一覧」シート）から取得
+// JSONPで取得（GAS Webアプリはfetchで直接読むとCORSで弾かれるため）
+// =============================================
+function loadRequesters(){
+  const sel = document.getElementById('requester');
+  const cbName = 'onRequestersLoaded_' + Date.now();
+
+  window[cbName] = function(res){
+    delete window[cbName];
+    if(script.parentNode) script.parentNode.removeChild(script);
+
+    sel.innerHTML = '<option value="">-- 選択してください --</option>';
+    const names = (res && res.requesters) ? res.requesters : [];
+    if(!names.length){
+      // 取得失敗・空の場合は選択不可にせず、最低限フォームは使えるようにする
+      sel.innerHTML += '<option value="" disabled>（依頼者一覧の取得に失敗しました）</option>';
+      return;
+    }
+    names.forEach(n=>{
+      const o=document.createElement('option');
+      o.value=n; o.textContent=n;
+      sel.appendChild(o);
+    });
+  };
+
+  const script = document.createElement('script');
+  script.src = `${GAS_URL}?action=getRequesters&callback=${cbName}`;
+  script.onerror = function(){
+    delete window[cbName];
+    sel.innerHTML = '<option value="">-- 選択してください --</option><option value="" disabled>（依頼者一覧の取得に失敗しました）</option>';
+  };
+  document.body.appendChild(script);
+}
+
 addItem();
+loadRequesters();
 </script>
 </body>
 </html>
