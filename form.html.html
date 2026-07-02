@@ -286,6 +286,9 @@ function addItem(data){
         <input type="text" id="item-text-${id}" placeholder="サイズを入力" style="display:none">
         <button type="button" class="btn-free" id="item-back-${id}" onclick="clearSizeOther(${id})" style="display:none">← 一覧</button>
       </div>
+      <div id="new-size-notice-${id}" style="display:none;margin-top:6px;padding:8px 10px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:12px;color:#856404;line-height:1.5">
+        ⚠️ 新規カテゴリ・新サイズのため、指示書がまだありません。仕組オーダーシートを作成し、担当者に送ってください。
+      </div>
     </div>
     <div class="form-group" id="daimoku-group-${id}" style="display:none">
       <label>台木リフト</label>
@@ -343,6 +346,7 @@ function onCatChange(id){
     document.getElementById(`item-back-${id}`).onclick=()=>{ clearSizeSelect(id); document.getElementById(`cat-${id}`).value=''; };
     document.getElementById(`daimoku-group-${id}`).style.display='';
     updateDaimokuStyle(id);
+    toggleNewSizeNotice(id, true);
   }
   else if(cat && itemData[cat]) populateSize(id, itemData[cat]);
 }
@@ -363,6 +367,7 @@ function onSubCatChange(id){
     document.getElementById(`item-back-${id}`).style.display='none';
     document.getElementById(`daimoku-group-${id}`).style.display='';
     updateDaimokuStyle(id);
+    toggleNewSizeNotice(id, true);
   } else if(sel.value && itemData['工機'][sel.value]){
     populateSize(id, itemData['工機'][sel.value]);
   }
@@ -393,6 +398,11 @@ function populateSizeSorted(id, list){
   populateSize(id, arr);
 }
 
+function toggleNewSizeNotice(id, show){
+  const el=document.getElementById(`new-size-notice-${id}`);
+  if(el) el.style.display = show ? '' : 'none';
+}
+
 function populateSize(id, arr){
   const sel=document.getElementById(`item-sel-${id}`);
   sel.innerHTML='<option value="">-- 選択 --</option>';
@@ -418,10 +428,12 @@ function onSizeSelChange(id){
     document.getElementById(`item-back-${id}`).style.display='';
     document.getElementById(`item-text-${id}`).focus();
     document.getElementById(`daimoku-group-${id}`).style.display='none';
+    toggleNewSizeNotice(id, true);
   } else {
     // 台木リフト表示
     document.getElementById(`daimoku-group-${id}`).style.display = sel.value ? '' : 'none';
     updateDaimokuStyle(id);
+    toggleNewSizeNotice(id, false);
   }
 }
 
@@ -432,6 +444,7 @@ function clearSizeOther(id){
   document.getElementById(`item-text-${id}`).value='';
   document.getElementById(`item-back-${id}`).style.display='none';
   document.getElementById(`daimoku-group-${id}`).style.display='none';
+  toggleNewSizeNotice(id, false);
 }
 
 function getSizeVal(id){
