@@ -139,6 +139,8 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
 
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyzA3f5QkS0KEgYaH4PaHeBMdnbKyMFCEBJSqtHSkGkcnRPYDvlNi9_rOWkGFZOsLPD/exec";
+// ★ 仕組オーダーシートフォームの公開URL（GitHub Pages等にアップロード後、ここに差し替えてください）
+const SHIKUMI_FORM_URL = "https://docs.google.com/spreadsheets/d/1sy-DJDkkPWWNHKxJXbbwGtvlWBtMAOurACOoij8Q3Ic/edit";
 
 let CLIENTS = ["TSMC","O-PRO","SMIC","IMEC","Infineon","Micron","Yongxin","TI","松下電子材料","SMOC","SK Hynix","VisEra","SPIL","Nexchip","ASE","Applied","Officemate","共通"]; // 起動時にスプシの最新データで上書きされる（読み込み完了までは初期値を表示）
 
@@ -288,6 +290,12 @@ function addItem(data){
       </div>
       <div id="new-size-notice-${id}" style="display:none;margin-top:6px;padding:8px 10px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:12px;color:#856404;line-height:1.5">
         ⚠️ 新規カテゴリ・新サイズのため、指示書がまだありません。仕組オーダーシートを作成し、担当者に送ってください。
+        <div style="margin-top:6px">
+          <a href="${SHIKUMI_FORM_URL}" target="_blank" rel="noopener"
+             style="display:inline-block;padding:5px 10px;background:#856404;color:#fff;border-radius:4px;text-decoration:none;font-size:12px">
+            🔧 仕組オーダーシートを開く
+          </a>
+        </div>
       </div>
     </div>
     <div class="form-group" id="daimoku-group-${id}" style="display:none">
@@ -476,6 +484,11 @@ function getDaimoku(id){
   return r?r.value:'なし';
 }
 
+function isNewSizeNotice(id){
+  const el=document.getElementById(`new-size-notice-${id}`);
+  return !!(el && el.style.display!=='none');
+}
+
 function collectItems(){
   const blocks=document.querySelectorAll('.item-block');
   const items=[];
@@ -498,7 +511,7 @@ function collectItems(){
     const dateInputs=block.querySelectorAll('.date-input');
     const qtyInputs=block.querySelectorAll('.qty-input');
     dateInputs.forEach((d,i)=>{ if(d.value||qtyInputs[i].value) dates.push({date:d.value,qty:qtyInputs[i].value}); });
-    items.push({cat:catDisplay,size:sizeVal,daimoku,client,dates});
+    items.push({cat:catDisplay,size:sizeVal,daimoku,client,dates,isNew:isNewSizeNotice(id)});
   });
   return items;
 }
@@ -537,6 +550,16 @@ function goConfirm(){
     html+=`
       <div class="item-confirm-block">
         <div style="font-size:12px;font-weight:bold;color:#2c5282;margin-bottom:8px">品目 ${i+1}</div>
+        ${it.isNew ? `
+        <div style="margin-bottom:8px;padding:8px 10px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:12px;color:#856404;line-height:1.5">
+          ⚠️ 新規カテゴリ・新サイズのため、指示書がまだありません。仕組オーダーシートを作成し、担当者に送ってください。
+          <div style="margin-top:6px">
+            <a href="${SHIKUMI_FORM_URL}" target="_blank" rel="noopener"
+               style="display:inline-block;padding:5px 10px;background:#856404;color:#fff;border-radius:4px;text-decoration:none;font-size:12px">
+              🔧 仕組オーダーシートを開く
+            </a>
+          </div>
+        </div>` : ''}
         <table class="confirm-table">
           <tr><th>客先名</th><td><input type="text" id="c-client-${i}" value="${it.client}"></td></tr>
           <tr><th>カテゴリ</th><td><input type="text" id="c-cat-${i}" value="${it.cat}"></td></tr>
