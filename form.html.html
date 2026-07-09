@@ -140,7 +140,7 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyzA3f5QkS0KEgYaH4PaHeBMdnbKyMFCEBJSqtHSkGkcnRPYDvlNi9_rOWkGFZOsLPD/exec";
 // ★ 仕組オーダーシートフォームの公開URL（GitHub Pages等にアップロード後、ここに差し替えてください）
-const SHIKUMI_FORM_URL = "https://docs.google.com/spreadsheets/d/1sy-DJDkkPWWNHKxJXbbwGtvlWBtMAOurACOoij8Q3Ic/edit";
+const SHIKUMI_FORM_URL = "https://np00chubu-stack.github.io/kizbako2/shikumi_form.html";
 
 let CLIENTS = ["TSMC","O-PRO","SMIC","IMEC","Infineon","Micron","Yongxin","TI","松下電子材料","SMOC","SK Hynix","VisEra","SPIL","Nexchip","ASE","Applied","Officemate","共通"]; // 起動時にスプシの最新データで上書きされる（読み込み完了までは初期値を表示）
 
@@ -585,6 +585,7 @@ function goConfirm(){
   document.getElementById('msg2').textContent='';
   document.getElementById('msg2').className='';
   window._confirmItemCount=items.length;
+  window._confirmItems=items;
   window.scrollTo(0,0);
 }
 
@@ -620,7 +621,25 @@ function submitForm(){
   fetch(`${GAS_URL}?${params.toString()}`)
     .then(r=>r.text())
     .then(()=>{
-      document.getElementById('confirm-content').innerHTML='<p style="text-align:center;font-size:16px;color:#276749;padding:30px">✅ 送信が完了しました！</p>';
+      let html='<p style="text-align:center;font-size:16px;color:#276749;padding:30px 30px 10px">✅ 送信が完了しました！</p>';
+
+      const newItems=(window._confirmItems||[]).filter(it=>it.isNew);
+      if(newItems.length){
+        const listHtml=newItems.map(it=>`<li>${it.cat}　${it.size}</li>`).join('');
+        html+=`
+          <div id="shikumi-notice" style="margin:0 0 20px;padding:12px 14px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:13px;color:#856404;line-height:1.6">
+            ⚠️ ${newItems.length}件の新サイズがあります。順番に入力してください。
+            <ul style="margin:6px 0 0 18px">${listHtml}</ul>
+            <div style="margin-top:8px;text-align:center">
+              <a href="${SHIKUMI_FORM_URL}" target="_blank" rel="noopener"
+                 style="display:inline-block;padding:7px 14px;background:#856404;color:#fff;border-radius:4px;text-decoration:none;font-size:13px">
+                🔧 仕組オーダーシートを開く
+              </a>
+            </div>
+          </div>`;
+      }
+
+      document.getElementById('confirm-content').innerHTML=html;
       document.getElementById('msg2').className='';
       document.getElementById('msg2').textContent='';
       document.getElementById('confirm-btns').style.display='none';
@@ -747,6 +766,15 @@ function refreshAllClientSelects(){
     if(current && CLIENTS.includes(current)) sel.value = current;
   });
 }
+
+// 仕組オーダーシート（別タブ）で「これで終了する」が押されたら、
+// 送信完了画面に出している新サイズ案内メッセージを自動的に消す
+window.addEventListener('storage', function(e){
+  if(e.key === 'shikumi_done'){
+    const el = document.getElementById('shikumi-notice');
+    if(el) el.remove();
+  }
+});
 
 addItem();
 loadRequesters();
