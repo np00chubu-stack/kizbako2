@@ -32,6 +32,10 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
 .btn-free{font-size:11px;white-space:nowrap;padding:6px 10px;border:1px solid #aaa;border-radius:4px;background:#fff;cursor:pointer;color:#555}
 .btn-free:hover{background:#f0f4f8}
 
+/* L/W/H分割入力 */
+.lwh-sep{color:#999;font-size:13px;flex-shrink:0}
+.lwh-input{flex:1;min-width:0;width:auto}
+
 /* 台木リフト */
 .daimoku-row{display:flex;gap:8px;margin-top:6px}
 .daimoku-row label{font-size:12px;font-weight:normal;color:#555;display:flex;align-items:center;gap:4px;cursor:pointer;flex:1;padding:6px 10px;border:1px solid #ccc;border-radius:4px;background:#fff}
@@ -285,7 +289,13 @@ function addItem(data){
         <select id="item-sel-${id}" onchange="onSizeSelChange(${id})">
           <option value="">-- カテゴリを先に選択 --</option>
         </select>
-        <input type="text" id="item-text-${id}" placeholder="サイズを入力" style="display:none">
+        <div id="item-lwh-${id}" style="display:none;gap:4px;align-items:center;flex:1">
+          <input type="number" id="item-l-${id}" class="lwh-input" placeholder="L" inputmode="numeric">
+          <span class="lwh-sep">×</span>
+          <input type="number" id="item-w-${id}" class="lwh-input" placeholder="W" inputmode="numeric">
+          <span class="lwh-sep">×</span>
+          <input type="number" id="item-h-${id}" class="lwh-input" placeholder="H" inputmode="numeric">
+        </div>
         <button type="button" class="btn-free" id="item-back-${id}" onclick="clearSizeOther(${id})" style="display:none">← 一覧</button>
       </div>
       <div id="new-size-notice-${id}" style="display:none;margin-top:6px;padding:8px 10px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:12px;color:#856404;line-height:1.5">
@@ -345,11 +355,11 @@ function onCatChange(id){
     populateSizeSorted(id, itemData['その他'][cat]);
   }
   else if(cat==='__other__'){
-    // カテゴリ自由入力 → サイズも自由入力に切り替え
+    // カテゴリ自由入力 → サイズもL/W/H直接入力に切り替え
     const itemSel=document.getElementById(`item-sel-${id}`);
     itemSel.innerHTML='<option value="__other__">直接入力</option>';
     itemSel.style.display='none';
-    document.getElementById(`item-text-${id}`).style.display='';
+    document.getElementById(`item-lwh-${id}`).style.display='flex';
     document.getElementById(`item-back-${id}`).style.display='';
     document.getElementById(`item-back-${id}`).onclick=()=>{ clearSizeSelect(id); document.getElementById(`cat-${id}`).value=''; };
     document.getElementById(`daimoku-group-${id}`).style.display='';
@@ -370,8 +380,7 @@ function onSubCatChange(id){
     const itemSel=document.getElementById(`item-sel-${id}`);
     itemSel.innerHTML='<option value="__other__">直接入力</option>';
     itemSel.style.display='none';
-    document.getElementById(`item-text-${id}`).style.display='';
-    document.getElementById(`item-text-${id}`).placeholder='サイズを入力';
+    document.getElementById(`item-lwh-${id}`).style.display='flex';
     document.getElementById(`item-back-${id}`).style.display='none';
     document.getElementById(`daimoku-group-${id}`).style.display='';
     updateDaimokuStyle(id);
@@ -424,7 +433,7 @@ function clearSizeSelect(id){
   sel.innerHTML='<option value="">-- カテゴリを先に選択 --</option>';
   // 台木リフト非表示
   document.getElementById(`daimoku-group-${id}`).style.display='none';
-  // テキスト入力を隠す
+  // L/W/H入力を隠す
   clearSizeOther(id);
 }
 
@@ -432,9 +441,9 @@ function onSizeSelChange(id){
   const sel=document.getElementById(`item-sel-${id}`);
   if(sel.value==='__other__'){
     sel.style.display='none';
-    document.getElementById(`item-text-${id}`).style.display='';
+    document.getElementById(`item-lwh-${id}`).style.display='flex';
     document.getElementById(`item-back-${id}`).style.display='';
-    document.getElementById(`item-text-${id}`).focus();
+    document.getElementById(`item-l-${id}`).focus();
     document.getElementById(`daimoku-group-${id}`).style.display='none';
     toggleNewSizeNotice(id, true);
   } else {
@@ -448,8 +457,10 @@ function onSizeSelChange(id){
 function clearSizeOther(id){
   const sel=document.getElementById(`item-sel-${id}`);
   sel.value=''; sel.style.display='';
-  document.getElementById(`item-text-${id}`).style.display='none';
-  document.getElementById(`item-text-${id}`).value='';
+  document.getElementById(`item-lwh-${id}`).style.display='none';
+  document.getElementById(`item-l-${id}`).value='';
+  document.getElementById(`item-w-${id}`).value='';
+  document.getElementById(`item-h-${id}`).value='';
   document.getElementById(`item-back-${id}`).style.display='none';
   document.getElementById(`daimoku-group-${id}`).style.display='none';
   toggleNewSizeNotice(id, false);
@@ -457,9 +468,15 @@ function clearSizeOther(id){
 
 function getSizeVal(id){
   const sel=document.getElementById(`item-sel-${id}`);
-  const txt=document.getElementById(`item-text-${id}`);
-  if(sel.style.display==='none') return txt.value.trim();
-  return sel.value==='__other__'?txt.value.trim():sel.value;
+  const isOther = sel.style.display==='none' || sel.value==='__other__';
+  if(isOther){
+    const l=document.getElementById(`item-l-${id}`).value.trim();
+    const w=document.getElementById(`item-w-${id}`).value.trim();
+    const h=document.getElementById(`item-h-${id}`).value.trim();
+    if(!l && !w && !h) return '';
+    return `${l}×${w}×${h}`;
+  }
+  return sel.value;
 }
 
 function getSubcatVal(id){
