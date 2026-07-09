@@ -90,12 +90,11 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
   </div>
 
   <div class="card">
-    <div class="section-title">外寸・個数・納入日</div>
+    <div class="section-title">外寸・納入日</div>
     <div class="dim-grid">
       <div class="form-group"><label>L(=横)<span class="req">*</span></label><input type="number" id="dim-l" min="0"></div>
       <div class="form-group"><label>W(=縦)<span class="req">*</span></label><input type="number" id="dim-w" min="0"></div>
       <div class="form-group"><label>H(=高さ)<span class="req">*</span></label><input type="number" id="dim-h" min="0"></div>
-      <div class="form-group"><label>個数(C/S)<span class="req">*</span></label><input type="number" id="dim-qty" min="0"></div>
     </div>
     <div class="form-group"><label>納入日<span class="req">*</span></label><input type="date" id="dim-date"></div>
   </div>
@@ -178,11 +177,10 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
 
     <div class="buzai-block">
       <div class="buzai-name">落し蓋</div>
-      <div class="toggle-row" id="otoshibuta-row" style="margin-bottom:8px">
+      <div class="toggle-row" id="otoshibuta-row">
         <label id="ob-nashi"><input type="radio" name="otoshibuta" value="無し" checked onchange="updateToggleStyle('otoshibuta-row')"> 無し</label>
         <label id="ob-ari"><input type="radio" name="otoshibuta" value="有り" onchange="updateToggleStyle('otoshibuta-row')"> 有り</label>
       </div>
-      <div><label style="font-size:11px;color:#777">数量</label><input type="number" id="otoshibuta-qty" min="0"></div>
     </div>
   </div>
 
@@ -319,7 +317,7 @@ function validate(){
   if(!document.getElementById('product').value.trim()){ showMsg('製品名を入力してください。'); return false; }
   if(!document.getElementById('staff').value){ showMsg('名前（担当者）を選択してください。'); return false; }
   const requiredNum = [
-    ['dim-l','L(=横)'], ['dim-w','W(=縦)'], ['dim-h','H(=高さ)'], ['dim-qty','個数(C/S)']
+    ['dim-l','L(=横)'], ['dim-w','W(=縦)'], ['dim-h','H(=高さ)']
   ];
   for(const [id,label] of requiredNum){
     if(!document.getElementById(id).value){ showMsg(`${label}を入力してください。`); return false; }
@@ -342,7 +340,6 @@ function submitShikumi(){
   params.set('L', document.getElementById('dim-l').value);
   params.set('W', document.getElementById('dim-w').value);
   params.set('H', document.getElementById('dim-h').value);
-  params.set('個数', document.getElementById('dim-qty').value);
   params.set('納入日', document.getElementById('dim-date').value);
 
   params.set('滑材サイズ', document.getElementById('nameri-size').value);
@@ -359,7 +356,6 @@ function submitShikumi(){
   params.set('梁サイズ', document.getElementById('hari-size').value);
   params.set('梁本数', document.getElementById('hari-qty').value);
   params.set('落し蓋', getRadioVal('otoshibuta'));
-  params.set('落し蓋数量', document.getElementById('otoshibuta-qty').value);
 
   fetch(`${GAS_URL}?${params.toString()}`)
     .then(r=>r.text())
@@ -384,7 +380,6 @@ function resetForm(){
   document.getElementById('dim-l').value = '';
   document.getElementById('dim-w').value = '';
   document.getElementById('dim-h').value = '';
-  document.getElementById('dim-qty').value = '';
   document.getElementById('dim-date').value = '';
   document.getElementById('nameri-size').value = '';
   document.getElementById('nameri-qty').value = '';
@@ -398,7 +393,6 @@ function resetForm(){
   document.getElementById('osae-qty').value = '';
   document.getElementById('hari-size').value = '';
   document.getElementById('hari-qty').value = '';
-  document.getElementById('otoshibuta-qty').value = '';
   document.querySelector('input[name="daimoku"][value="なし"]').checked = true;
   document.querySelector('input[name="otoshibuta"][value="無し"]').checked = true;
   updateToggleStyle('daimoku-row');
