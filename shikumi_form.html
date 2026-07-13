@@ -258,6 +258,9 @@ function loadRequesters(){
       o.value=n; o.textContent=n;
       sel.appendChild(o);
     });
+    // プリフィル：担当者名
+    const pStaff = _prefill.staff;
+    if(pStaff && names.includes(pStaff)) sel.value = pStaff;
   };
 
   const script = document.createElement('script');
@@ -282,6 +285,19 @@ function loadClients(){
     const names = (res && res.clients) ? res.clients : [];
     if(names.length) CLIENTS = names;
     renderClientSelect();
+    // プリフィル：顧客名
+    const pClient = _prefill.client;
+    if(pClient){
+      const sel = document.getElementById('client-sel');
+      const txt = document.getElementById('client-text');
+      const back = document.getElementById('client-back');
+      if(CLIENTS.includes(pClient)){
+        sel.value = pClient;
+      } else if(pClient){
+        sel.style.display='none'; txt.style.display=''; back.style.display='';
+        txt.value = pClient;
+      }
+    }
   };
 
   const script = document.createElement('script');
@@ -421,8 +437,33 @@ function finishForm(){
   window.close();
 }
 
+// =============================================
+// URLクエリからプリフィル情報を取得
+// =============================================
+const _prefill = (function(){
+  const p = new URLSearchParams(window.location.search);
+  return {
+    client:  p.get('client')  || '',
+    product: p.get('product') || '',
+    staff:   p.get('staff')   || '',
+    l:       p.get('l')       || '',
+    w:       p.get('w')       || '',
+    h:       p.get('h')       || '',
+    date:    p.get('date')    || ''
+  };
+})();
+
+function applyPrefillBasic(){
+  if(_prefill.product) document.getElementById('product').value = _prefill.product;
+  if(_prefill.l)       document.getElementById('dim-l').value   = _prefill.l;
+  if(_prefill.w)       document.getElementById('dim-w').value   = _prefill.w;
+  if(_prefill.h)       document.getElementById('dim-h').value   = _prefill.h;
+  if(_prefill.date)    document.getElementById('dim-date').value = _prefill.date;
+}
+
 loadRequesters();
 loadClients();
+applyPrefillBasic();
 </script>
 </body>
 </html>
