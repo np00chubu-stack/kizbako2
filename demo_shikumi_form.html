@@ -528,6 +528,9 @@ function finishForm(){
     localStorage.setItem('shikumi_done', String(Date.now()));
   }catch(e){}
 
+  // タブが閉じきらずスマホ等で残った場合に備え、裏側で入力内容をクリアしておく
+  resetForm();
+
   document.querySelector('.after-btns').style.display = 'none';
   document.getElementById('closed-note').style.display = 'block';
 
