@@ -148,7 +148,8 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyzA3f5QkS0KEgYaH4PaHeBMdnbKyMFCEBJSqtHSkGkcnRPYDvlNi9_rOWkGFZOsLPD/exec";
 // ★ 仕組オーダーシートフォームの公開URL（GitHub Pages等にアップロード後、ここに差し替えてください）
-const SHIKUMI_FORM_URL = "https://np00chubu-stack.github.io/kizbako2/shikumi_form.html";
+// ★サンプル版の仕組オーダーシート（送信しても実際には保存されない版）
+const SHIKUMI_FORM_URL = "https://np00chubu-stack.github.io/kizbako2/demo_shikumi_form.html";
 
 let CLIENTS = ["TSMC","O-PRO","SMIC","IMEC","Infineon","Micron","Yongxin","TI","松下電子材料","SMOC","SK Hynix","VisEra","SPIL","Nexchip","ASE","Applied","Officemate","共通"]; // 起動時にスプシの最新データで上書きされる（読み込み完了までは初期値を表示）
 
@@ -615,12 +616,21 @@ function submitForm(){
       const newItems=(window._confirmItems||[]).filter(it=>it.isNew);
       if(newItems.length){
         const linksHtml=newItems.map(it=>{
+          const lwh=it.size.split('×');
+          const q=new URLSearchParams();
+          q.set('client', it.client||'');
+          q.set('product', it.cat||'');
+          q.set('staff', requester);
+          q.set('l', lwh[0]||'');
+          q.set('w', lwh[1]||'');
+          q.set('h', lwh[2]||'');
+          q.set('date', (it.dates[0]&&it.dates[0].date)||'');
           return `<li style="margin-bottom:8px">
             ${it.cat}　${it.size}<br>
-            <button type="button" onclick="alert('サンプル版のため無効化されています')"
-               style="display:inline-block;margin-top:4px;padding:5px 10px;background:#856404;color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer">
-              🔧 仕組オーダーシートを開く
-            </button>
+            <a href="${SHIKUMI_FORM_URL}?${q.toString()}" target="_blank" rel="noopener"
+               style="display:inline-block;margin-top:4px;padding:5px 10px;background:#856404;color:#fff;border-radius:4px;text-decoration:none;font-size:12px">
+              🔧 仕組オーダーシートを開く（サンプル版）
+            </a>
           </li>`;
         }).join('');
         html+=`
