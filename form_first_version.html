@@ -114,6 +114,12 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
   <!-- 備考 -->
   <div class="card">
     <div class="form-group">
+      <label>備考の対象</label>
+      <select id="biko-target">
+        <option value="all">全品目共通</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label>備考（任意）</label>
       <textarea id="note" rows="3" placeholder="特記事項があれば入力してください"></textarea>
     </div>
@@ -334,9 +340,22 @@ function addItem(data){
   `;
   document.getElementById('items-container').appendChild(div);
   updateDaimokuStyle(id);
+  refreshBikoTargetOptions();
 }
 
-function removeItem(id){ const el=document.getElementById(`item-${id}`); if(el)el.remove(); }
+function removeItem(id){ const el=document.getElementById(`item-${id}`); if(el)el.remove(); refreshBikoTargetOptions(); }
+
+// ★今回追加：備考「対象」プルダウンの選択肢を、現在の品目数に合わせて更新する
+function refreshBikoTargetOptions(){
+  const sel = document.getElementById('biko-target');
+  if(!sel) return;
+  const current = sel.value;
+  const n = document.querySelectorAll('.item-block').length;
+  let opts = '<option value="all">全品目共通</option>';
+  for(let i=1;i<=n;i++){ opts += `<option value="${i}">品目${i}のみ</option>`; }
+  sel.innerHTML = opts;
+  if(current && [...sel.options].some(o=>o.value===current)) sel.value = current;
+}
 
 function addDateRow(id){
   const container = document.getElementById(`dates-${id}`);
@@ -551,6 +570,9 @@ function goConfirm(){
   if(!valid) return;
 
   const note=document.getElementById('note').value;
+  const bikoTargetVal = document.getElementById('biko-target').value;
+  const bikoTargetLabel = bikoTargetVal === 'all' ? '全品目共通' : `品目${bikoTargetVal}のみ`;
+  window._bikoTarget = bikoTargetVal;
 
   let html=`
     <div class="card">
@@ -584,6 +606,7 @@ function goConfirm(){
   html+=`
     <div class="card">
       <table class="confirm-table">
+        <tr><th>備考の対象</th><td>${bikoTargetLabel}</td></tr>
         <tr><th>備考</th><td><textarea id="c-note" rows="3" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:3px;font-size:13px;font-family:inherit">${note}</textarea></td></tr>
       </table>
     </div>`;
@@ -628,6 +651,7 @@ function submitForm(){
     dates.forEach((d,j)=>{ params.set(`品目${i+1}_納入日${j+1}`,d.value); params.set(`品目${i+1}_数量${j+1}`,qtys[j].value); });
   }
   params.set('備考',note);
+  params.set('備考対象', window._bikoTarget || 'all');
 
   fetch(`${GAS_URL}?${params.toString()}`)
     .then(r=>r.text())
