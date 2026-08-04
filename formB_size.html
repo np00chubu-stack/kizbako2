@@ -87,6 +87,14 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
 
 .subcat-group{display:none}
 .subcat-group.active{display:block}
+
+/* 客先名 サジェストリスト */
+.client-combo{position:relative}
+.client-suggest{position:absolute;left:0;right:0;top:100%;margin-top:2px;background:#fff;border:1px solid #ccc;border-radius:4px;max-height:180px;overflow-y:auto;z-index:30;display:none;box-shadow:0 4px 10px rgba(0,0,0,.12)}
+.client-suggest.show{display:block}
+.client-suggest button{display:block;width:100%;text-align:left;padding:9px 10px;border:none;border-bottom:1px solid #f0f0f0;background:#fff;font-size:13px;color:#333;cursor:pointer}
+.client-suggest button:last-child{border-bottom:none}
+.client-suggest button:hover,.client-suggest button:active{background:#ebf8ff}
 </style>
 </head>
 <body>
@@ -146,8 +154,6 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
 </div>
 
 </div>
-
-<datalist id="clients-datalist"></datalist>
 
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyzA3f5QkS0KEgYaH4PaHeBMdnbKyMFCEBJSqtHSkGkcnRPYDvlNi9_rOWkGFZOsLPD/exec";
@@ -220,13 +226,18 @@ const pendingSizeCarry = {};
 let itemCount = 0;
 
 // 客先名入力欄HTML生成（品目ブロック用）
-// ★入力しながら候補を絞り込める検索付き入力（datalist）に変更。
-//   一覧にない客先名もそのまま自由入力できる（従来の「その他」ボタンは廃止）。
+// ★datalistはブラウザにより部分一致になる／モバイルでは候補自体が出ないことがあるため、
+//   自前実装のサジェストリスト（先頭一致・タップ対応）に変更。
+//   一覧にない客先名もそのまま自由入力できる。
 function makeClientSelect(id){
   return `
     <div class="form-group" id="client-group-${id}">
       <label>客先名（任意）</label>
-      <input type="text" id="client-input-${id}" list="clients-datalist" placeholder="客先名を入力（候補が絞り込まれます）" autocomplete="off">
+      <div class="client-combo">
+        <input type="text" id="client-input-${id}" placeholder="客先名を入力（候補が絞り込まれます）" autocomplete="off"
+          oninput="onClientInput(${id})" onfocus="onClientInput(${id})" onblur="onClientBlur(${id})">
+        <div id="client-suggest-${id}" class="client-suggest"></div>
+      </div>
     </div>`;
 }
 
@@ -235,11 +246,35 @@ function getClientVal(id){
   return el ? el.value.trim() : '';
 }
 
-// 客先名候補（datalist）を最新のCLIENTSで再構築する
-function renderClientsDatalist(){
-  const dl = document.getElementById('clients-datalist');
-  if(!dl) return;
-  dl.innerHTML = CLIENTS.map(c=>`<option value="${c}">`).join('');
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// 入力中の文字列の「先頭一致」のみで候補を絞り込む（未入力時は全件表示）
+function onClientInput(id){
+  const input = document.getElementById(`client-input-${id}`);
+  const box = document.getElementById(`client-suggest-${id}`);
+  if(!input || !box) return;
+  const q = input.value.trim().toLowerCase();
+  const list = q ? CLIENTS.filter(c=>c.toLowerCase().startsWith(q)) : CLIENTS;
+  if(!list.length){ box.innerHTML=''; box.classList.remove('show'); return; }
+  box.innerHTML = list.map(c=>`<button type="button" onmousedown="event.preventDefault()" onclick="selectClient(${id},'${encodeURIComponent(c)}')">${escapeHtml(c)}</button>`).join('');
+  box.classList.add('show');
+}
+
+// タップ/クリック時に入力欄のフォーカスが先に外れて候補が消えないよう、少し遅らせてから閉じる
+function onClientBlur(id){
+  setTimeout(()=>{
+    const box = document.getElementById(`client-suggest-${id}`);
+    if(box) box.classList.remove('show');
+  }, 150);
+}
+
+function selectClient(id, encodedName){
+  const input = document.getElementById(`client-input-${id}`);
+  const box = document.getElementById(`client-suggest-${id}`);
+  if(input) input.value = decodeURIComponent(encodedName);
+  if(box) box.classList.remove('show');
 }
 
 // =============================================
@@ -898,8 +933,7 @@ function loadClients(){
     const names = (res && res.clients) ? res.clients : [];
     if(!names.length) return; // 取得失敗時は初期値のまま維持
 
-    CLIENTS = names;
-    renderClientsDatalist();
+    CLIENTS = names; // 次回の入力・候補表示時に自動で反映される
   };
 
   const script = document.createElement('script');
