@@ -147,6 +147,8 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
 
 </div>
 
+<datalist id="clients-datalist"></datalist>
+
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyzA3f5QkS0KEgYaH4PaHeBMdnbKyMFCEBJSqtHSkGkcnRPYDvlNi9_rOWkGFZOsLPD/exec";
 // ★ 仕組オーダーシートフォームの公開URL
@@ -217,41 +219,27 @@ const pendingSizeCarry = {};
 
 let itemCount = 0;
 
-// 客先名プルダウンHTML生成（品目ブロック用）
+// 客先名入力欄HTML生成（品目ブロック用）
+// ★入力しながら候補を絞り込める検索付き入力（datalist）に変更。
+//   一覧にない客先名もそのまま自由入力できる（従来の「その他」ボタンは廃止）。
 function makeClientSelect(id){
-  let opts = `<option value="">-- なし / 選択 --</option>`;
-  CLIENTS.forEach(c=>{ opts+=`<option value="${c}">${c}</option>`; });
-  opts += `<option value="__other__">その他（直接入力）</option>`;
   return `
     <div class="form-group" id="client-group-${id}">
       <label>客先名（任意）</label>
-      <div class="input-toggle">
-        <select id="client-sel-${id}" onchange="onClientSelChange(${id})">${opts}</select>
-        <input type="text" id="client-text-${id}" placeholder="客先名を入力" style="display:none">
-        <button type="button" class="btn-free" id="client-back-${id}" onclick="clearClientOther(${id})" style="display:none">← 一覧</button>
-      </div>
+      <input type="text" id="client-input-${id}" list="clients-datalist" placeholder="客先名を入力（候補が絞り込まれます）" autocomplete="off">
     </div>`;
 }
 
-function onClientSelChange(id){
-  const sel = document.getElementById(`client-sel-${id}`);
-  const txt = document.getElementById(`client-text-${id}`);
-  const back = document.getElementById(`client-back-${id}`);
-  if(sel.value==='__other__'){
-    sel.style.display='none'; txt.style.display=''; back.style.display=''; txt.focus();
-  }
-}
-function clearClientOther(id){
-  const sel = document.getElementById(`client-sel-${id}`);
-  const txt = document.getElementById(`client-text-${id}`);
-  const back = document.getElementById(`client-back-${id}`);
-  sel.value=''; sel.style.display=''; txt.style.display='none'; back.style.display='none'; txt.value='';
-}
 function getClientVal(id){
-  const sel = document.getElementById(`client-sel-${id}`);
-  const txt = document.getElementById(`client-text-${id}`);
-  if(sel.style.display==='none') return txt.value.trim();
-  return sel.value==='__other__' ? txt.value.trim() : sel.value;
+  const el = document.getElementById(`client-input-${id}`);
+  return el ? el.value.trim() : '';
+}
+
+// 客先名候補（datalist）を最新のCLIENTSで再構築する
+function renderClientsDatalist(){
+  const dl = document.getElementById('clients-datalist');
+  if(!dl) return;
+  dl.innerHTML = CLIENTS.map(c=>`<option value="${c}">`).join('');
 }
 
 // =============================================
@@ -911,29 +899,13 @@ function loadClients(){
     if(!names.length) return; // 取得失敗時は初期値のまま維持
 
     CLIENTS = names;
-    refreshAllClientSelects();
+    renderClientsDatalist();
   };
 
   const script = document.createElement('script');
   script.src = `${GAS_URL}?action=getClients&callback=${cbName}`;
   script.onerror = function(){ delete window[cbName]; }; // 失敗時は初期値のまま維持
   document.body.appendChild(script);
-}
-
-// 表示中の全品目ブロックの客先名プルダウンを、最新のCLIENTSで再構築する
-// （選択中の値は可能な範囲で維持する）
-function refreshAllClientSelects(){
-  document.querySelectorAll('.item-block').forEach(block=>{
-    const id = block.id.replace('item-','');
-    const sel = document.getElementById(`client-sel-${id}`);
-    if(!sel) return;
-    const current = sel.value;
-    let opts = `<option value="">-- なし / 選択 --</option>`;
-    CLIENTS.forEach(c=>{ opts+=`<option value="${c}">${c}</option>`; });
-    opts += `<option value="__other__">その他（直接入力）</option>`;
-    sel.innerHTML = opts;
-    if(current && CLIENTS.includes(current)) sel.value = current;
-  });
 }
 
 // 仕組オーダーシート（別タブ）で「これで終了する」が押されたら、
