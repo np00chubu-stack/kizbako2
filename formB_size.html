@@ -713,6 +713,15 @@ function goConfirm(){
   });
   if(!valid) return;
 
+  const hasWeekend = items.some(it => it.dates.some(d => {
+    if(!d.date) return false;
+    const dow = new Date(d.date + 'T00:00:00').getDay();
+    return dow === 0 || dow === 6;
+  }));
+  if(hasWeekend){
+    if(!confirm('土日が選択されています。よろしいですか？')) return;
+  }
+
   const note=document.getElementById('note').value;
   const bikoTargetVal = document.getElementById('biko-target').value;
   const bikoTargetLabel = bikoTargetVal === 'all' ? '全品目共通' : `品目${bikoTargetVal}のみ`;
