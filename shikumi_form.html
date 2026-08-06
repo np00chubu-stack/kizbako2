@@ -429,6 +429,15 @@ function showMsg2(text){
   m.textContent = text;
 }
 
+function isBatchAllDone(){
+  if(!_prefill.batch || !_prefill.total) return false;
+  try{
+    const key = 'shikumi_batch_' + _prefill.batch;
+    const doneArr = JSON.parse(localStorage.getItem(key) || '[]');
+    return doneArr.length >= parseInt(_prefill.total, 10);
+  }catch(e){ return false; }
+}
+
 function submitShikumi(){
   const btn = document.getElementById('btn-send');
   btn.disabled = true; btn.textContent = '送信中...';
@@ -466,6 +475,8 @@ function submitShikumi(){
       document.getElementById('done-screen').style.display = 'block';
       document.getElementById('closed-note').style.display = 'none';
       document.querySelector('.after-btns').style.display = 'grid';
+      const contBtn = document.querySelector('.btn-continue');
+      if(contBtn) contBtn.style.display = isBatchAllDone() ? 'none' : '';
       btn.disabled = false; btn.textContent = '送信する';
       window.scrollTo(0,0);
     })
@@ -518,6 +529,13 @@ function finishForm(){
     localStorage.setItem('shikumi_done', String(Date.now()));
   }catch(e){}
 
+  // 依頼フォーム側のタブを開いた元ウィンドウであれば、そちらにフォーカスを戻す
+  try{
+    if(window.opener && !window.opener.closed){
+      window.opener.focus();
+    }
+  }catch(e){}
+
   // タブが閉じきらずスマホ等で残った場合に備え、裏側で入力内容をクリアしておく
   // （画面表示は完了画面のまま。次回開いた時に前回の入力が残らないようにするため）
   resetForm();
@@ -540,7 +558,8 @@ const _prefill = (function(){
     h:       p.get('h')       || '',
     date:    p.get('date')    || '',
     batch:   p.get('batch')   || '',
-    idx:     p.get('idx')     || ''
+    idx:     p.get('idx')     || '',
+    total:   p.get('total')   || ''
   };
 })();
 
