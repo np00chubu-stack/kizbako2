@@ -19,33 +19,33 @@ select,input[type="date"],input[type="number"],input[type="text"]{
   font-size:14px;font-family:inherit;background:#fff;
 }
 select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px rgba(49,130,206,.2)}
- 
+
 .input-toggle{display:flex;gap:6px;align-items:center}
 .input-toggle select,.input-toggle input{flex:1}
 .btn-free{font-size:11px;white-space:nowrap;padding:6px 10px;border:1px solid #aaa;border-radius:4px;background:#fff;cursor:pointer;color:#555}
 .btn-free:hover{background:#f0f4f8}
- 
+
 .section-title{font-size:13px;font-weight:bold;color:#2c5282;background:#dbeafe;padding:6px 10px;border-radius:4px;margin-bottom:12px}
- 
+
 .dim-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
- 
+
 .buzai-block{border:1px solid #d0d8e4;border-radius:6px;padding:10px;margin-bottom:8px;background:#f7f9fc}
 .buzai-name{font-size:13px;font-weight:bold;color:#1a3a5c;margin-bottom:6px}
 .buzai-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .buzai-fixed{font-size:13px;color:#666;padding:9px 0}
- 
+
 .toggle-row{display:flex;gap:8px;margin-top:2px}
 .toggle-row label{font-size:12px;font-weight:normal;color:#555;display:flex;align-items:center;gap:4px;cursor:pointer;flex:1;padding:8px 10px;border:1px solid #ccc;border-radius:4px;background:#fff;margin-bottom:0}
 .toggle-row input[type="radio"]{width:auto;margin:0}
 .toggle-row label.selected{border-color:#2c5282;background:#dbeafe;color:#1a3a5c;font-weight:bold}
- 
+
 .btn-submit{width:100%;padding:13px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:bold;cursor:pointer}
 .btn-submit:hover{background:#2c5282}
 .btn-submit:disabled{background:#aaa;cursor:not-allowed}
- 
+
 #msg{margin-top:14px;font-size:14px;text-align:center;padding:10px;border-radius:4px}
 #msg.err{color:#c53030;background:#fff5f5;border:1px solid #fc8181}
- 
+
 /* 確認画面 */
 #confirm-screen{display:none}
 .confirm-table{width:100%;border-collapse:collapse;font-size:13px}
@@ -60,7 +60,7 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
 .btn-send:disabled{background:#aaa;cursor:not-allowed}
 #msg2{margin-top:14px;font-size:14px;text-align:center;padding:10px;border-radius:4px}
 #msg2.err{color:#c53030;background:#fff5f5;border:1px solid #fc8181}
- 
+
 /* 完了画面 */
 #done-screen{display:none;text-align:center;padding:20px 0}
 #done-screen .check{font-size:40px;margin-bottom:10px}
@@ -75,12 +75,12 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
 </head>
 <body>
 <div class="container">
- 
+
 <!-- ===== 入力画面 ===== -->
 <div id="input-screen">
   <h1>🔧 仕組オーダーシート</h1>
   <p class="desc">新規カテゴリ・新サイズのため指示書がまだない品目について、担当者が仕組みを作成するための情報を入力してください。</p>
- 
+
   <div class="card">
     <div class="form-group" id="client-group">
       <label>顧客名<span class="req">*</span></label>
@@ -103,7 +103,7 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
       </select>
     </div>
   </div>
- 
+
   <div class="card">
     <div class="section-title">外寸・納入日</div>
     <div class="dim-grid">
@@ -113,10 +113,10 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
     </div>
     <div class="form-group"><label>納入日<span class="req">*</span></label><input type="date" id="dim-date"></div>
   </div>
- 
+
   <div class="card">
     <div class="section-title">部材表</div>
- 
+
     <div class="buzai-block">
       <div class="buzai-name">滑材</div>
       <div class="buzai-grid">
@@ -126,12 +126,12 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
         <div><label style="font-size:11px;color:#777">本数</label><input type="number" id="nameri-qty" min="0"></div>
       </div>
     </div>
- 
+
     <div class="buzai-block">
       <div class="buzai-name">スリ</div>
       <div class="buzai-fixed">80（固定・入力不要）</div>
     </div>
- 
+
     <div class="buzai-block">
       <div class="buzai-name">台木リフト</div>
       <div class="toggle-row" id="daimoku-row">
@@ -139,7 +139,7 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
         <label id="dl-ari"><input type="radio" name="daimoku" value="あり" onchange="updateToggleStyle('daimoku-row')"> あり</label>
       </div>
     </div>
- 
+
     <div class="buzai-block">
       <div class="buzai-name">ヘッダー</div>
       <div class="buzai-grid">
@@ -149,7 +149,7 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
         <div><label style="font-size:11px;color:#777">数量</label><input type="number" id="header-qty" min="0"></div>
       </div>
     </div>
- 
+
     <div class="buzai-block">
       <div class="buzai-name">ロード</div>
       <div class="buzai-grid">
@@ -159,7 +159,7 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
         <div><label style="font-size:11px;color:#777">本数</label><input type="number" id="load-qty" min="0"></div>
       </div>
     </div>
- 
+
     <div class="buzai-block">
       <div class="buzai-name">ブロック</div>
       <div class="buzai-grid">
@@ -169,7 +169,7 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
         <div><label style="font-size:11px;color:#777">本数</label><input type="number" id="block-qty" min="0"></div>
       </div>
     </div>
- 
+
     <div class="buzai-block">
       <div class="buzai-name">押え</div>
       <div class="buzai-grid">
@@ -179,7 +179,7 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
         <div><label style="font-size:11px;color:#777">本数</label><input type="number" id="osae-qty" min="0"></div>
       </div>
     </div>
- 
+
     <div class="buzai-block">
       <div class="buzai-name">梁</div>
       <div class="buzai-grid">
@@ -189,7 +189,7 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
         <div><label style="font-size:11px;color:#777">本数</label><input type="number" id="hari-qty" min="0"></div>
       </div>
     </div>
- 
+
     <div class="buzai-block">
       <div class="buzai-name">落し蓋</div>
       <div class="toggle-row" id="otoshibuta-row">
@@ -198,11 +198,11 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
       </div>
     </div>
   </div>
- 
+
   <button class="btn-submit" id="btn-confirm" onclick="goConfirm()">内容を確認する →</button>
   <div id="msg"></div>
 </div>
- 
+
 <!-- ===== 確認画面 ===== -->
 <div id="confirm-screen">
   <h1>🔧 入力内容の確認</h1>
@@ -238,7 +238,7 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
   </div>
   <div id="msg2"></div>
 </div>
- 
+
 <!-- ===== 完了画面 ===== -->
 <div id="done-screen">
   <div class="check">✅</div>
@@ -249,15 +249,15 @@ select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px 
   </div>
   <div id="closed-note">この画面を閉じて、木箱依頼フォームに戻ってください。</div>
 </div>
- 
+
 </div>
- 
+
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyzA3f5QkS0KEgYaH4PaHeBMdnbKyMFCEBJSqtHSkGkcnRPYDvlNi9_rOWkGFZOsLPD/exec";
- 
+
 // 客先名一覧（起動時にスプシの最新データで上書きされる。読み込み完了までは空扱い）
 let CLIENTS = [];
- 
+
 function renderClientSelect(){
   const sel = document.getElementById('client-sel');
   let opts = `<option value="">-- なし / 選択 --</option>`;
@@ -265,7 +265,7 @@ function renderClientSelect(){
   opts += `<option value="__other__">その他（直接入力）</option>`;
   sel.innerHTML = opts;
 }
- 
+
 function onClientSelChange(){
   const sel = document.getElementById('client-sel');
   const txt = document.getElementById('client-text');
@@ -286,18 +286,18 @@ function getClientVal(){
   if(sel.style.display==='none') return txt.value.trim();
   return sel.value==='__other__' ? txt.value.trim() : sel.value;
 }
- 
+
 // =============================================
 // 依頼者一覧をGASから取得（木箱依頼フォームと同じ「依頼者一覧」シートを共用）
 // =============================================
 function loadRequesters(){
   const sel = document.getElementById('staff');
   const cbName = 'onRequestersLoaded_' + Date.now();
- 
+
   window[cbName] = function(res){
     delete window[cbName];
     if(script.parentNode) script.parentNode.removeChild(script);
- 
+
     sel.innerHTML = '<option value="">-- 選択してください --</option>';
     const names = (res && res.requesters) ? res.requesters : [];
     if(!names.length){
@@ -313,7 +313,7 @@ function loadRequesters(){
     const pStaff = _prefill.staff;
     if(pStaff && names.includes(pStaff)) sel.value = pStaff;
   };
- 
+
   const script = document.createElement('script');
   script.src = `${GAS_URL}?action=getRequesters&callback=${cbName}`;
   script.onerror = function(){
@@ -322,41 +322,30 @@ function loadRequesters(){
   };
   document.body.appendChild(script);
 }
- 
+
 // =============================================
 // 客先名一覧をGASから取得（木箱依頼フォームと同じ「客先名一覧」シートを共用）
 // =============================================
 function loadClients(){
   const cbName = 'onClientsLoaded_' + Date.now();
- 
+
   window[cbName] = function(res){
     delete window[cbName];
     if(script.parentNode) script.parentNode.removeChild(script);
- 
+
     const names = (res && res.clients) ? res.clients : [];
     if(names.length) CLIENTS = names;
     renderClientSelect();
-    // プリフィル：顧客名
-    const pClient = _prefill.client;
-    if(pClient){
-      const sel = document.getElementById('client-sel');
-      const txt = document.getElementById('client-text');
-      const back = document.getElementById('client-back');
-      if(CLIENTS.includes(pClient)){
-        sel.value = pClient;
-      } else if(pClient){
-        sel.style.display='none'; txt.style.display=''; back.style.display='';
-        txt.value = pClient;
-      }
-    }
+    // 客先名の初期値はページ読み込み直後にapplyPrefillBasic()で即セット済みのため、
+    // ここでの上書きは行わない（通信タイミングによる二重処理・空欄化を防ぐため）
   };
- 
+
   const script = document.createElement('script');
   script.src = `${GAS_URL}?action=getClients&callback=${cbName}`;
   script.onerror = function(){ delete window[cbName]; renderClientSelect(); };
   document.body.appendChild(script);
 }
- 
+
 function updateToggleStyle(rowId){
   const radios = document.querySelectorAll(`#${rowId} input[type="radio"]`);
   radios.forEach(r=>{
@@ -367,18 +356,18 @@ function updateToggleStyle(rowId){
 }
 updateToggleStyle('daimoku-row');
 updateToggleStyle('otoshibuta-row');
- 
+
 function getRadioVal(name){
   const r = document.querySelector(`input[name="${name}"]:checked`);
   return r ? r.value : '';
 }
- 
+
 function showMsg(text){
   const m = document.getElementById('msg');
   m.className = 'err';
   m.textContent = text;
 }
- 
+
 function validate(){
   if(!getClientVal()){ showMsg('顧客名を選択または入力してください。'); return false; }
   if(!document.getElementById('product').value.trim()){ showMsg('製品名を入力してください。'); return false; }
@@ -392,13 +381,13 @@ function validate(){
   if(!document.getElementById('dim-date').value){ showMsg('納入日を入力してください。'); return false; }
   return true;
 }
- 
+
 // =============================================
 // 確認画面へ
 // =============================================
 function goConfirm(){
   if(!validate()) return;
- 
+
   document.getElementById('c-client').value       = getClientVal();
   document.getElementById('c-product').value      = document.getElementById('product').value.trim();
   document.getElementById('c-staff').value        = document.getElementById('staff').value;
@@ -420,30 +409,30 @@ function goConfirm(){
   document.getElementById('c-hari-size').value     = document.getElementById('hari-size').value;
   document.getElementById('c-hari-qty').value      = document.getElementById('hari-qty').value;
   document.getElementById('c-otoshibuta').value    = getRadioVal('otoshibuta');
- 
+
   document.getElementById('input-screen').style.display = 'none';
   document.getElementById('confirm-screen').style.display = 'block';
   document.getElementById('msg2').textContent = '';
   document.getElementById('msg2').className = '';
   window.scrollTo(0,0);
 }
- 
+
 function goBack(){
   document.getElementById('confirm-screen').style.display = 'none';
   document.getElementById('input-screen').style.display = 'block';
   window.scrollTo(0,0);
 }
- 
+
 function showMsg2(text){
   const m = document.getElementById('msg2');
   m.className = 'err';
   m.textContent = text;
 }
- 
+
 function submitShikumi(){
   const btn = document.getElementById('btn-send');
   btn.disabled = true; btn.textContent = '送信中...';
- 
+
   const params = new URLSearchParams();
   params.set('action','submitShikumi');
   params.set('顧客名', document.getElementById('c-client').value);
@@ -453,7 +442,7 @@ function submitShikumi(){
   params.set('W', document.getElementById('c-w').value);
   params.set('H', document.getElementById('c-h').value);
   params.set('納入日', document.getElementById('c-date').value);
- 
+
   params.set('滑材サイズ', document.getElementById('c-nameri-size').value);
   params.set('滑材本数', document.getElementById('c-nameri-qty').value);
   params.set('台木リフト', document.getElementById('c-daimoku').value);
@@ -468,10 +457,11 @@ function submitShikumi(){
   params.set('梁サイズ', document.getElementById('c-hari-size').value);
   params.set('梁本数', document.getElementById('c-hari-qty').value);
   params.set('落し蓋', document.getElementById('c-otoshibuta').value);
- 
+
   fetch(`${GAS_URL}?${params.toString()}`)
     .then(r=>r.text())
     .then(()=>{
+      markBatchDone();
       document.getElementById('confirm-screen').style.display = 'none';
       document.getElementById('done-screen').style.display = 'block';
       document.getElementById('closed-note').style.display = 'none';
@@ -484,7 +474,7 @@ function submitShikumi(){
       btn.disabled = false; btn.textContent = '送信する';
     });
 }
- 
+
 function resetForm(){
   clearClientOther();
   document.getElementById('client-sel').value = '';
@@ -513,7 +503,7 @@ function resetForm(){
   document.getElementById('msg').textContent = '';
   document.getElementById('msg').className = '';
 }
- 
+
 function continueForm(){
   resetForm();
   document.getElementById('done-screen').style.display = 'none';
@@ -521,24 +511,21 @@ function continueForm(){
   document.getElementById('input-screen').style.display = 'block';
   window.scrollTo(0,0);
 }
- 
+
 function finishForm(){
   // 木箱依頼フォーム側（同一オリジンの別タブ）へ、入力完了を通知する
   try{
     localStorage.setItem('shikumi_done', String(Date.now()));
   }catch(e){}
- 
+
   // タブが閉じきらずスマホ等で残った場合に備え、裏側で入力内容をクリアしておく
   // （画面表示は完了画面のまま。次回開いた時に前回の入力が残らないようにするため）
   resetForm();
- 
+
   document.querySelector('.after-btns').style.display = 'none';
   document.getElementById('closed-note').style.display = 'block';
- 
-  // タブを閉じられる場合は閉じる（開けなければ案内文のみ残る）
-  window.close();
 }
- 
+
 // =============================================
 // URLクエリからプリフィル情報を取得
 // =============================================
@@ -551,18 +538,44 @@ const _prefill = (function(){
     l:       p.get('l')       || '',
     w:       p.get('w')       || '',
     h:       p.get('h')       || '',
-    date:    p.get('date')    || ''
+    date:    p.get('date')    || '',
+    batch:   p.get('batch')   || '',
+    idx:     p.get('idx')     || ''
   };
 })();
- 
+
+// 客先名はGASからの一覧取得を待たずに、URLの値を直接テキスト欄へ即セットする
+// （通信完了を待つと、依頼者が先に「内容を確認する」を押した際に空欄扱いになるため）
 function applyPrefillBasic(){
+  if(_prefill.client){
+    const sel = document.getElementById('client-sel');
+    const txt = document.getElementById('client-text');
+    const back = document.getElementById('client-back');
+    sel.style.display='none'; txt.style.display=''; back.style.display='';
+    txt.value = _prefill.client;
+  }
   if(_prefill.product) document.getElementById('product').value = _prefill.product;
   if(_prefill.l)       document.getElementById('dim-l').value   = _prefill.l;
   if(_prefill.w)       document.getElementById('dim-w').value   = _prefill.w;
   if(_prefill.h)       document.getElementById('dim-h').value   = _prefill.h;
   if(_prefill.date)    document.getElementById('dim-date').value = _prefill.date;
 }
- 
+
+// =============================================
+// 一括送信の進捗をlocalStorageに記録（formB_size.html側のボタン制御用）
+// =============================================
+function markBatchDone(){
+  if(!_prefill.batch) return;
+  try{
+    const key = 'shikumi_batch_' + _prefill.batch;
+    let doneArr = [];
+    try{ doneArr = JSON.parse(localStorage.getItem(key) || '[]'); }catch(e){ doneArr = []; }
+    const idxKey = _prefill.idx || String(Date.now());
+    if(!doneArr.includes(idxKey)) doneArr.push(idxKey);
+    localStorage.setItem(key, JSON.stringify(doneArr));
+  }catch(e){}
+}
+
 loadRequesters();
 loadClients();
 applyPrefillBasic();
