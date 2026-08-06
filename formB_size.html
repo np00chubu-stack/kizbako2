@@ -75,6 +75,9 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
 .after-send-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;display:none}
 .btn-continue{padding:12px;background:#276749;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
 .btn-continue:hover{background:#2f855a}
+.btn-continue:disabled,.btn-close:disabled{opacity:.5;cursor:not-allowed}
+#shikumi-progress:empty{display:none}
+#shikumi-progress{margin-top:10px;padding:8px 10px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:12px;color:#856404;text-align:center}
 .btn-close{padding:12px;background:#fff;border:2px solid #999;color:#555;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
 .btn-close:hover{background:#f0f0f0}
 
@@ -147,9 +150,10 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
     <button class="btn-send" id="btn-send" onclick="submitForm()">送信する</button>
   </div>
   <div class="after-send-btns" id="after-send-btns">
-    <button class="btn-continue" onclick="continueForm()">続けて依頼する</button>
-    <button class="btn-close" onclick="closeForm()">閉じる</button>
+    <button class="btn-continue" id="btn-continue-form" onclick="continueForm()">続けて依頼する</button>
+    <button class="btn-close" id="btn-close-form" onclick="closeForm()">閉じる</button>
   </div>
+  <div id="shikumi-progress"></div>
   <div id="msg2"></div>
 </div>
 
@@ -812,8 +816,13 @@ function submitForm(){
       let html='<p style="text-align:center;font-size:16px;color:#276749;padding:30px 30px 10px">✅ 送信が完了しました！</p>';
 
       const newItems=(window._confirmItems||[]).filter(it=>it.isNew);
+      window._shikumiBatch = null;
       if(newItems.length){
-        const linksHtml=newItems.map(it=>{
+        const batchId = 'sb' + Date.now();
+        localStorage.setItem('shikumi_batch_' + batchId, JSON.stringify([]));
+        window._shikumiBatch = { id: batchId, total: newItems.length };
+
+        const linksHtml=newItems.map((it,idx)=>{
           const lwh=it.size.split('×');
           const q=new URLSearchParams();
           q.set('client', it.client||'');
@@ -823,6 +832,8 @@ function submitForm(){
           q.set('w', lwh[1]||'');
           q.set('h', lwh[2]||'');
           q.set('date', (it.dates[0]&&it.dates[0].date)||'');
+          q.set('batch', batchId);
+          q.set('idx', String(idx));
           return `<li style="margin-bottom:8px">
             ${it.cat}　${it.size}<br>
             <a href="${SHIKUMI_FORM_URL}?${q.toString()}" target="_blank" rel="noopener"
@@ -843,6 +854,7 @@ function submitForm(){
       document.getElementById('msg2').textContent='';
       document.getElementById('confirm-btns').style.display='none';
       document.getElementById('after-send-btns').style.display='grid';
+      checkShikumiBatchProgress();
       // btn-sendをリセット（続けて送信用）
       btn.disabled=false; btn.textContent='送信する';
     })
@@ -855,6 +867,7 @@ function submitForm(){
 
 function continueForm(){
   // フォームをリセットして入力画面に戻る
+  window._shikumiBatch = null;
   document.getElementById('requester').value='';
   document.getElementById('note').value='';
   document.getElementById('items-container').innerHTML='';
@@ -871,6 +884,7 @@ function continueForm(){
 }
 
 function closeForm(){
+  window._shikumiBatch = null;
   // スマホではwindow.close()が効かないためトップに戻す
   if(!window.close()){
     document.getElementById('confirm-screen').style.display='none';
@@ -951,12 +965,44 @@ function loadClients(){
   document.body.appendChild(script);
 }
 
-// 仕組オーダーシート（別タブ）で「これで終了する」が押されたら、
-// 送信完了画面に出している新サイズ案内メッセージを自動的に消す
+// =============================================
+// 仕組オーダーシートの一括送信の進捗を確認し、
+// 全件送信済みになるまで「続けて依頼する」「閉じる」をブロックする
+// =============================================
+function checkShikumiBatchProgress(){
+  const contBtn = document.getElementById('btn-continue-form');
+  const closeBtn = document.getElementById('btn-close-form');
+  const progressEl = document.getElementById('shikumi-progress');
+
+  if(!window._shikumiBatch){
+    if(contBtn) contBtn.disabled = false;
+    if(closeBtn) closeBtn.disabled = false;
+    if(progressEl) progressEl.textContent = '';
+    return;
+  }
+
+  const { id, total } = window._shikumiBatch;
+  let doneArr = [];
+  try{ doneArr = JSON.parse(localStorage.getItem('shikumi_batch_' + id) || '[]'); }catch(e){ doneArr = []; }
+  const doneCount = doneArr.length;
+
+  if(doneCount >= total){
+    if(contBtn) contBtn.disabled = false;
+    if(closeBtn) closeBtn.disabled = false;
+    if(progressEl) progressEl.textContent = '';
+    const notice = document.getElementById('shikumi-notice');
+    if(notice) notice.remove();
+  } else {
+    if(contBtn) contBtn.disabled = true;
+    if(closeBtn) closeBtn.disabled = true;
+    if(progressEl) progressEl.textContent = `未送信の仕組オーダーシートがあります（${doneCount}/${total}件送信済み）`;
+  }
+}
+
+// 仕組オーダーシート（別タブ）で送信が完了するたびに進捗を再チェックする
 window.addEventListener('storage', function(e){
-  if(e.key === 'shikumi_done'){
-    const el = document.getElementById('shikumi-notice');
-    if(el) el.remove();
+  if(e.key === 'shikumi_done' || (e.key && e.key.indexOf('shikumi_batch_') === 0)){
+    checkShikumiBatchProgress();
   }
 });
 
