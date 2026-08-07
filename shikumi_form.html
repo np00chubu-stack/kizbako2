@@ -373,7 +373,12 @@ function validate(){
   if(!document.getElementById('product').value.trim()){ showMsg('製品名を入力してください。'); return false; }
   if(!document.getElementById('staff').value){ showMsg('名前（担当者）を選択してください。'); return false; }
   const requiredNum = [
-    ['dim-l','L(=横)'], ['dim-w','W(=縦)'], ['dim-h','H(=高さ)']
+    ['dim-l','L(=横)'], ['dim-w','W(=縦)'], ['dim-h','H(=高さ)'],
+    ['nameri-size','滑材サイズ'], ['nameri-qty','滑材本数'],
+    ['header-size','ヘッダーサイズ'], ['header-qty','ヘッダー数量'],
+    ['load-size','ロードサイズ'], ['load-qty','ロード本数'],
+    ['osae-size','押えサイズ'], ['osae-qty','押え本数'],
+    ['hari-size','梁サイズ'], ['hari-qty','梁本数']
   ];
   for(const [id,label] of requiredNum){
     if(!document.getElementById(id).value){ showMsg(`${label}を入力してください。`); return false; }
