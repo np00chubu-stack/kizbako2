@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>木箱依頼フォーム</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.container{max-width:720px;margin:24px auto;padding:0 12px 40px}
+h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
+.card{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);padding:18px;margin-bottom:14px}
+.form-group{margin-bottom:12px}
+label{display:block;font-size:12px;font-weight:bold;color:#555;margin-bottom:3px}
+label .req{color:#e53e3e;margin-left:2px}
+select,input[type="date"],input[type="number"],input[type="text"],textarea{
+  width:100%;padding:7px 9px;border:1px solid #ccc;border-radius:4px;
+  font-size:13px;font-family:inherit;background:#fff;
+}
+select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px rgba(49,130,206,.2)}
+
+/* 品目カード */
+.item-block{background:#f7f9fc;border:1px solid #d0d8e4;border-radius:6px;padding:14px;margin-bottom:10px}
+.item-block-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.item-num{font-size:12px;font-weight:bold;color:#2c5282;background:#dbeafe;padding:2px 8px;border-radius:10px}
+.btn-del-item{background:none;border:none;color:#999;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px}
+.btn-del-item:hover{color:#e53e3e}
+
+/* 自由入力切替 */
+.input-toggle{display:flex;gap:6px;align-items:center}
+.input-toggle select,.input-toggle input{flex:1}
+.btn-free{font-size:11px;white-space:nowrap;padding:6px 10px;border:1px solid #aaa;border-radius:4px;background:#fff;cursor:pointer;color:#555}
+.btn-free:hover{background:#f0f4f8}
+
+/* L/W/H分割入力 */
+.lwh-sep{color:#999;font-size:13px;flex-shrink:0}
+.lwh-input{flex:1;min-width:0;width:auto}
+
+/* 台木リフト */
+.daimoku-row{display:flex;gap:8px;margin-top:6px}
+.daimoku-row label{font-size:12px;font-weight:normal;color:#555;display:flex;align-items:center;gap:4px;cursor:pointer;flex:1;padding:6px 10px;border:1px solid #ccc;border-radius:4px;background:#fff}
+.daimoku-row input[type="radio"]{width:auto;margin:0}
+.daimoku-row label.selected{border-color:#2c5282;background:#dbeafe;color:#1a3a5c;font-weight:bold}
+
+/* 納入日行 */
+.date-rows{display:flex;flex-direction:column;gap:6px}
+.date-row{display:grid;grid-template-columns:1fr 90px auto;gap:8px;align-items:end}
+.btn-add-date{font-size:12px;color:#3182ce;background:none;border:1px dashed #3182ce;border-radius:4px;padding:4px 10px;cursor:pointer;margin-top:4px;display:inline-block}
+.btn-add-date:hover{background:#ebf8ff}
+
+/* ＋品目ボタン */
+.btn-add-item{width:100%;padding:10px;border:2px dashed #3182ce;border-radius:6px;background:none;color:#3182ce;font-size:14px;font-weight:bold;cursor:pointer;margin-bottom:14px}
+.btn-add-item:hover{background:#ebf8ff}
+
+/* 送信ボタン */
+.btn-submit{width:100%;padding:13px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:bold;cursor:pointer}
+.btn-submit:hover{background:#2c5282}
+.btn-submit:disabled{background:#aaa;cursor:not-allowed}
+
+/* 確認画面 */
+#confirm-screen{display:none}
+.confirm-table{width:100%;border-collapse:collapse;font-size:13px}
+.confirm-table th{background:#f0f4f8;text-align:left;padding:7px 10px;font-weight:bold;color:#555;width:130px;border:1px solid #e2e8f0;white-space:nowrap}
+.confirm-table td{padding:7px 10px;border:1px solid #e2e8f0;vertical-align:top}
+.confirm-table td input[type="text"],.confirm-table td input[type="date"],.confirm-table td input[type="number"]{width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:3px;font-size:13px}
+.item-confirm-block{background:#f7f9fc;border:1px solid #d0d8e4;border-radius:6px;padding:12px;margin-bottom:10px}
+.confirm-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.btn-back{padding:12px;background:#fff;border:2px solid #1a3a5c;color:#1a3a5c;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-back:hover{background:#f0f4f8}
+.btn-send{padding:12px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-send:hover{background:#2c5282}
+.btn-send:disabled{background:#aaa;cursor:not-allowed}
+
+/* 送信後ボタン */
+.after-send-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;display:none}
+.btn-continue{padding:12px;background:#276749;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-continue:hover{background:#2f855a}
+.btn-close{padding:12px;background:#fff;border:2px solid #999;color:#555;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-close:hover{background:#f0f0f0}
+
+#msg{margin-top:14px;font-size:14px;text-align:center;padding:10px;border-radius:4px}
+#msg.ok{color:#276749;background:#f0fff4;border:1px solid #9ae6b4}
+#msg.err{color:#c53030;background:#fff5f5;border:1px solid #fc8181}
+#msg2{margin-top:14px;font-size:14px;text-align:center;padding:10px;border-radius:4px}
+#msg2.ok{color:#276749;background:#f0fff4;border:1px solid #9ae6b4}
+#msg2.err{color:#c53030;background:#fff5f5;border:1px solid #fc8181}
+
+.subcat-group{display:none}
+.subcat-group.active{display:block}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div style="background:#fff3cd;border:1px solid #ffc107;color:#856404;font-size:12px;text-align:center;padding:8px 10px;border-radius:6px;margin-bottom:12px">
+  📝 これはサンプル版です。送信しても実際のデータ保存・送信は行われません。操作感の確認用です。
+</div>
+
+<!-- ===== 入力画面 ===== -->
+<div id="input-screen">
+  <h1>🪵 木箱依頼フォーム（サンプル版）</h1>
+
+  <!-- 依頼者名 -->
+  <div class="card">
+    <div class="form-group">
+      <label>依頼者名<span class="req">*</span></label>
+      <select id="requester">
+        <option value="">-- 読み込み中... --</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 品目ブロック -->
+  <div id="items-container"></div>
+
+  <button class="btn-add-item" onclick="addItem()">＋ 品目を追加する</button>
+
+  <!-- 備考 -->
+  <div class="card">
+    <div class="form-group">
+      <label>備考（任意）</label>
+      <textarea id="note" rows="3" placeholder="特記事項があれば入力してください"></textarea>
+    </div>
+  </div>
+
+  <button class="btn-submit" onclick="goConfirm()">内容を確認する →</button>
+  <div id="msg"></div>
+</div>
+
+<!-- ===== 確認画面 ===== -->
+<div id="confirm-screen">
+  <h1>🪵 依頼内容の確認</h1>
+  <p style="font-size:13px;color:#666;margin-bottom:14px">内容を直接編集できます。よければ「送信する」を押してください。</p>
+  <div id="confirm-content"></div>
+  <div class="confirm-btns" id="confirm-btns">
+    <button class="btn-back" onclick="goBack()">← 戻る</button>
+    <button class="btn-send" id="btn-send" onclick="submitForm()">送信する</button>
+  </div>
+  <div class="after-send-btns" id="after-send-btns">
+    <button class="btn-continue" onclick="continueForm()">続けて依頼する</button>
+    <button class="btn-close" onclick="closeForm()">閉じる</button>
+  </div>
+  <div id="msg2"></div>
+</div>
+
+</div>
+
+<script>
+// ▼サンプル版：外部送信は行いません（すべてローカルの模擬処理です）
+const DEMO_MODE = true;
+// ★サンプル版の仕組オーダーシート（送信しても実際には保存されない版）
+const SHIKUMI_FORM_URL = "https://np00chubu-stack.github.io/kizbako2/demo_shikumi_form.html";
+
+let CLIENTS = ["TSMC","O-PRO","SMIC","IMEC","Infineon","Micron","Yongxin","TI","松下電子材料","SMOC","SK Hynix","VisEra","SPIL","Nexchip","ASE","Applied","Officemate","共通"]; // 起動時にスプシの最新データで上書きされる（読み込み完了までは初期値を表示）
+
+const itemData = {
+  "マスト": ["該当なし","1430×1350×1125","1430×1350×1300","1800×1350×1125","2250×1350×1125","2250×1350×1300","2250×1450×1125","2640×1350×1125","3300×1350×1125","3300×1350×1300","3600×1350×1300","4400×1450×1125","4600×1800×1125","4600×1800×1150"],
+  "CDRX": ["該当なし","CDRX 2880","CDRX 2900"],
+  "EMOBOX": ["該当なし","1800×1100×850","1800×1100×1100","2250×1100×850"],
+  "MST": ["該当なし","1430×1150×1550","1430×1150×1600","1430×1150×1800","1430×1150×1900","1430×1150×2000","1430×1150×2100","1430×1150×2250","1430×1150×2290","1430×1150×2400","1430×1150×2540","1430×1250×2400","1430×1350×775","1430×1350×1550","1430×1350×2100","1430×1350×2290","1430×1600×2290","1600×1150×1550","1600×1150×2000","1600×1150×2100","1600×1150×2290","1600×1150×2540","1600×1350×775","1650×1150×2250","1700×1150×1300","1700×1150×1550","1700×1150×2100","1700×1150×2250","1700×1150×2290","1700×1350×2100","1700×1400×2100","1700×1430×2100","1700×1450×2100","1700×1450×2290","1700×1700×2100","1750×1400×2100","1800×1150×775","1800×1150×2540","2000×1450×1800","2250×1150×1300","2250×1150×1400","2250×1150×1550","2250×1450×2100","2640×1150×1450","2640×1150×1550","2640×1150×1600","2640×1150×1700","2640×1150×2000","2640×1150×2100","2640×1150×2290","2850×1150×1650","3120×1150×1550","3200×1150×1600","3200×1150×1700","4600×2250×1300"],
+  "PSP": ["該当なし","1600×1150×2290","1600×1150×2540","2640×1150×1700","2640×1150×2290","2640×1150×2540"],
+  "かくてい箱": ["該当なし","C","バンダクト","D","ドックB","定尺3.0","C775","バンダクト775","D775","C1300","バンダクトH1300","D1300","定尺H1300","C1550","D1550"],
+  "カート": ["該当なし","1430×1150×1550","1430×1150×1700","1600×1150×1700","1600×1350×1700","2250×1150×1700","2640×1150×1550"],
+  "クレーン": ["該当なし","1600×1150×1300","2250×1150×1550","2640×1150×1550","2800×1150×1550","3000×1150×1550","3300×1100×1550","3300×1150×1125","3600×1150×1125","3600×1150×1550","3960×1150×1125","3960×1150×1550","4200×1150×1125","4300×1150×1550","4400×1150×1125","4400×1150×1550","4500×1150×1125","4600×1150×1125","4600×1150×1550","4800×1150×1550","5200×1100×1800"],
+  "ドラム": ["該当なし","1430×1300×1000","1430×1350×1300","2640×1300×1000","2640×1350×1300"],
+  "パーテーション": ["該当なし","2250×1350×775","2250×1350×1125","2250×1600×1125","2640×1350×775","2640×1350×1125","2640×1600×1125","3300×1350×775","3300×1600×1125","3300×1600×1125 (2)","3600×1350×775","3600×1600×1125","3700×1600×1125"],
+  "洋箱": ["該当なし","650×500×550","700×590×400","800×300×300","800×400×250","800×500×300","800×500×400","800×590×400","800×600×500","850×400×400","900×300×300","900×400×300","900×600×300","950×800×400","1000×300×300","1000×400×300","1000×400×400","1000×500×300","1000×800×500","1050×300×300","1050×600×500","1100×300×300","1100×400×300","1100×400×400","1100×600×300","1150×300×300","1150×500×300","1200×300×300","1200×500×300","1200×550×300","1200×590×490","1200×600×300","1200×900×400","1300×400×300","1350×300×300","1350×350×300","1400×300×300","1400×600×500","1450×300×300","1500×300×300","1500×400×450","1550×300×300","1600×300×300","1600×550×550","1650×300×300","1700×300×300","1800×300×300","1800×500×300","1900×300×300","1900×500×400","1900×600×500","1950×300×300","2000×300×300","2100×300×300","2100×550×550","2100×600×500","2150×600×500","2200×300×300","2200×400×400","2200×650×300","2300×600×500","2400×300×300","2600×300×300","2650×300×300","3100×300×300","3150×400×300","3200×220×80","3200×250×200","3200×300×300","3200×400×300","3900×400×400","4100×300×300","4100×400×300","4110×420×400","4110×460×370","4110×460×370(スリH110)","4110×490×410","4200×300×300"],
+  "防火扉": ["該当なし","2250×1150×1800","2250×1150×1850","2250×1150×2000","3000×1150×2000","3200×1150×1800","3250×1150×1800","3250×1150×2000","3550×1150×2000","3600×1150×1800","3600×1150×2000","3700×1150×2000","3960×1150×1850"],
+  "ラック": ["該当なし","1600×1150×1550","1600×1350×1125","2250×1150×1300","2250×1150×1350","2640×1100×775","2640×1150×1125","2640×1150×1300","2640×1150×1550","2640×1150×1700","3300×1150×1125"],
+  "安全柵": ["該当なし","1430×1250×775","1430×1250×900","1430×1250×1125","1430×1250×1300","1600×1250×600","1600×1500×775","1700×1250×900","2200×1250×1125","2250×1250×775","2250×1250×800","2250×1250×950","2250×1250×1125","2250×1250×1300","2250×1350×1300","2250×1700×600","2250×1700×775","2250×1700×1300","2300×1250×1125","2300×1250×1300","2300×1250×1400","2350×1250×900","2350×1250×1000","2350×1250×1050","2350×1250×1125","2400×1350×775","2400×1700×775","2400×1750×775","2640×1250×950","2640×1250×1125","2640×1250×1300","2640×1700×800","2640×1700×850","2640×1700×900","2640×1700×950","2640×1700×1050","2640×1700×1125","2640×1700×1200","2640×1700×1250","2640×1700×1300","2640×1700×1400","2800×1350×775","2800×1350×850","2950×2300×950","2950×2350×950","3000×1250×900","3000×2350×900","3120×1250×1125","3900×1250×1125","3960×1250×775"],
+  "支給品": ["該当なし","1600×1150×775","1600×1150×1125","2250×1150×1300","3100×1150×775"],
+  "部材": ["該当なし","1430×1100×1100","1430×1150×1550","1430×1150×1700","1430×1150×1800","1430×1150×2100","1430×1350×775","1430×1350×1125","1430×1350×1550","1600×1100×1100","1600×1150×1550","1600×1150×1700","1600×1150×1800","1600×1150×2540","1600×1350×775","1600×1350×1125","1600×1350×1550","1600×1350×1800","1600×1600×775","1700×1700×2100","1800×1100×1100","1800×1350×775","2250×1100×850","2250×1100×1100","2250×1150×775","2250×1150×1300","2250×1150×1550","2250×1150×2400","2250×1350×775","2250×1350×1125","2250×1600×775","2250×1600×1300","2250×1600×1550","2250×1700×775","2250×1800×2540","2640×1100×1100","2640×1150×1550","2640×1150×1700","2640×1350×775","2640×1350×1125","2640×1600×775","2640×1800×2540","2640×2000×775","2640×2100×775","2800×1150×775","2800×1150×1125","2800×1150×1300","2800×2000×775","3000×1150×1550","3120×1150×1125","3150×1150×1125","3200×1150×775","3300×1800×775","3600×1150×775","3600×1150×1125","3960×1150×775","3960×1150×1125","3960×1350×1800","4200×1150×1125","4300×1150×775","4300×1600×1100","4600×1150×1125","4800×1500×1800","4800×1600×1550","5300×1350×1125","5400×1600×1800","5600×1600×1800"],
+  "工機": {
+    "IAC":["該当なし","3120×1700×2100"],
+    "基礎":["該当なし","2000×1150×775","2250×1450×775","2640×1150×775","2640×1350×775","2640×2250×775","2900×2250×1000","3000×1150×1125","3120×1600×775","3200×1150×775","3500×1900×800","3960×2250×800"],
+    "部材":["該当なし","1800×1150×775","2250×1150×775","3300×1150×1700","3500×1150×775","4700×2200×2540"],
+    "安全柵":["該当なし","2640×1700×775","2640×1700×1300"],
+    "補助テーブル":["該当なし","3120×2000×1300","3960×2250×1300","4600×1900×1300","4700×2100×1300"],
+    "チップコンベア":["該当なし","3600×1150×1750","3600×1150×1850","3960×1150×1750"],
+    "ビデーレ":["該当なし","3120×1150×1250","3120×1150×1300"],
+    "コンベヤ":["該当なし","4100×1150×2000"],
+    "改造部品":["該当なし","3300×1600×1125"],
+    "ガントリー":["該当なし","4850×1500×1700"],
+    "スラグコンベア":["該当なし","4700×1600×2450"],
+    "テーブル天板":["該当なし","テーブル天板2250×1400×1125"],
+    "フェンス":["該当なし","2500×1800×1000"],
+    "BED台木":["該当なし","BED台木"],
+    "追従装置":["該当なし","2650×1450×1400"],
+    "カバー":["該当なし","2250×1300×1125"],
+    "MTA-170α":["該当なし","1600×1600×1950"],
+    "鉄パレット":["該当なし","3800×1850×1000"],
+    "テーブル":["該当なし","2000×1550×800"],
+    "ワークフィーダ":["該当なし","2250×1700×1700"],
+    "R40":["該当なし","2100×1350×1750"],
+    "治具":["該当なし","3300×1150×650"],
+    "クーラントタンク":["該当なし","3120×2100×775"],
+    "サイドガード":["該当なし","1900×1350×1150"],
+    "プレス部材":["該当なし","2250×1500×1125"]
+  },
+  "フード": ["該当なし","1430×1150×1550","1430×1150×1600","1430×1150×1800","1430×1350×1800","1430×1750×1800","1600×1150×1550","1600×1150×1800","1600×1350×1125","1600×1350×1300","1600×1350×1550","1600×1500×1550","1700×1150×1800","1700×1150×2000","1700×1800×2000","1800×1150×1550","1800×1350×1550","2250×1150×1300","2250×1150×1550","2250×1350×1300"],
+  "ベースプレート": ["該当なし","1430×1350×775","1430×1350×1125","1600×1350×775","1800×1600×775","2250×1600×775","2250×1700×775","2250×1800×775","2640×2100×775"],
+  "キャットウォーク": ["該当なし","1430×1150×1300","1430×1150×1550","2640×1150×1300","2640×1150×1550","2800×1150×775","2800×1150×1125","2800×1150×1300","2800×1150×1550"],
+  "分岐レール": ["該当なし","1430×1350×1125","1600×1150×1125","1600×1350×1125","1800×1350×1125","2640×1350×1125","2800×1350×1125"],
+  "フレーム": ["該当なし","2100×1850×775","2250×1800×1125","2640×1350×775","2640×2000×775","2800×2000×775","3000×1450×775","3350×1150×775","3500×1150×775","4100×1150×1550","5100×1600×1550","5100×1600×1800","5400×1600×1800"],
+  "レール": ["該当なし","2250×1150×1300","2640×1350×775","2800×1150×775","3000×1150×1125","3600×1150×1125","3960×1150×1125","3960×1150×1125(台木リフト)","4100×1150×1125","4200×1150×1125","4600×1150×1125","4700×1100×1100"],
+  "ビーム": ["該当なし","2800×1150×775","3100×1150×775","3400×1150×775","3500×1150×775","3600×1150×1125(台木リフト)","3600×1150×1125"],
+  "オートリフター": ["該当なし","3100×1150×2100","3100×1150×2250","3600×2000×1300","3960×2250×1300","4950×2250×1300"],
+  "その他": {
+    "3000まで":["該当なし","680K　2800×1150×1125","BAR　1430×1150×775","ピック＆プレース　1430×1150×1800","トロリー　1430×1300×775","ケーブルベア　1430×1300×775","プレート　1430×1350×775","トロリー　1500×1500×775","トロリー　1500×1500×1125","ピック＆プレース　1600×1150×1800","トロリー　1600×1600×775","ユニシャトル　1700×1350×2050","プレート　1800×1150×775","OHT台車　1800×1350×2000","制御盤　1800×1600×775","ロボトレ　2000×2000×1400","EPLC　2250×1100×850","BAR　2250×1150×775","PCラック　2250×1150×1350","リフトドライブ　2250×1150×1400","シェルフ　2250×1150×1550","リフトドライブ　2250×1150×1900","防煙扉　2250×1150×2000","防火シャッター　2250×1150×2050","ユニシャトル　2250×1150×2200","MLT　2250×1150×2400","ジェニー　2250×1150×2400","トランスファー　2250×1150×2540","梱包依頼　2250×1250×775","制御盤　2250×1350×775","防火ダンパー　2250×1350×1125","吊り　2250×1450×1000","制御盤　2250×1600×775","ケーブルベア　2400×1400×775","BAR　2640×1150×775","依頼品(D)　2640×1150×1125","シェルフ　2640×1150×1550","防火シャッター　2640×1300×2350","防火シャッター　2640×1350×2450","梱包依頼　2640×1700×775","制御盤　2640×1700×775","梱包依頼　2640×1700×1125","検査架台　2640×2000×2850","ゲート　2800×1150×775","ターミナル　2800×1150×1125","ターミナルBOX　2800×1150×1300","ターミナル　2800×1150×1550","梱包依頼品　2850×1150×775","梱包依頼　2850×1150×1125","ラダー　2900×1150×775","BAR　2900×1150×775","ケーブルベア　3000×1100×1100","防火扉　3000×1150×2000"],
+    "3001以上":["該当なし","680Q　3100×1150×775","680Q　3500×1150×775","680K　4300×1150×775","ブレス　3100×1150×775","ブレス　3200×1150×775","BAR　3200×1150×1125","昇降台　3200×1150×1300","昇降台　3200×1150×1380","防火シャッター　3200×1150×2000","ハシゴ　3300×1150×775","昇降台　3300×1150×1300","シェルフユニット　3300×1150×1550","シェルフユニット　3300×1150×2000","シェルフ　3300×1150×2100","制御盤　3300×1350×1100","RSV　3300×1700×1100","シャッター　3300×2100×1100","棚　3300×2200×1850","棚　3300×2200×2250","ツールステーション　3600×1600×3300","防火シャッター　3950×1150×2050","防火シャッター　4050×1150×2050","トロリー　4400×1150×850","バナナクレーン　4500×1150×1125","5403　3600×1150×775"]
+  }
+};
+
+// サイズ→カテゴリ逆引き用インデックス（全カテゴリ横断・完全一致検索用）
+const FLAT_SIZE_INDEX = [];
+Object.keys(itemData).forEach(cat=>{
+  const val = itemData[cat];
+  if(Array.isArray(val)){
+    val.forEach(s=>{ if(s!=='該当なし') FLAT_SIZE_INDEX.push({cat, subcat:'', size:s}); });
+  } else {
+    Object.keys(val).forEach(sub=>{
+      val[sub].forEach(s=>{ if(s!=='該当なし') FLAT_SIZE_INDEX.push({cat, subcat:sub, size:s}); });
+    });
+  }
+});
+
+let itemCount = 0;
+
+// 客先名プルダウンHTML生成（品目ブロック用）
+function makeClientSelect(id){
+  let opts = `<option value="">-- なし / 選択 --</option>`;
+  CLIENTS.forEach(c=>{ opts+=`<option value="${c}">${c}</option>`; });
+  opts += `<option value="__other__">その他（直接入力）</option>`;
+  return `
+    <div class="form-group" id="client-group-${id}">
+      <label>客先名（任意）</label>
+      <div class="input-toggle">
+        <select id="client-sel-${id}" onchange="onClientSelChange(${id})">${opts}</select>
+        <input type="text" id="client-text-${id}" placeholder="客先名を入力" style="display:none">
+        <button type="button" class="btn-free" id="client-back-${id}" onclick="clearClientOther(${id})" style="display:none">← 一覧</button>
+      </div>
+    </div>`;
+}
+
+function onClientSelChange(id){
+  const sel = document.getElementById(`client-sel-${id}`);
+  const txt = document.getElementById(`client-text-${id}`);
+  const back = document.getElementById(`client-back-${id}`);
+  if(sel.value==='__other__'){
+    sel.style.display='none'; txt.style.display=''; back.style.display=''; txt.focus();
+  }
+}
+function clearClientOther(id){
+  const sel = document.getElementById(`client-sel-${id}`);
+  const txt = document.getElementById(`client-text-${id}`);
+  const back = document.getElementById(`client-back-${id}`);
+  sel.value=''; sel.style.display=''; txt.style.display='none'; back.style.display='none'; txt.value='';
+}
+function getClientVal(id){
+  const sel = document.getElementById(`client-sel-${id}`);
+  const txt = document.getElementById(`client-text-${id}`);
+  if(sel.style.display==='none') return txt.value.trim();
+  return sel.value==='__other__' ? txt.value.trim() : sel.value;
+}
+
+function addItem(data){
+  itemCount++;
+  const id = itemCount;
+  const div = document.createElement('div');
+  div.className='item-block'; div.id=`item-${id}`;
+
+  const normalCats = Object.keys(itemData).filter(k=>!['工機','その他'].includes(k)).sort((a,b)=>a.localeCompare(b,'ja'));
+  let catOpts = '<option value="">-- 選択 --</option>';
+  normalCats.forEach(c=>{ catOpts+=`<option value="${c}">${c}</option>`; });
+  catOpts += '<option value="3000まで">3000まで</option><option value="3001以上">3001以上</option>';
+  catOpts += '<option value="工機">工機</option><option value="__other__">その他（直接入力）</option>';
+
+  div.innerHTML = `
+    <div class="item-block-header">
+      <span class="item-num">品目 ${id}</span>
+      ${id>1?`<button class="btn-del-item" onclick="removeItem(${id})">×</button>`:''}
+    </div>
+    ${makeClientSelect(id)}
+    <div class="form-group">
+      <label>サイズから検索（任意・L×W×H完全一致）</label>
+      <div class="input-toggle">
+        <input type="number" id="sizesearch-l-${id}" class="lwh-input" placeholder="L" inputmode="numeric" oninput="onSizeSearchInput(${id})">
+        <span class="lwh-sep">×</span>
+        <input type="number" id="sizesearch-w-${id}" class="lwh-input" placeholder="W" inputmode="numeric" oninput="onSizeSearchInput(${id})">
+        <span class="lwh-sep">×</span>
+        <input type="number" id="sizesearch-h-${id}" class="lwh-input" placeholder="H" inputmode="numeric" oninput="onSizeSearchInput(${id})">
+      </div>
+      <div id="sizesearch-results-${id}" style="margin-top:6px"></div>
+    </div>
+    <div class="form-group">
+      <label>カテゴリ<span class="req">*</span></label>
+      <select id="cat-${id}" onchange="onCatChange(${id})">
+        ${catOpts}
+      </select>
+    </div>
+    <div class="subcat-group" id="subcat-koki-${id}">
+      <div class="form-group">
+        <label>工機 サブカテゴリ<span class="req">*</span></label>
+        <div class="input-toggle">
+          <select id="subcat-${id}" onchange="onSubCatChange(${id})">
+            <option value="">-- 選択 --</option>
+            ${Object.keys(itemData['工機']).map(k=>`<option value="${k}">${k}</option>`).join('')}
+            <option value="__other__">その他（直接入力）</option>
+          </select>
+          <input type="text" id="subcat-text-${id}" placeholder="サブカテゴリとサイズを入力" style="display:none">
+          <button type="button" class="btn-free" id="subcat-back-${id}" onclick="clearSubcatOther(${id})" style="display:none">← 一覧</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>サイズ<span class="req">*</span></label>
+      <div class="input-toggle">
+        <select id="item-sel-${id}" onchange="onSizeSelChange(${id})">
+          <option value="">-- カテゴリを先に選択 --</option>
+        </select>
+        <div id="item-lwh-${id}" style="display:none;gap:4px;align-items:center;flex:1">
+          <input type="number" id="item-l-${id}" class="lwh-input" placeholder="L" inputmode="numeric">
+          <span class="lwh-sep">×</span>
+          <input type="number" id="item-w-${id}" class="lwh-input" placeholder="W" inputmode="numeric">
+          <span class="lwh-sep">×</span>
+          <input type="number" id="item-h-${id}" class="lwh-input" placeholder="H" inputmode="numeric">
+        </div>
+        <button type="button" class="btn-free" id="item-back-${id}" onclick="clearSizeOther(${id})" style="display:none">← 一覧</button>
+      </div>
+
+    </div>
+    <div class="form-group" id="daimoku-group-${id}" style="display:none">
+      <label>台木リフト</label>
+      <div class="daimoku-row" id="daimoku-row-${id}">
+        <label id="dl-nashi-${id}"><input type="radio" name="daimoku-${id}" value="なし" checked onchange="updateDaimokuStyle(${id})"> なし</label>
+        <label id="dl-ari-${id}"><input type="radio" name="daimoku-${id}" value="あり" onchange="updateDaimokuStyle(${id})"> あり</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>納入日・数量<span class="req">*</span></label>
+      <div class="date-rows" id="dates-${id}">
+        <div class="date-row">
+          <div><label style="font-size:11px;color:#777">日付</label><input type="date" class="date-input"></div>
+          <div><label style="font-size:11px;color:#777">数量(c/s)</label><input type="number" class="qty-input" min="1" placeholder="個"></div>
+          <div style="padding-bottom:2px"></div>
+        </div>
+      </div>
+      <button class="btn-add-date" onclick="addDateRow(${id})">＋ 日付・数量を追加</button>
+    </div>
+  `;
+  document.getElementById('items-container').appendChild(div);
+  updateDaimokuStyle(id);
+}
+
+function removeItem(id){ const el=document.getElementById(`item-${id}`); if(el)el.remove(); delete pendingSizeCarry[id]; }
+
+function addDateRow(id){
+  const container = document.getElementById(`dates-${id}`);
+  const row = document.createElement('div');
+  row.className='date-row';
+  row.innerHTML=`
+    <div><label style="font-size:11px;color:#777">日付</label><input type="date" class="date-input"></div>
+    <div><label style="font-size:11px;color:#777">数量(c/s)</label><input type="number" class="qty-input" min="1" placeholder="個"></div>
+    <div style="padding-bottom:2px"><button onclick="this.closest('.date-row').remove()" style="background:none;border:none;color:#999;font-size:18px;cursor:pointer;padding:4px">×</button></div>
+  `;
+  container.appendChild(row);
+}
+
+// 候補なし検索から来た場合、サイズ一覧プルダウンを出さずに自由入力欄（引き継ぎ済み）を直接表示する
+function showFreeSizeInput(id, restoreFn){
+  const itemSel=document.getElementById(`item-sel-${id}`);
+  itemSel.innerHTML='<option value="__other__">直接入力</option>';
+  itemSel.style.display='none';
+  document.getElementById(`item-lwh-${id}`).style.display='flex';
+  const backBtn=document.getElementById(`item-back-${id}`);
+  backBtn.style.display='';
+  backBtn.onclick=()=>{ clearSizeOther(id); if(restoreFn) restoreFn(); };
+  document.getElementById(`daimoku-group-${id}`).style.display='';
+  updateDaimokuStyle(id);
+  applyPendingSizeCarry(id);
+}
+
+function onCatChange(id){
+  document.getElementById(`subcat-koki-${id}`).classList.remove('active');
+  clearSizeSelect(id);
+  const cat = document.getElementById(`cat-${id}`).value;
+  if(cat==='工機') document.getElementById(`subcat-koki-${id}`).classList.add('active');
+  else if(cat==='3000まで' || cat==='3001以上'){
+    // カテゴリ一覧から直接「3000まで」「3001以上」を選んだ場合、サブカテゴリを経由せずそのままサイズ一覧を表示
+    if(pendingSizeCarry[id]) showFreeSizeInput(id, ()=>populateSizeSorted(id, itemData['その他'][cat]));
+    else populateSizeSorted(id, itemData['その他'][cat]);
+  }
+  else if(cat==='__other__'){
+    // カテゴリ自由入力 → サイズもL/W/H直接入力に切り替え
+    const itemSel=document.getElementById(`item-sel-${id}`);
+    itemSel.innerHTML='<option value="__other__">直接入力</option>';
+    itemSel.style.display='none';
+    document.getElementById(`item-lwh-${id}`).style.display='flex';
+    document.getElementById(`item-back-${id}`).style.display='';
+    document.getElementById(`item-back-${id}`).onclick=()=>{ clearSizeSelect(id); document.getElementById(`cat-${id}`).value=''; };
+    document.getElementById(`daimoku-group-${id}`).style.display='';
+    updateDaimokuStyle(id);
+    applyPendingSizeCarry(id);
+  }
+  else if(cat && itemData[cat]){
+    if(pendingSizeCarry[id]) showFreeSizeInput(id, ()=>populateSize(id, itemData[cat]));
+    else populateSize(id, itemData[cat]);
+  }
+}
+
+function onSubCatChange(id){
+  const sel=document.getElementById(`subcat-${id}`);
+  clearSizeSelect(id);
+  if(sel.value==='__other__'){
+    // サブカテゴリ自由入力
+    sel.style.display='none';
+    document.getElementById(`subcat-text-${id}`).style.display='';
+    document.getElementById(`subcat-back-${id}`).style.display='';
+    const itemSel=document.getElementById(`item-sel-${id}`);
+    itemSel.innerHTML='<option value="__other__">直接入力</option>';
+    itemSel.style.display='none';
+    document.getElementById(`item-lwh-${id}`).style.display='flex';
+    document.getElementById(`item-back-${id}`).style.display='none';
+    document.getElementById(`daimoku-group-${id}`).style.display='';
+    updateDaimokuStyle(id);
+    applyPendingSizeCarry(id);
+  } else if(sel.value && itemData['工機'][sel.value]){
+    if(pendingSizeCarry[id]) showFreeSizeInput(id, ()=>populateSize(id, itemData['工機'][sel.value]));
+    else populateSize(id, itemData['工機'][sel.value]);
+  }
+}
+
+function clearSubcatOther(id){
+  const sel=document.getElementById(`subcat-${id}`);
+  sel.value=''; sel.style.display='';
+  document.getElementById(`subcat-text-${id}`).style.display='none';
+  document.getElementById(`subcat-text-${id}`).value='';
+  document.getElementById(`subcat-back-${id}`).style.display='none';
+  clearSizeSelect(id);
+}
+
+// 数字（サイズ）順にソートしてサイズ一覧を表示（「3000まで」「3001以上」用）
+function populateSizeSorted(id, list){
+  const arr=[...list];
+  arr.sort((a,b)=>{
+    if(a==='該当なし') return -1;
+    if(b==='該当なし') return 1;
+    const na=a.match(/\d+/g)||[]; const nb=b.match(/\d+/g)||[];
+    for(let i=0;i<Math.max(na.length,nb.length);i++){
+      const d=(parseInt(na[i])||0)-(parseInt(nb[i])||0);
+      if(d!==0) return d;
+    }
+    return 0;
+  });
+  populateSize(id, arr);
+}
+
+function populateSize(id, arr){
+  const sel=document.getElementById(`item-sel-${id}`);
+  sel.innerHTML='<option value="">-- 選択 --</option>';
+  arr.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+  // 「自由入力」を末尾に追加
+  const o=document.createElement('option'); o.value='__other__'; o.textContent='その他（直接入力）'; sel.appendChild(o);
+}
+
+function clearSizeSelect(id){
+  const sel=document.getElementById(`item-sel-${id}`);
+  sel.innerHTML='<option value="">-- カテゴリを先に選択 --</option>';
+  // 台木リフト非表示
+  document.getElementById(`daimoku-group-${id}`).style.display='none';
+  // L/W/H入力を隠す
+  clearSizeOther(id);
+}
+
+function onSizeSelChange(id){
+  const sel=document.getElementById(`item-sel-${id}`);
+  if(sel.value==='__other__'){
+    sel.style.display='none';
+    document.getElementById(`item-lwh-${id}`).style.display='flex';
+    document.getElementById(`item-back-${id}`).style.display='';
+    document.getElementById(`item-l-${id}`).focus();
+    document.getElementById(`daimoku-group-${id}`).style.display='none';
+    applyPendingSizeCarry(id);
+  } else {
+    // 台木リフト表示
+    document.getElementById(`daimoku-group-${id}`).style.display = sel.value ? '' : 'none';
+    updateDaimokuStyle(id);
+  }
+}
+
+function clearSizeOther(id){
+  const sel=document.getElementById(`item-sel-${id}`);
+  sel.value=''; sel.style.display='';
+  document.getElementById(`item-lwh-${id}`).style.display='none';
+  document.getElementById(`item-l-${id}`).value='';
+  document.getElementById(`item-w-${id}`).value='';
+  document.getElementById(`item-h-${id}`).value='';
+  document.getElementById(`item-back-${id}`).style.display='none';
+  document.getElementById(`daimoku-group-${id}`).style.display='none';
+}
+
+function getSizeVal(id){
+  const sel=document.getElementById(`item-sel-${id}`);
+  const isOther = sel.style.display==='none' || sel.value==='__other__';
+  if(isOther){
+    const l=document.getElementById(`item-l-${id}`).value.trim();
+    const w=document.getElementById(`item-w-${id}`).value.trim();
+    const h=document.getElementById(`item-h-${id}`).value.trim();
+    if(!l && !w && !h) return '';
+    return `${l}×${w}×${h}`;
+  }
+  return sel.value;
+}
+
+function getSubcatVal(id){
+  const sel=document.getElementById(`subcat-${id}`);
+  const txt=document.getElementById(`subcat-text-${id}`);
+  if(!sel) return '';
+  if(sel.style.display==='none') return txt.value.trim();
+  return sel.value==='__other__'?txt.value.trim():sel.value;
+}
+
+// サイズ検索で候補が見つからなかった場合のL/W/Hを一時保持（自由入力欄への引き継ぎ用）
+const pendingSizeCarry = {};
+
+function applyPendingSizeCarry(id){
+  const p = pendingSizeCarry[id];
+  if(!p) return;
+  document.getElementById(`item-l-${id}`).value = p.l;
+  document.getElementById(`item-w-${id}`).value = p.w;
+  document.getElementById(`item-h-${id}`).value = p.h;
+}
+
+function onSizeSearchInput(id){
+  const l=document.getElementById(`sizesearch-l-${id}`).value.trim();
+  const w=document.getElementById(`sizesearch-w-${id}`).value.trim();
+  const h=document.getElementById(`sizesearch-h-${id}`).value.trim();
+  const resultsEl=document.getElementById(`sizesearch-results-${id}`);
+  if(!l||!w||!h){ resultsEl.innerHTML=''; return; }
+  const target=`${l}×${w}×${h}`;
+  const matches=FLAT_SIZE_INDEX.filter(e=>e.size===target);
+  if(!matches.length){
+    resultsEl.innerHTML='<div style="font-size:12px;color:#999">一致する候補がありません（カテゴリを選択し、サイズを直接入力してください。下の欄に自動で反映されます）</div>';
+    pendingSizeCarry[id] = {l,w,h};
+    return;
+  }
+  delete pendingSizeCarry[id];
+  resultsEl.innerHTML = matches.map((m,i)=>{
+    const label = m.cat==='工機' ? `工機_${m.subcat}` : (m.cat==='その他' ? m.subcat : m.cat);
+    return `<button type="button" class="btn-free" data-idx="${i}" style="display:block;width:100%;margin-bottom:4px;text-align:left" onclick="applySizeCandidate(${id},${i})">${label}　${m.size}</button>`;
+  }).join('');
+  resultsEl._matches = matches;
+}
+
+function applySizeCandidate(id, idx){
+  const resultsEl=document.getElementById(`sizesearch-results-${id}`);
+  const m = resultsEl._matches[idx];
+  const catSel=document.getElementById(`cat-${id}`);
+
+  if(m.cat==='その他'){
+    catSel.value = m.subcat; // '3000まで' or '3001以上'
+    onCatChange(id);
+  } else if(m.cat==='工機'){
+    catSel.value = '工機';
+    onCatChange(id);
+    const subSel=document.getElementById(`subcat-${id}`);
+    subSel.value = m.subcat;
+    onSubCatChange(id);
+  } else {
+    catSel.value = m.cat;
+    onCatChange(id);
+  }
+
+  const sizeSel=document.getElementById(`item-sel-${id}`);
+  sizeSel.value = m.size;
+  onSizeSelChange(id);
+
+  resultsEl.innerHTML='';
+  document.getElementById(`sizesearch-l-${id}`).value='';
+  document.getElementById(`sizesearch-w-${id}`).value='';
+  document.getElementById(`sizesearch-h-${id}`).value='';
+  delete pendingSizeCarry[id];
+}
+
+function updateDaimokuStyle(id){
+  const radios=document.querySelectorAll(`input[name="daimoku-${id}"]`);
+  radios.forEach(r=>{
+    const lbl=r.parentElement;
+    if(r.checked) lbl.classList.add('selected');
+    else lbl.classList.remove('selected');
+  });
+}
+
+function getDaimoku(id){
+  const r=document.querySelector(`input[name="daimoku-${id}"]:checked`);
+  return r?r.value:'なし';
+}
+
+function collectItems(){
+  const blocks=document.querySelectorAll('.item-block');
+  const items=[];
+  blocks.forEach(block=>{
+    const id=block.id.replace('item-','');
+    const catSel=document.getElementById(`cat-${id}`);
+    let cat=catSel.value;
+    let catDisplay=cat;
+    if(cat==='工機'){
+      const sub=getSubcatVal(id);
+      catDisplay=sub?`工機_${sub}`:'工機';
+    } else if(cat==='__other__'){
+      // カテゴリ自由入力の場合、サイズ欄に全部入力してもらう
+      catDisplay='その他';
+    }
+    const sizeVal=getSizeVal(id);
+    const daimoku=getDaimoku(id);
+    const client=getClientVal(id);
+    const isNew = document.getElementById(`item-lwh-${id}`).style.display !== 'none';
+    const dates=[];
+    const dateInputs=block.querySelectorAll('.date-input');
+    const qtyInputs=block.querySelectorAll('.qty-input');
+    dateInputs.forEach((d,i)=>{ if(d.value||qtyInputs[i].value) dates.push({date:d.value,qty:qtyInputs[i].value}); });
+    items.push({cat:catDisplay,size:sizeVal,daimoku,client,dates,isNew});
+  });
+  return items;
+}
+
+function goConfirm(){
+  const requester=document.getElementById('requester').value;
+  if(!requester){ showMsg('依頼者名を選択してください。','err'); return; }
+  const items=collectItems();
+  if(!items.length){ showMsg('品目を1つ以上追加してください。','err'); return; }
+  let valid=true;
+  items.forEach((it,i)=>{
+    if(!it.cat||it.cat==='工機'){ valid=false; showMsg(`品目${i+1}：カテゴリを選択してください。`,'err'); }
+    if(!it.size){ valid=false; showMsg(`品目${i+1}：サイズを選択または入力してください。`,'err'); }
+    if(!it.dates.length||!it.dates[0].date||!it.dates[0].qty){ valid=false; showMsg(`品目${i+1}：納入日と数量を入力してください。`,'err'); }
+  });
+  if(!valid) return;
+
+  const note=document.getElementById('note').value;
+
+  let html=`
+    <div class="card">
+      <table class="confirm-table">
+        <tr><th>依頼者名</th><td><input type="text" id="c-requester" value="${requester}"></td></tr>
+      </table>
+    </div>`;
+
+  items.forEach((it,i)=>{
+    const dateRows=it.dates.map((d,j)=>`
+      <tr>
+        <th>納入日${j+1}・数量</th>
+        <td style="display:flex;gap:6px;align-items:center">
+          <input type="date" class="c-date-${i}" value="${d.date}" style="flex:1">
+          <input type="number" class="c-qty-${i}" value="${d.qty}" min="1" style="width:70px"> c/s
+        </td>
+      </tr>`).join('');
+    html+=`
+      <div class="item-confirm-block">
+        <div style="font-size:12px;font-weight:bold;color:#2c5282;margin-bottom:8px">品目 ${i+1}</div>
+        <table class="confirm-table">
+          <tr><th>客先名</th><td><input type="text" id="c-client-${i}" value="${it.client}"></td></tr>
+          <tr><th>カテゴリ</th><td><input type="text" id="c-cat-${i}" value="${it.cat}"></td></tr>
+          <tr><th>サイズ</th><td><input type="text" id="c-size-${i}" value="${it.size}"></td></tr>
+          <tr><th>台木リフト</th><td><input type="text" id="c-daimoku-${i}" value="${it.daimoku}"></td></tr>
+          ${dateRows}
+        </table>
+      </div>`;
+  });
+
+  html+=`
+    <div class="card">
+      <table class="confirm-table">
+        <tr><th>備考</th><td><textarea id="c-note" rows="3" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:3px;font-size:13px;font-family:inherit">${note}</textarea></td></tr>
+      </table>
+    </div>`;
+
+  document.getElementById('confirm-content').innerHTML=html;
+  document.getElementById('input-screen').style.display='none';
+  document.getElementById('confirm-screen').style.display='block';
+  document.getElementById('confirm-btns').style.display='grid';
+  document.getElementById('after-send-btns').style.display='none';
+  document.getElementById('msg2').textContent='';
+  document.getElementById('msg2').className='';
+  window._confirmItemCount=items.length;
+  window._confirmItems=items;
+  window.scrollTo(0,0);
+}
+
+function goBack(){
+  document.getElementById('confirm-screen').style.display='none';
+  document.getElementById('input-screen').style.display='block';
+  window.scrollTo(0,0);
+}
+
+function submitForm(){
+  const btn=document.getElementById('btn-send');
+  btn.disabled=true; btn.textContent='送信中...';
+
+  const requester=document.getElementById('c-requester').value;
+  const note=document.getElementById('c-note').value;
+  const n=window._confirmItemCount;
+
+  const params=new URLSearchParams();
+  params.set('依頼者名',requester);
+  params.set('品目数',n);
+
+  for(let i=0;i<n;i++){
+    params.set(`品目${i+1}_客先名`, document.getElementById(`c-client-${i}`).value);
+    params.set(`品目${i+1}_カテゴリ`, document.getElementById(`c-cat-${i}`).value);
+    params.set(`品目${i+1}_サイズ`, document.getElementById(`c-size-${i}`).value);
+    params.set(`品目${i+1}_台木リフト`, document.getElementById(`c-daimoku-${i}`).value);
+    const dates=document.querySelectorAll(`.c-date-${i}`);
+    const qtys=document.querySelectorAll(`.c-qty-${i}`);
+    dates.forEach((d,j)=>{ params.set(`品目${i+1}_納入日${j+1}`,d.value); params.set(`品目${i+1}_数量${j+1}`,qtys[j].value); });
+  }
+  params.set('備考',note);
+
+  // ▼サンプル版：実際の送信は行わず、少し待ってから成功表示だけ行う模擬処理
+  new Promise(resolve=>setTimeout(resolve, 600))
+    .then(()=>{
+      let html='<p style="text-align:center;font-size:16px;color:#276749;padding:30px 30px 10px">✅ 送信が完了しました！（サンプル版のため実際には送信・保存されていません）</p>';
+
+      const newItems=(window._confirmItems||[]).filter(it=>it.isNew);
+      if(newItems.length){
+        const linksHtml=newItems.map(it=>{
+          const lwh=it.size.split('×');
+          const q=new URLSearchParams();
+          q.set('client', it.client||'');
+          q.set('product', it.cat||'');
+          q.set('staff', requester);
+          q.set('l', lwh[0]||'');
+          q.set('w', lwh[1]||'');
+          q.set('h', lwh[2]||'');
+          q.set('date', (it.dates[0]&&it.dates[0].date)||'');
+          return `<li style="margin-bottom:8px">
+            ${it.cat}　${it.size}<br>
+            <a href="${SHIKUMI_FORM_URL}?${q.toString()}" target="_blank" rel="noopener"
+               style="display:inline-block;margin-top:4px;padding:5px 10px;background:#856404;color:#fff;border-radius:4px;text-decoration:none;font-size:12px">
+              🔧 仕組オーダーシートを開く（サンプル版）
+            </a>
+          </li>`;
+        }).join('');
+        html+=`
+          <div id="shikumi-notice" style="margin:0 0 20px;padding:12px 14px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:13px;color:#856404;line-height:1.6">
+            ⚠️ ${newItems.length}件の新サイズがあります。仕組オーダーシートを入力・送信してください。
+            <ul style="margin:6px 0 0 18px;list-style:none;padding:0">${linksHtml}</ul>
+          </div>`;
+      }
+
+      document.getElementById('confirm-content').innerHTML=html;
+      document.getElementById('msg2').className='';
+      document.getElementById('msg2').textContent='';
+      document.getElementById('confirm-btns').style.display='none';
+      document.getElementById('after-send-btns').style.display='grid';
+      // btn-sendをリセット（続けて送信用）
+      btn.disabled=false; btn.textContent='送信する';
+    });
+}
+
+function continueForm(){
+  // フォームをリセットして入力画面に戻る
+  document.getElementById('requester').value='';
+  document.getElementById('note').value='';
+  document.getElementById('items-container').innerHTML='';
+  itemCount=0;
+  addItem();
+  document.getElementById('confirm-screen').style.display='none';
+  document.getElementById('input-screen').style.display='block';
+  document.getElementById('confirm-btns').style.display='grid';
+  document.getElementById('after-send-btns').style.display='none';
+  document.getElementById('msg').textContent='';
+  document.getElementById('msg').className='';
+  window.scrollTo(0,0);
+}
+
+function closeForm(){
+  // スマホではwindow.close()が効かないためトップに戻す
+  if(!window.close()){
+    document.getElementById('confirm-screen').style.display='none';
+    document.getElementById('input-screen').style.display='block';
+    document.getElementById('confirm-btns').style.display='grid';
+    document.getElementById('after-send-btns').style.display='none';
+    document.getElementById('items-container').innerHTML='';
+    itemCount=0; addItem();
+    document.getElementById('requester').value='';
+    document.getElementById('note').value='';
+    document.getElementById('msg').textContent='';
+    window.scrollTo(0,0);
+    showMsg('送信が完了しました。続けて入力できます。','ok');
+  }
+}
+
+function showMsg(text,type){
+  const m=document.getElementById('msg');
+  m.className=type; m.textContent=text;
+}
+
+// =============================================
+// ▼サンプル版：依頼者一覧はローカルの模擬データを使用（外部通信なし）
+// =============================================
+const MOCK_REQUESTERS = ["山田","佐藤","鈴木","田中","高橋"];
+
+function loadRequesters(){
+  const sel = document.getElementById('requester');
+  sel.innerHTML = '<option value="">-- 選択してください --</option>';
+  MOCK_REQUESTERS.forEach(n=>{
+    const o=document.createElement('option');
+    o.value=n; o.textContent=n;
+    sel.appendChild(o);
+  });
+}
+
+// =============================================
+// ▼サンプル版：客先名一覧は初期埋め込みデータのまま使用（外部通信なし）
+// =============================================
+function loadClients(){
+  refreshAllClientSelects();
+}
+
+// 表示中の全品目ブロックの客先名プルダウンを、最新のCLIENTSで再構築する
+// （選択中の値は可能な範囲で維持する）
+function refreshAllClientSelects(){
+  document.querySelectorAll('.item-block').forEach(block=>{
+    const id = block.id.replace('item-','');
+    const sel = document.getElementById(`client-sel-${id}`);
+    if(!sel) return;
+    const current = sel.value;
+    let opts = `<option value="">-- なし / 選択 --</option>`;
+    CLIENTS.forEach(c=>{ opts+=`<option value="${c}">${c}</option>`; });
+    opts += `<option value="__other__">その他（直接入力）</option>`;
+    sel.innerHTML = opts;
+    if(current && CLIENTS.includes(current)) sel.value = current;
+  });
+}
+
+// 仕組オーダーシート（別タブ）で「これで終了する」が押されたら、
+// 送信完了画面に出している新サイズ案内メッセージを自動的に消す
+window.addEventListener('storage', function(e){
+  if(e.key === 'shikumi_done'){
+    const el = document.getElementById('shikumi-notice');
+    if(el) el.remove();
+  }
+});
+
+addItem();
+loadRequesters();
+loadClients();
+</script>
+</body>
+</html>
