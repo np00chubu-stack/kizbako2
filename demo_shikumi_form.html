@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>仕組オーダーシート（サンプル版）</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.container{max-width:720px;margin:24px auto;padding:0 12px 40px}
+h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
+p.desc{font-size:12px;color:#666;margin-bottom:16px;line-height:1.6}
+.card{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);padding:18px;margin-bottom:14px}
+.form-group{margin-bottom:12px}
+label{display:block;font-size:12px;font-weight:bold;color:#555;margin-bottom:3px}
+label .req{color:#e53e3e;margin-left:2px}
+select,input[type="date"],input[type="number"],input[type="text"]{
+  width:100%;padding:9px 10px;border:1px solid #ccc;border-radius:4px;
+  font-size:14px;font-family:inherit;background:#fff;
+}
+select:focus,input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px rgba(49,130,206,.2)}
+
+.input-toggle{display:flex;gap:6px;align-items:center}
+.input-toggle select,.input-toggle input{flex:1}
+.btn-free{font-size:11px;white-space:nowrap;padding:6px 10px;border:1px solid #aaa;border-radius:4px;background:#fff;cursor:pointer;color:#555}
+.btn-free:hover{background:#f0f4f8}
+
+.section-title{font-size:13px;font-weight:bold;color:#2c5282;background:#dbeafe;padding:6px 10px;border-radius:4px;margin-bottom:12px}
+
+.dim-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.buzai-block{border:1px solid #d0d8e4;border-radius:6px;padding:10px;margin-bottom:8px;background:#f7f9fc}
+.buzai-name{font-size:13px;font-weight:bold;color:#1a3a5c;margin-bottom:6px}
+.buzai-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.buzai-fixed{font-size:13px;color:#666;padding:9px 0}
+
+.toggle-row{display:flex;gap:8px;margin-top:2px}
+.toggle-row label{font-size:12px;font-weight:normal;color:#555;display:flex;align-items:center;gap:4px;cursor:pointer;flex:1;padding:8px 10px;border:1px solid #ccc;border-radius:4px;background:#fff;margin-bottom:0}
+.toggle-row input[type="radio"]{width:auto;margin:0}
+.toggle-row label.selected{border-color:#2c5282;background:#dbeafe;color:#1a3a5c;font-weight:bold}
+
+.btn-submit{width:100%;padding:13px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:16px;font-weight:bold;cursor:pointer}
+.btn-submit:hover{background:#2c5282}
+.btn-submit:disabled{background:#aaa;cursor:not-allowed}
+
+#msg{margin-top:14px;font-size:14px;text-align:center;padding:10px;border-radius:4px}
+#msg.err{color:#c53030;background:#fff5f5;border:1px solid #fc8181}
+
+/* 確認画面 */
+#confirm-screen{display:none}
+.confirm-table{width:100%;border-collapse:collapse;font-size:13px}
+.confirm-table th{background:#f0f4f8;text-align:left;padding:7px 10px;font-weight:bold;color:#555;width:130px;border:1px solid #e2e8f0;white-space:nowrap}
+.confirm-table td{padding:7px 10px;border:1px solid #e2e8f0;vertical-align:top}
+.confirm-table td input[type="text"],.confirm-table td input[type="date"],.confirm-table td input[type="number"]{width:100%;padding:4px 6px;border:1px solid #ccc;border-radius:3px;font-size:13px}
+.confirm-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.btn-back{padding:12px;background:#fff;border:2px solid #1a3a5c;color:#1a3a5c;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-back:hover{background:#f0f4f8}
+.btn-send{padding:12px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-send:hover{background:#2c5282}
+.btn-send:disabled{background:#aaa;cursor:not-allowed}
+#msg2{margin-top:14px;font-size:14px;text-align:center;padding:10px;border-radius:4px}
+#msg2.err{color:#c53030;background:#fff5f5;border:1px solid #fc8181}
+
+/* 完了画面 */
+#done-screen{display:none;text-align:center;padding:20px 0}
+#done-screen .check{font-size:40px;margin-bottom:10px}
+#done-screen p{font-size:15px;color:#276749;margin-bottom:24px}
+.after-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-continue{padding:12px;background:#276749;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-continue:hover{background:#2f855a}
+.btn-close{padding:12px;background:#fff;border:2px solid #999;color:#555;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-close:hover{background:#f0f0f0}
+#closed-note{display:none;font-size:13px;color:#666;margin-top:16px;text-align:center}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div style="background:#fff3cd;border:1px solid #ffc107;color:#856404;font-size:12px;text-align:center;padding:8px 10px;border-radius:6px;margin-bottom:12px">
+  📝 これはサンプル版です。送信しても実際のデータ保存・送信は行われません。操作感の確認用です。
+</div>
+
+<!-- ===== 入力画面 ===== -->
+<div id="input-screen">
+  <h1>🔧 仕組オーダーシート（サンプル版）</h1>
+  <p class="desc">新規カテゴリ・新サイズのため指示書がまだない品目について、担当者が仕組みを作成するための情報を入力してください。</p>
+
+  <div class="card">
+    <div class="form-group" id="client-group">
+      <label>顧客名<span class="req">*</span></label>
+      <div class="input-toggle">
+        <select id="client-sel" onchange="onClientSelChange()">
+          <option value="">-- 読み込み中... --</option>
+        </select>
+        <input type="text" id="client-text" placeholder="顧客名を入力" style="display:none">
+        <button type="button" class="btn-free" id="client-back" onclick="clearClientOther()" style="display:none">← 一覧</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>製品名<span class="req">*</span></label>
+      <input type="text" id="product" placeholder="製品名を入力">
+    </div>
+    <div class="form-group">
+      <label>名前（担当者）<span class="req">*</span></label>
+      <select id="staff">
+        <option value="">-- 読み込み中... --</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">外寸・納入日</div>
+    <div class="dim-grid">
+      <div class="form-group"><label>L(=横)<span class="req">*</span></label><input type="number" id="dim-l" min="0"></div>
+      <div class="form-group"><label>W(=縦)<span class="req">*</span></label><input type="number" id="dim-w" min="0"></div>
+      <div class="form-group"><label>H(=高さ)<span class="req">*</span></label><input type="number" id="dim-h" min="0"></div>
+    </div>
+    <div class="form-group"><label>納入日<span class="req">*</span></label><input type="date" id="dim-date"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">部材表</div>
+
+    <div class="buzai-block">
+      <div class="buzai-name">滑材</div>
+      <div class="buzai-grid">
+        <div><label style="font-size:11px;color:#777">サイズ</label>
+          <select id="nameri-size"><option value="">-- 選択 --</option><option>40</option><option>55</option><option>80</option></select>
+        </div>
+        <div><label style="font-size:11px;color:#777">本数</label><input type="number" id="nameri-qty" min="0"></div>
+      </div>
+    </div>
+
+    <div class="buzai-block">
+      <div class="buzai-name">スリ</div>
+      <div class="buzai-fixed">80（固定・入力不要）</div>
+    </div>
+
+    <div class="buzai-block">
+      <div class="buzai-name">台木リフト</div>
+      <div class="toggle-row" id="daimoku-row">
+        <label id="dl-nashi"><input type="radio" name="daimoku" value="なし" checked onchange="updateToggleStyle('daimoku-row')"> なし</label>
+        <label id="dl-ari"><input type="radio" name="daimoku" value="あり" onchange="updateToggleStyle('daimoku-row')"> あり</label>
+      </div>
+    </div>
+
+    <div class="buzai-block">
+      <div class="buzai-name">ヘッダー</div>
+      <div class="buzai-grid">
+        <div><label style="font-size:11px;color:#777">サイズ</label>
+          <select id="header-size"><option value="">-- 選択 --</option><option>40</option><option>55</option></select>
+        </div>
+        <div><label style="font-size:11px;color:#777">数量</label><input type="number" id="header-qty" min="0"></div>
+      </div>
+    </div>
+
+    <div class="buzai-block">
+      <div class="buzai-name">ロード</div>
+      <div class="buzai-grid">
+        <div><label style="font-size:11px;color:#777">サイズ</label>
+          <select id="load-size"><option value="">-- 選択 --</option><option>40</option><option>55</option></select>
+        </div>
+        <div><label style="font-size:11px;color:#777">本数</label><input type="number" id="load-qty" min="0"></div>
+      </div>
+    </div>
+
+    <div class="buzai-block">
+      <div class="buzai-name">ブロック</div>
+      <div class="buzai-grid">
+        <div><label style="font-size:11px;color:#777">サイズ</label>
+          <select id="block-size"><option value="">-- 選択 --</option><option>40</option><option>55</option></select>
+        </div>
+        <div><label style="font-size:11px;color:#777">本数</label><input type="number" id="block-qty" min="0"></div>
+      </div>
+    </div>
+
+    <div class="buzai-block">
+      <div class="buzai-name">押え</div>
+      <div class="buzai-grid">
+        <div><label style="font-size:11px;color:#777">サイズ</label>
+          <select id="osae-size"><option value="">-- 選択 --</option><option>40</option><option>55</option></select>
+        </div>
+        <div><label style="font-size:11px;color:#777">本数</label><input type="number" id="osae-qty" min="0"></div>
+      </div>
+    </div>
+
+    <div class="buzai-block">
+      <div class="buzai-name">梁</div>
+      <div class="buzai-grid">
+        <div><label style="font-size:11px;color:#777">サイズ</label>
+          <select id="hari-size"><option value="">-- 選択 --</option><option>40</option><option>55</option></select>
+        </div>
+        <div><label style="font-size:11px;color:#777">本数</label><input type="number" id="hari-qty" min="0"></div>
+      </div>
+    </div>
+
+    <div class="buzai-block">
+      <div class="buzai-name">落し蓋</div>
+      <div class="toggle-row" id="otoshibuta-row">
+        <label id="ob-nashi"><input type="radio" name="otoshibuta" value="無し" checked onchange="updateToggleStyle('otoshibuta-row')"> 無し</label>
+        <label id="ob-ari"><input type="radio" name="otoshibuta" value="有り" onchange="updateToggleStyle('otoshibuta-row')"> 有り</label>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-submit" id="btn-confirm" onclick="goConfirm()">内容を確認する →</button>
+  <div id="msg"></div>
+</div>
+
+<!-- ===== 確認画面 ===== -->
+<div id="confirm-screen">
+  <h1>🔧 入力内容の確認</h1>
+  <p style="font-size:13px;color:#666;margin-bottom:14px">内容を直接編集できます。よければ「送信する」を押してください。</p>
+  <div class="card">
+    <table class="confirm-table">
+      <tr><th>顧客名</th><td><input type="text" id="c-client"></td></tr>
+      <tr><th>製品名</th><td><input type="text" id="c-product"></td></tr>
+      <tr><th>名前（担当者）</th><td><input type="text" id="c-staff"></td></tr>
+      <tr><th>L(=横)</th><td><input type="number" id="c-l"></td></tr>
+      <tr><th>W(=縦)</th><td><input type="number" id="c-w"></td></tr>
+      <tr><th>H(=高さ)</th><td><input type="number" id="c-h"></td></tr>
+      <tr><th>納入日</th><td><input type="date" id="c-date"></td></tr>
+      <tr><th>滑材サイズ</th><td><input type="text" id="c-nameri-size"></td></tr>
+      <tr><th>滑材本数</th><td><input type="number" id="c-nameri-qty"></td></tr>
+      <tr><th>台木リフト</th><td><input type="text" id="c-daimoku"></td></tr>
+      <tr><th>ヘッダーサイズ</th><td><input type="text" id="c-header-size"></td></tr>
+      <tr><th>ヘッダー数量</th><td><input type="number" id="c-header-qty"></td></tr>
+      <tr><th>ロードサイズ</th><td><input type="text" id="c-load-size"></td></tr>
+      <tr><th>ロード本数</th><td><input type="number" id="c-load-qty"></td></tr>
+      <tr><th>ブロックサイズ</th><td><input type="text" id="c-block-size"></td></tr>
+      <tr><th>ブロック本数</th><td><input type="number" id="c-block-qty"></td></tr>
+      <tr><th>押えサイズ</th><td><input type="text" id="c-osae-size"></td></tr>
+      <tr><th>押え本数</th><td><input type="number" id="c-osae-qty"></td></tr>
+      <tr><th>梁サイズ</th><td><input type="text" id="c-hari-size"></td></tr>
+      <tr><th>梁本数</th><td><input type="number" id="c-hari-qty"></td></tr>
+      <tr><th>落し蓋</th><td><input type="text" id="c-otoshibuta"></td></tr>
+    </table>
+  </div>
+  <div class="confirm-btns">
+    <button class="btn-back" onclick="goBack()">← 戻る</button>
+    <button class="btn-send" id="btn-send" onclick="submitShikumi()">送信する</button>
+  </div>
+  <div id="msg2"></div>
+</div>
+
+<!-- ===== 完了画面 ===== -->
+<div id="done-screen">
+  <div class="check">✅</div>
+  <p>送信が完了しました！（サンプル版のため実際には送信・保存されていません）</p>
+  <div class="after-btns">
+    <button class="btn-continue" onclick="continueForm()">続けて入力する</button>
+    <button class="btn-close" onclick="finishForm()">これで終了する</button>
+  </div>
+  <div id="closed-note">この画面を閉じて、木箱依頼フォームに戻ってください。</div>
+</div>
+
+</div>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyzA3f5QkS0KEgYaH4PaHeBMdnbKyMFCEBJSqtHSkGkcnRPYDvlNi9_rOWkGFZOsLPD/exec";
+
+// 客先名一覧（起動時にスプシの最新データで上書きされる。読み込み完了までは空扱い）
+let CLIENTS = [];
+
+function renderClientSelect(){
+  const sel = document.getElementById('client-sel');
+  let opts = `<option value="">-- なし / 選択 --</option>`;
+  CLIENTS.forEach(c=>{ opts+=`<option value="${c}">${c}</option>`; });
+  opts += `<option value="__other__">その他（直接入力）</option>`;
+  sel.innerHTML = opts;
+}
+
+function onClientSelChange(){
+  const sel = document.getElementById('client-sel');
+  const txt = document.getElementById('client-text');
+  const back = document.getElementById('client-back');
+  if(sel.value==='__other__'){
+    sel.style.display='none'; txt.style.display=''; back.style.display=''; txt.focus();
+  }
+}
+function clearClientOther(){
+  const sel = document.getElementById('client-sel');
+  const txt = document.getElementById('client-text');
+  const back = document.getElementById('client-back');
+  sel.value=''; sel.style.display=''; txt.style.display='none'; back.style.display='none'; txt.value='';
+}
+function getClientVal(){
+  const sel = document.getElementById('client-sel');
+  const txt = document.getElementById('client-text');
+  if(sel.style.display==='none') return txt.value.trim();
+  return sel.value==='__other__' ? txt.value.trim() : sel.value;
+}
+
+// =============================================
+// 依頼者一覧をGASから取得（木箱依頼フォームと同じ「依頼者一覧」シートを共用）
+// =============================================
+function loadRequesters(){
+  const sel = document.getElementById('staff');
+  const cbName = 'onRequestersLoaded_' + Date.now();
+
+  window[cbName] = function(res){
+    delete window[cbName];
+    if(script.parentNode) script.parentNode.removeChild(script);
+
+    sel.innerHTML = '<option value="">-- 選択してください --</option>';
+    const names = (res && res.requesters) ? res.requesters : [];
+    if(!names.length){
+      sel.innerHTML += '<option value="" disabled>（依頼者一覧の取得に失敗しました）</option>';
+      return;
+    }
+    names.forEach(n=>{
+      const o=document.createElement('option');
+      o.value=n; o.textContent=n;
+      sel.appendChild(o);
+    });
+    // プリフィル：担当者名
+    const pStaff = _prefill.staff;
+    if(pStaff && names.includes(pStaff)) sel.value = pStaff;
+  };
+
+  const script = document.createElement('script');
+  script.src = `${GAS_URL}?action=getRequesters&callback=${cbName}`;
+  script.onerror = function(){
+    delete window[cbName];
+    sel.innerHTML = '<option value="">-- 選択してください --</option><option value="" disabled>（依頼者一覧の取得に失敗しました）</option>';
+  };
+  document.body.appendChild(script);
+}
+
+// =============================================
+// 客先名一覧をGASから取得（木箱依頼フォームと同じ「客先名一覧」シートを共用）
+// =============================================
+function loadClients(){
+  const cbName = 'onClientsLoaded_' + Date.now();
+
+  window[cbName] = function(res){
+    delete window[cbName];
+    if(script.parentNode) script.parentNode.removeChild(script);
+
+    const names = (res && res.clients) ? res.clients : [];
+    if(names.length) CLIENTS = names;
+    renderClientSelect();
+    // プリフィル：顧客名
+    const pClient = _prefill.client;
+    if(pClient){
+      const sel = document.getElementById('client-sel');
+      const txt = document.getElementById('client-text');
+      const back = document.getElementById('client-back');
+      if(CLIENTS.includes(pClient)){
+        sel.value = pClient;
+      } else if(pClient){
+        sel.style.display='none'; txt.style.display=''; back.style.display='';
+        txt.value = pClient;
+      }
+    }
+  };
+
+  const script = document.createElement('script');
+  script.src = `${GAS_URL}?action=getClients&callback=${cbName}`;
+  script.onerror = function(){ delete window[cbName]; renderClientSelect(); };
+  document.body.appendChild(script);
+}
+
+function updateToggleStyle(rowId){
+  const radios = document.querySelectorAll(`#${rowId} input[type="radio"]`);
+  radios.forEach(r=>{
+    const lbl = r.parentElement;
+    if(r.checked) lbl.classList.add('selected');
+    else lbl.classList.remove('selected');
+  });
+}
+updateToggleStyle('daimoku-row');
+updateToggleStyle('otoshibuta-row');
+
+function getRadioVal(name){
+  const r = document.querySelector(`input[name="${name}"]:checked`);
+  return r ? r.value : '';
+}
+
+function showMsg(text){
+  const m = document.getElementById('msg');
+  m.className = 'err';
+  m.textContent = text;
+}
+
+function validate(){
+  if(!getClientVal()){ showMsg('顧客名を選択または入力してください。'); return false; }
+  if(!document.getElementById('product').value.trim()){ showMsg('製品名を入力してください。'); return false; }
+  if(!document.getElementById('staff').value){ showMsg('名前（担当者）を選択してください。'); return false; }
+  const requiredNum = [
+    ['dim-l','L(=横)'], ['dim-w','W(=縦)'], ['dim-h','H(=高さ)']
+  ];
+  for(const [id,label] of requiredNum){
+    if(!document.getElementById(id).value){ showMsg(`${label}を入力してください。`); return false; }
+  }
+  if(!document.getElementById('dim-date').value){ showMsg('納入日を入力してください。'); return false; }
+  return true;
+}
+
+// =============================================
+// 確認画面へ
+// =============================================
+function goConfirm(){
+  if(!validate()) return;
+
+  document.getElementById('c-client').value       = getClientVal();
+  document.getElementById('c-product').value      = document.getElementById('product').value.trim();
+  document.getElementById('c-staff').value        = document.getElementById('staff').value;
+  document.getElementById('c-l').value             = document.getElementById('dim-l').value;
+  document.getElementById('c-w').value             = document.getElementById('dim-w').value;
+  document.getElementById('c-h').value             = document.getElementById('dim-h').value;
+  document.getElementById('c-date').value          = document.getElementById('dim-date').value;
+  document.getElementById('c-nameri-size').value   = document.getElementById('nameri-size').value;
+  document.getElementById('c-nameri-qty').value    = document.getElementById('nameri-qty').value;
+  document.getElementById('c-daimoku').value       = getRadioVal('daimoku');
+  document.getElementById('c-header-size').value   = document.getElementById('header-size').value;
+  document.getElementById('c-header-qty').value    = document.getElementById('header-qty').value;
+  document.getElementById('c-load-size').value     = document.getElementById('load-size').value;
+  document.getElementById('c-load-qty').value      = document.getElementById('load-qty').value;
+  document.getElementById('c-block-size').value    = document.getElementById('block-size').value;
+  document.getElementById('c-block-qty').value     = document.getElementById('block-qty').value;
+  document.getElementById('c-osae-size').value     = document.getElementById('osae-size').value;
+  document.getElementById('c-osae-qty').value      = document.getElementById('osae-qty').value;
+  document.getElementById('c-hari-size').value     = document.getElementById('hari-size').value;
+  document.getElementById('c-hari-qty').value      = document.getElementById('hari-qty').value;
+  document.getElementById('c-otoshibuta').value    = getRadioVal('otoshibuta');
+
+  document.getElementById('input-screen').style.display = 'none';
+  document.getElementById('confirm-screen').style.display = 'block';
+  document.getElementById('msg2').textContent = '';
+  document.getElementById('msg2').className = '';
+  window.scrollTo(0,0);
+}
+
+function goBack(){
+  document.getElementById('confirm-screen').style.display = 'none';
+  document.getElementById('input-screen').style.display = 'block';
+  window.scrollTo(0,0);
+}
+
+function showMsg2(text){
+  const m = document.getElementById('msg2');
+  m.className = 'err';
+  m.textContent = text;
+}
+
+function submitShikumi(){
+  const btn = document.getElementById('btn-send');
+  btn.disabled = true; btn.textContent = '送信中...';
+
+  const params = new URLSearchParams();
+  params.set('action','submitShikumi');
+  params.set('顧客名', document.getElementById('c-client').value);
+  params.set('製品名', document.getElementById('c-product').value);
+  params.set('担当者名', document.getElementById('c-staff').value);
+  params.set('L', document.getElementById('c-l').value);
+  params.set('W', document.getElementById('c-w').value);
+  params.set('H', document.getElementById('c-h').value);
+  params.set('納入日', document.getElementById('c-date').value);
+
+  params.set('滑材サイズ', document.getElementById('c-nameri-size').value);
+  params.set('滑材本数', document.getElementById('c-nameri-qty').value);
+  params.set('台木リフト', document.getElementById('c-daimoku').value);
+  params.set('ヘッダーサイズ', document.getElementById('c-header-size').value);
+  params.set('ヘッダー数量', document.getElementById('c-header-qty').value);
+  params.set('ロードサイズ', document.getElementById('c-load-size').value);
+  params.set('ロード本数', document.getElementById('c-load-qty').value);
+  params.set('ブロックサイズ', document.getElementById('c-block-size').value);
+  params.set('ブロック本数', document.getElementById('c-block-qty').value);
+  params.set('押えサイズ', document.getElementById('c-osae-size').value);
+  params.set('押え本数', document.getElementById('c-osae-qty').value);
+  params.set('梁サイズ', document.getElementById('c-hari-size').value);
+  params.set('梁本数', document.getElementById('c-hari-qty').value);
+  params.set('落し蓋', document.getElementById('c-otoshibuta').value);
+
+  // ▼サンプル版：実際の送信は行わず、少し待ってから完了画面だけ表示する模擬処理
+  new Promise(resolve=>setTimeout(resolve, 600))
+    .then(()=>{
+      document.getElementById('confirm-screen').style.display = 'none';
+      document.getElementById('done-screen').style.display = 'block';
+      document.getElementById('closed-note').style.display = 'none';
+      document.querySelector('.after-btns').style.display = 'grid';
+      btn.disabled = false; btn.textContent = '送信する';
+      window.scrollTo(0,0);
+    });
+}
+
+function resetForm(){
+  clearClientOther();
+  document.getElementById('client-sel').value = '';
+  document.getElementById('product').value = '';
+  // 担当者名（staffのselect）は続けて入力しやすいよう保持する
+  document.getElementById('dim-l').value = '';
+  document.getElementById('dim-w').value = '';
+  document.getElementById('dim-h').value = '';
+  document.getElementById('dim-date').value = '';
+  document.getElementById('nameri-size').value = '';
+  document.getElementById('nameri-qty').value = '';
+  document.getElementById('header-size').value = '';
+  document.getElementById('header-qty').value = '';
+  document.getElementById('load-size').value = '';
+  document.getElementById('load-qty').value = '';
+  document.getElementById('block-size').value = '';
+  document.getElementById('block-qty').value = '';
+  document.getElementById('osae-size').value = '';
+  document.getElementById('osae-qty').value = '';
+  document.getElementById('hari-size').value = '';
+  document.getElementById('hari-qty').value = '';
+  document.querySelector('input[name="daimoku"][value="なし"]').checked = true;
+  document.querySelector('input[name="otoshibuta"][value="無し"]').checked = true;
+  updateToggleStyle('daimoku-row');
+  updateToggleStyle('otoshibuta-row');
+  document.getElementById('msg').textContent = '';
+  document.getElementById('msg').className = '';
+}
+
+function continueForm(){
+  resetForm();
+  document.getElementById('done-screen').style.display = 'none';
+  document.getElementById('confirm-screen').style.display = 'none';
+  document.getElementById('input-screen').style.display = 'block';
+  window.scrollTo(0,0);
+}
+
+function finishForm(){
+  // 木箱依頼フォーム側（同一オリジンの別タブ）へ、入力完了を通知する
+  try{
+    localStorage.setItem('shikumi_done', String(Date.now()));
+  }catch(e){}
+
+  document.querySelector('.after-btns').style.display = 'none';
+  document.getElementById('closed-note').style.display = 'block';
+
+  // タブを閉じられる場合は閉じる（開けなければ案内文のみ残る）
+  window.close();
+}
+
+// =============================================
+// URLクエリからプリフィル情報を取得
+// =============================================
+const _prefill = (function(){
+  const p = new URLSearchParams(window.location.search);
+  return {
+    client:  p.get('client')  || '',
+    product: p.get('product') || '',
+    staff:   p.get('staff')   || '',
+    l:       p.get('l')       || '',
+    w:       p.get('w')       || '',
+    h:       p.get('h')       || '',
+    date:    p.get('date')    || ''
+  };
+})();
+
+function applyPrefillBasic(){
+  if(_prefill.product) document.getElementById('product').value = _prefill.product;
+  if(_prefill.l)       document.getElementById('dim-l').value   = _prefill.l;
+  if(_prefill.w)       document.getElementById('dim-w').value   = _prefill.w;
+  if(_prefill.h)       document.getElementById('dim-h').value   = _prefill.h;
+  if(_prefill.date)    document.getElementById('dim-date').value = _prefill.date;
+}
+
+loadRequesters();
+loadClients();
+applyPrefillBasic();
+</script>
+</body>
+</html>
