@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RLS確認用テストページ</title>
+<style>
+body{font-family:sans-serif;background:#f0f2f5;color:#333;padding:20px;max-width:600px;margin:0 auto}
+h1{font-size:18px;border-bottom:2px solid #1a3a5c;padding-bottom:8px}
+button{padding:12px 20px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;cursor:pointer;margin-top:10px}
+button:hover{background:#2c5282}
+.card{background:#fff;border-radius:8px;padding:16px;margin-top:16px;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.row{margin-bottom:8px;font-size:14px}
+.label{font-weight:bold;color:#555;display:inline-block;width:140px}
+pre{background:#f7f9fc;padding:10px;border-radius:4px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.err{color:#c53030}
+</style>
+</head>
+<body>
+<h1>🔧 RLS確認用テストページ（開発用・本番では使わない）</h1>
+
+<div id="login-area">
+  <button id="btn-login">Googleでログイン</button>
+</div>
+
+<div id="result-area" class="card" style="display:none">
+  <div class="row"><span class="label">ログイン中のメール:</span><span id="r-email"></span></div>
+  <div class="row"><span class="label">users_allowlist上のrole:</span><span id="r-role"></span></div>
+  <div class="row"><span class="label">requestsで見える件数:</span><span id="r-count"></span></div>
+  <div class="row"><span class="label">見えたrequests内容:</span></div>
+  <pre id="r-requests"></pre>
+  <button id="btn-logout">ログアウト</button>
+</div>
+
+<div id="error-area" class="card err" style="display:none"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function showError(msg){
+  const el = document.getElementById('error-area');
+  el.style.display = 'block';
+  el.textContent = '❌ ' + msg;
+}
+
+async function loadResult(){
+  const { data: { user } } = await client.auth.getUser();
+  if(!user){
+    document.getElementById('login-area').style.display = 'block';
+    document.getElementById('result-area').style.display = 'none';
+    return;
+  }
+  document.getElementById('login-area').style.display = 'none';
+  document.getElementById('result-area').style.display = 'block';
+  document.getElementById('r-email').textContent = user.email || '(取得できず)';
+
+  const { data: allowRows, error: allowErr } = await client
+    .from('users_allowlist')
+    .select('role, team')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  if(allowErr){
+    document.getElementById('r-role').textContent = 'エラー: ' + allowErr.message;
+  } else if(!allowRows){
+    document.getElementById('r-role').textContent = '（許可リストに登録なし、またはRLSで見えない）';
+  } else {
+    document.getElementById('r-role').textContent = allowRows.role + (allowRows.team ? '（班:' + allowRows.team + '）' : '');
+  }
+
+  const { data: reqRows, error: reqErr } = await client
+    .from('requests')
+    .select('id, requester_name, receipt_no, submitted_at');
+
+  if(reqErr){
+    document.getElementById('r-count').textContent = 'エラー';
+    document.getElementById('r-requests').textContent = reqErr.message;
+  } else {
+    document.getElementById('r-count').textContent = reqRows.length + '件';
+    document.getElementById('r-requests').textContent = JSON.stringify(reqRows, null, 2);
+  }
+}
+
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const { error } = await client.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if(error) showError(error.message);
+});
+
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  await client.auth.signOut();
+  loadResult();
+});
+
+loadResult();
+</script>
+</body>
+</html>
