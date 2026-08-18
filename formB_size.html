@@ -98,24 +98,37 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
 .client-suggest button{display:block;width:100%;text-align:left;padding:9px 10px;border:none;border-bottom:1px solid #f0f0f0;background:#fff;font-size:13px;color:#333;cursor:pointer}
 .client-suggest button:last-child{border-bottom:none}
 .client-suggest button:hover,.client-suggest button:active{background:#ebf8ff}
+.login-box{max-width:360px;margin:80px auto;text-align:center}
+.login-box h1{border:none;margin-bottom:20px}
+.btn-google{padding:13px 24px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-google:hover{background:#2c5282}
+#auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
+.login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:6px;margin-bottom:14px}
 </style>
 </head>
 <body>
 <div class="container">
 
+<div id="auth-loading">読み込み中...</div>
+
+<div id="auth-login" class="login-box" style="display:none">
+  <h1>🪵 木箱依頼フォーム</h1>
+  <button class="btn-google" onclick="loginWithGoogle()">Googleでログイン</button>
+  <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#c53030"></div>
+</div>
+
+<div id="auth-denied" class="login-box" style="display:none">
+  <h1>🪵 木箱依頼フォーム</h1>
+  <p style="font-size:14px;color:#c53030">このアカウントはまだ利用登録されていません。管理者に連絡してください。</p>
+</div>
+
+<div id="app-content" style="display:none">
+
 <!-- ===== 入力画面 ===== -->
 <div id="input-screen">
   <h1>🪵 木箱依頼フォーム</h1>
 
-  <!-- 依頼者名 -->
-  <div class="card">
-    <div class="form-group">
-      <label>依頼者名<span class="req">*</span></label>
-      <select id="requester">
-        <option value="">-- 読み込み中... --</option>
-      </select>
-    </div>
-  </div>
+  <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
 
   <!-- 品目ブロック -->
   <div id="items-container"></div>
@@ -157,54 +170,30 @@ select:focus,input:focus,textarea:focus{outline:none;border-color:#3182ce;box-sh
   <div id="msg2"></div>
 </div>
 
+</div><!-- /#app-content -->
+
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyzA3f5QkS0KEgYaH4PaHeBMdnbKyMFCEBJSqtHSkGkcnRPYDvlNi9_rOWkGFZOsLPD/exec";
-// ★ 仕組オーダーシートフォームの公開URL
+// ★ 仕組オーダーシートフォームの公開URL（現状のまま。GAS版に依存する別フローのため今回は変更しない）
 const SHIKUMI_FORM_URL = "https://np00chubu-stack.github.io/kizbako2/shikumi_form.html";
 
-let CLIENTS = []; // 客先名一覧（起動時にスプシの最新データで上書きされる。読み込み完了までは空扱い）
+const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ★工機カテゴリのサブカテゴリ・サイズはスプシ「工機データ」から取得する（ここには埋め込まない）
+let currentUser = { email: '', name: '' }; // ログイン中のユーザー情報
+
+let CLIENTS = []; // 客先名一覧（起動時にSupabaseの最新データで上書きされる。読み込み完了までは空扱い）
+
+// ★工機カテゴリのサブカテゴリ・サイズは今回からSupabase（size_master）から取得する
 let KOKI_DATA = {};
-let kokiLoaded = false;
-let kokiLoading = false;
-let kokiWaitCallbacks = [];
-
-const itemData = {
-  "マスト": ["該当なし","1430×1350×1125","1430×1350×1300","1800×1350×1125","2250×1350×1125","2250×1350×1300","2250×1450×1125","2640×1350×1125","3300×1350×1125","3300×1350×1300","3600×1350×1125","3600×1350×1300","4400×1450×1125","4600×1800×1125","4600×1800×1150"],
-  "CDRX": ["該当なし","CDRX 2880","CDRX 2900"],
-  "EMOBOX": ["該当なし","1800×1100×850","1800×1100×1100","2250×1100×850"],
-  "MST": ["該当なし","1430×1150×1550","1430×1150×1600","1430×1150×1800","1430×1150×1900","1430×1150×2000","1430×1150×2100","1430×1150×2250","1430×1150×2290","1430×1150×2400","1430×1150×2540","1430×1250×2400","1430×1350×775","1430×1350×1550","1430×1350×2100","1430×1350×2290","1430×1600×2290","1600×1150×1550","1600×1150×2000","1600×1150×2100","1600×1150×2290","1600×1150×2540","1600×1350×775","1650×1150×2250","1700×1150×1300","1700×1150×1550","1700×1150×2100","1700×1150×2250","1700×1150×2290","1700×1350×2100","1700×1400×2100","1700×1430×2100","1700×1450×2100","1700×1450×2290","1700×1700×2100","1750×1400×2100","1800×1150×775","1800×1150×2540","2000×1450×1800","2250×1150×1300","2250×1150×1400","2250×1150×1550","2250×1450×2100","2640×1150×1450","2640×1150×1550","2640×1150×1600","2640×1150×1700","2640×1150×2000","2640×1150×2100","2640×1150×2290","2850×1150×1650","3120×1150×1550","3200×1150×1600","3200×1150×1700","4600×2250×1300"],
-  "PSP": ["該当なし","1600×1150×2290","1600×1150×2540","2640×1150×1700","2640×1150×2290","2640×1150×2540"],
-  "かくてい箱": ["該当なし","C","バンダクト","D","ドックB","定尺3.0","C775","バンダクト775","D775","C1300","バンダクトH1300","D1300","定尺H1300","C1550","D1550"],
-  "カート": ["該当なし","1430×1150×1550","1430×1150×1700","1600×1150×1700","1600×1350×1700","2250×1150×1700","2640×1150×1550"],
-  "クレーン": ["該当なし","1600×1150×1300","2250×1150×1550","2640×1150×1550","2800×1150×1550","3000×1150×1550","3300×1100×1550","3300×1150×1125","3600×1150×1125","3600×1150×1550","3960×1150×1125","3960×1150×1550","4200×1150×1125","4300×1150×1550","4400×1150×1125","4400×1150×1550","4500×1150×1125","4600×1150×1125","4600×1150×1550","4800×1150×1550","5200×1100×1800"],
-  "ドラム": ["該当なし","1430×1300×1000","1430×1350×1300","2640×1300×1000","2640×1350×1300"],
-  "パーテーション": ["該当なし","2250×1350×775","2250×1350×1125","2250×1600×1125","2640×1350×775","2640×1350×1125","2640×1600×1125","3300×1350×775","3300×1600×1125","3300×1600×1125 (2)","3600×1350×775","3600×1600×1125","3700×1600×1125"],
-  "洋箱": ["該当なし","650×500×550","700×590×400","800×300×300","800×400×250","800×500×300","800×500×400","800×590×400","800×600×500","850×400×400","900×300×300","900×400×300","900×600×300","950×800×400","1000×300×300","1000×400×300","1000×400×400","1000×500×300","1000×800×500","1050×300×300","1050×600×500","1100×300×300","1100×400×300","1100×400×400","1100×600×300","1150×300×300","1150×500×300","1200×300×300","1200×500×300","1200×550×300","1200×590×490","1200×600×300","1200×900×400","1300×400×300","1350×300×300","1350×350×300","1400×300×300","1400×600×500","1450×300×300","1500×300×300","1500×400×450","1550×300×300","1600×300×300","1600×550×550","1650×300×300","1700×300×300","1800×300×300","1800×500×300","1900×300×300","1900×500×400","1900×600×500","1950×300×300","2000×300×300","2100×300×300","2100×550×550","2100×600×500","2150×600×500","2200×300×300","2200×400×400","2200×650×300","2300×600×500","2400×300×300","2600×300×300","2650×300×300","3100×300×300","3150×400×300","3200×220×80","3200×250×200","3200×300×300","3200×400×300","3900×400×400","4100×300×300","4100×400×300","4110×420×400","4110×460×370","4110×460×370(スリH110)","4110×490×410","4200×300×300"],
-  "防火扉": ["該当なし","2250×1150×1800","2250×1150×1850","2250×1150×2000","3000×1150×2000","3200×1150×1800","3250×1150×1800","3250×1150×2000","3550×1150×2000","3600×1150×1800","3600×1150×2000","3700×1150×2000","3960×1150×1850"],
-  "ラック": ["該当なし","1600×1150×1550","1600×1350×1125","2250×1150×1300","2250×1150×1350","2640×1100×775","2640×1150×1125","2640×1150×1300","2640×1150×1550","2640×1150×1700","3300×1150×1125"],
-  "安全柵": ["該当なし","1430×1250×775","1430×1250×900","1430×1250×1125","1430×1250×1300","1600×1250×600","1600×1500×775","1700×1250×900","2200×1250×1125","2250×1250×775","2250×1250×800","2250×1250×950","2250×1250×1125","2250×1250×1300","2250×1350×1300","2250×1700×600","2250×1700×775","2250×1700×1300","2300×1250×1125","2300×1250×1300","2300×1250×1400","2350×1250×900","2350×1250×1000","2350×1250×1050","2350×1250×1125","2400×1350×775","2400×1700×775","2400×1750×775","2640×1250×950","2640×1250×1125","2640×1250×1300","2640×1700×800","2640×1700×850","2640×1700×900","2640×1700×950","2640×1700×1050","2640×1700×1125","2640×1700×1200","2640×1700×1250","2640×1700×1300","2640×1700×1400","2800×1350×775","2800×1350×850","2950×2300×950","2950×2350×950","3000×1250×900","3000×2350×900","3120×1250×1125","3900×1250×1125","3960×1250×775"],
-  "支給品": ["該当なし","1600×1150×775","1600×1150×1125","2250×1150×1300","3100×1150×775"],
-  "部材": ["該当なし","1430×1100×1100","1430×1150×1550","1430×1150×1700","1430×1150×1800","1430×1150×2100","1430×1350×775","1430×1350×1125","1430×1350×1550","1600×1100×1100","1600×1150×1550","1600×1150×1700","1600×1150×1800","1600×1150×2540","1600×1350×775","1600×1350×1125","1600×1350×1550","1600×1350×1800","1600×1600×775","1700×1700×2100","1800×1100×1100","1800×1350×775","2250×1100×850","2250×1100×1100","2250×1150×775","2250×1150×1300","2250×1150×1550","2250×1150×2400","2250×1350×775","2250×1350×1125","2250×1600×775","2250×1600×1300","2250×1600×1550","2250×1700×775","2250×1800×2540","2640×1100×1100","2640×1150×1550","2640×1150×1700","2640×1350×775","2640×1350×1125","2640×1600×775","2640×1800×2540","2640×2000×775","2640×2100×775","2800×1150×775","2800×1150×1125","2800×1150×1300","2800×2000×775","3000×1150×1550","3120×1150×1125","3150×1150×1125","3200×1150×775","3300×1800×775","3600×1150×775","3600×1150×1125","3960×1150×775","3960×1150×1125","3960×1350×1800","4200×1150×1125","4300×1150×775","4300×1600×1100","4600×1150×1125","4800×1500×1800","4800×1600×1550","5300×1350×1125","5400×1600×1800","5600×1600×1800"],
-  "フード": ["該当なし","1430×1150×1550","1430×1150×1600","1430×1150×1800","1430×1350×1800","1430×1750×1800","1600×1150×1550","1600×1150×1800","1600×1350×1125","1600×1350×1300","1600×1350×1550","1600×1500×1550","1700×1150×1800","1700×1150×2000","1700×1800×2000","1800×1150×1550","1800×1350×1550","2250×1150×1300","2250×1150×1550","2250×1350×1300"],
-  "ベースプレート": ["該当なし","1430×1350×775","1430×1350×1125","1600×1350×775","1800×1600×775","2250×1600×775","2250×1700×775","2250×1800×775","2640×2100×775"],
-  "キャットウォーク": ["該当なし","1430×1150×1300","1430×1150×1550","2640×1150×1300","2640×1150×1550","2800×1150×775","2800×1150×1125","2800×1150×1300","2800×1150×1550"],
-  "分岐レール": ["該当なし","1430×1350×1125","1600×1150×1125","1600×1350×1125","1800×1350×1125","2640×1350×1125","2800×1350×1125"],
-  "フレーム": ["該当なし","2100×1850×775","2250×1800×1125","2640×1350×775","2640×2000×775","2800×2000×775","3000×1450×775","3350×1150×775","3500×1150×775","4100×1150×1550","5100×1600×1550","5100×1600×1800","5400×1600×1800"],
-  "レール": ["該当なし","2250×1150×1300","2640×1350×775","2800×1150×775","3000×1150×1125","3600×1150×1125","3960×1150×1125","3960×1150×1125(台木リフト)","4100×1150×1125","4200×1150×1125","4600×1150×1125","4700×1100×1100"],
-  "ビーム": ["該当なし","2800×1150×775","3100×1150×775","3400×1150×775","3500×1150×775","3600×1150×1125(台木リフト)","3600×1150×1125"],
-  "オートリフター": ["該当なし","3100×1150×2100","3100×1150×2250","3600×2000×1300","3960×2250×1300","4950×2250×1300"],
-  "その他": {
-    "3000まで":["該当なし","680K　2800×1150×1125","BAR　1430×1150×775","ピック＆プレース　1430×1150×1800","トロリー　1430×1300×775","ケーブルベア　1430×1300×775","プレート　1430×1350×775","トロリー　1500×1500×775","トロリー　1500×1500×1125","ピック＆プレース　1600×1150×1800","トロリー　1600×1600×775","ユニシャトル　1700×1350×2050","プレート　1800×1150×775","OHT台車　1800×1350×2000","制御盤　1800×1600×775","ロボトレ　2000×2000×1400","EPLC　2250×1100×850","BAR　2250×1150×775","PCラック　2250×1150×1350","リフトドライブ　2250×1150×1400","シェルフ　2250×1150×1550","リフトドライブ　2250×1150×1900","防煙扉　2250×1150×2000","防火シャッター　2250×1150×2050","ユニシャトル　2250×1150×2200","MLT　2250×1150×2400","ジェニー　2250×1150×2400","トランスファー　2250×1150×2540","梱包依頼　2250×1250×775","制御盤　2250×1350×775","防火ダンパー　2250×1350×1125","吊り　2250×1450×1000","制御盤　2250×1600×775","ケーブルベア　2400×1400×775","BAR　2640×1150×775","依頼品(D)　2640×1150×1125","シェルフ　2640×1150×1550","防火シャッター　2640×1300×2350","防火シャッター　2640×1350×2450","梱包依頼　2640×1700×775","制御盤　2640×1700×775","梱包依頼　2640×1700×1125","検査架台　2640×2000×2850","ゲート　2800×1150×775","ターミナル　2800×1150×1125","ターミナルBOX　2800×1150×1300","ターミナル　2800×1150×1550","梱包依頼品　2850×1150×775","梱包依頼　2850×1150×1125","ラダー　2900×1150×775","BAR　2900×1150×775","ケーブルベア　3000×1100×1100","防火扉　3000×1150×2000"],
-    "3001以上":["該当なし","680Q　3100×1150×775","680Q　3500×1150×775","680K　4300×1150×775","ブレス　3100×1150×775","ブレス　3200×1150×775","BAR　3200×1150×1125","昇降台　3200×1150×1300","昇降台　3200×1150×1380","防火シャッター　3200×1150×2000","ハシゴ　3300×1150×775","昇降台　3300×1150×1300","シェルフユニット　3300×1150×1550","シェルフユニット　3300×1150×2000","シェルフ　3300×1150×2100","制御盤　3300×1350×1100","RSV　3300×1700×1100","シャッター　3300×2100×1100","棚　3300×2200×1850","棚　3300×2200×2250","ツールステーション　3600×1600×3300","防火シャッター　3950×1150×2050","防火シャッター　4050×1150×2050","トロリー　4400×1150×850","バナナクレーン　4500×1150×1125","5403　3600×1150×775"]
-  }
-};
+// ★カテゴリ・サイズ一覧は今回からSupabase（size_master）から取得する（loadMasters内でここに組み立てる）
+let itemData = {};
 
 // サイズ→カテゴリ逆引き用インデックス（全カテゴリ横断・完全一致検索用）
-// ★工機データはGASから取得したタイミングで反映されるため、koki読み込み完了時にも再構築する
+// ★Supabaseからのデータ読み込み完了後（loadMasters内）に構築する
 const FLAT_SIZE_INDEX = [];
 function rebuildFlatIndex(){
   FLAT_SIZE_INDEX.length = 0;
@@ -222,7 +211,6 @@ function rebuildFlatIndex(){
     KOKI_DATA[sub].forEach(s=>{ if(s!=='該当なし') FLAT_SIZE_INDEX.push({cat:'工機', subcat:sub, size:s}); });
   });
 }
-rebuildFlatIndex();
 
 // サイズ検索で候補が見つからなかった場合のL/W/Hを一時保持（自由入力欄への引き継ぎ用）
 const pendingSizeCarry = {};
@@ -282,41 +270,11 @@ function selectClient(id, encodedName){
 }
 
 // =============================================
-// 工機データをGASから取得（起動時に先読みし、以降はキャッシュを使用）
-// ★サイズ検索が工機データも即座に検索できるよう、addItemやカテゴリ選択を待たずに読み込む
+// 工機データは全体データ（loadMasters）読み込み時に既にKOKI_DATAへ格納済みのため、
+// ここでは「読み込み済みかどうか」を確認して即座にcallbackを呼ぶだけにする
 // =============================================
 function ensureKokiLoaded(callback){
-  if(kokiLoaded){ callback(); return; }
-  if(kokiLoading){ kokiWaitCallbacks.push(callback); return; }
-
-  kokiLoading = true;
-  const cbName = 'onKokiLoaded_' + Date.now();
-
-  window[cbName] = function(res){
-    delete window[cbName];
-    if(script.parentNode) script.parentNode.removeChild(script);
-    KOKI_DATA = (res && res.koki) ? res.koki : {};
-    rebuildFlatIndex();
-    kokiLoaded = true;
-    kokiLoading = false;
-    callback();
-    kokiWaitCallbacks.forEach(cb=>cb());
-    kokiWaitCallbacks = [];
-  };
-
-  const script = document.createElement('script');
-  script.src = `${GAS_URL}?action=getKoki&callback=${cbName}`;
-  script.onerror = function(){
-    delete window[cbName];
-    KOKI_DATA = {};
-    rebuildFlatIndex();
-    kokiLoaded = true; // 失敗時も読み込み済み扱いにして無限リトライを避ける
-    kokiLoading = false;
-    callback();
-    kokiWaitCallbacks.forEach(cb=>cb());
-    kokiWaitCallbacks = [];
-  };
-  document.body.appendChild(script);
+  callback();
 }
 
 function addItem(data){
@@ -711,8 +669,7 @@ function collectItems(){
 }
 
 function goConfirm(){
-  const requester=document.getElementById('requester').value;
-  if(!requester){ showMsg('依頼者名を選択してください。','err'); return; }
+  const requester=currentUser.name;
   const items=collectItems();
   if(!items.length){ showMsg('品目を1つ以上追加してください。','err'); return; }
   let valid=true;
@@ -740,7 +697,7 @@ function goConfirm(){
   let html=`
     <div class="card">
       <table class="confirm-table">
-        <tr><th>依頼者名</th><td><input type="text" id="c-requester" value="${requester}"></td></tr>
+        <tr><th>依頼者名</th><td><input type="text" id="c-requester" value="${requester}" readonly></td></tr>
       </table>
     </div>`;
 
@@ -792,34 +749,99 @@ function goBack(){
   window.scrollTo(0,0);
 }
 
-function submitForm(){
+// "L×W×H" のような文字列から末尾の数値3つを取り出す（「その他」カテゴリの
+// 「680K　2800×1150×1125」のような品名付き表記にも対応するため、最後に出てくる
+// パターンを採用する）
+function parseSizeLWH(str){
+  const matches = [...String(str).matchAll(/(\d+)\s*×\s*(\d+)\s*×\s*(\d+)/g)];
+  if(!matches.length) return [null,null,null];
+  const last = matches[matches.length-1];
+  return [parseInt(last[1],10), parseInt(last[2],10), parseInt(last[3],10)];
+}
+
+// 受付番号を生成（採番方法は今後見直す可能性あり。現状は日時ベースで一意性を確保）
+function generateReceiptNo(){
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const datePart = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
+  const timePart = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const rand = Math.random().toString(36).slice(2,6);
+  return `${datePart}-${timePart}-${rand}`;
+}
+
+async function submitForm(){
   const btn=document.getElementById('btn-send');
   btn.disabled=true; btn.textContent='送信中...';
 
   const requester=document.getElementById('c-requester').value;
   const note=document.getElementById('c-note').value;
   const n=window._confirmItemCount;
+  const bikoTarget = window._bikoTarget || 'all';
 
-  const params=new URLSearchParams();
-  params.set('依頼者名',requester);
-  params.set('品目数',n);
-
+  const items=[];
   for(let i=0;i<n;i++){
-    params.set(`品目${i+1}_客先名`, document.getElementById(`c-client-${i}`).value);
-    params.set(`品目${i+1}_カテゴリ`, document.getElementById(`c-cat-${i}`).value);
-    params.set(`品目${i+1}_サイズ`, document.getElementById(`c-size-${i}`).value);
-    params.set(`品目${i+1}_台木リフト`, document.getElementById(`c-daimoku-${i}`).value);
-    const dates=document.querySelectorAll(`.c-date-${i}`);
-    const qtys=document.querySelectorAll(`.c-qty-${i}`);
-    dates.forEach((d,j)=>{ params.set(`品目${i+1}_納入日${j+1}`,d.value); params.set(`品目${i+1}_数量${j+1}`,qtys[j].value); });
+    const client = document.getElementById(`c-client-${i}`).value;
+    const cat = document.getElementById(`c-cat-${i}`).value;
+    const size = document.getElementById(`c-size-${i}`).value;
+    const daimoku = document.getElementById(`c-daimoku-${i}`).value;
+    const dates=[];
+    const dateEls=document.querySelectorAll(`.c-date-${i}`);
+    const qtyEls=document.querySelectorAll(`.c-qty-${i}`);
+    dateEls.forEach((d,j)=>{ dates.push({date:d.value, qty: parseInt(qtyEls[j].value,10)}); });
+    const isNew = (window._confirmItems && window._confirmItems[i]) ? window._confirmItems[i].isNew : false;
+    items.push({client, cat, size, daimoku, dates, isNew});
   }
-  params.set('備考',note);
-  params.set('備考対象', window._bikoTarget || 'all');
 
-  fetch(`${GAS_URL}?${params.toString()}`)
-    .then(r=>r.text())
-    .then(()=>{
-      let html='<p style="text-align:center;font-size:16px;color:#276749;padding:30px 30px 10px">✅ 送信が完了しました！</p>';
+  try{
+    const { data: reqRow, error: reqErr } = await sbClient
+      .from('requests')
+      .insert({
+        requester_email: currentUser.email,
+        requester_name: requester,
+        receipt_no: generateReceiptNo(),
+        note_common: note,
+        submission_token: crypto.randomUUID()
+      })
+      .select()
+      .single();
+    if(reqErr) throw reqErr;
+
+    const itemsPayload = items.map((it,i)=>{
+      const [l,w,h] = parseSizeLWH(it.size);
+      return {
+        request_id: reqRow.id,
+        client_name: it.client || null,
+        category: it.cat,
+        size_l: l, size_w: w, size_h: h,
+        daimoku_lift: it.daimoku === 'あり',
+        note_item: (bikoTarget === 'all' || parseInt(bikoTarget,10) === i+1) ? (note || null) : null,
+        is_new_size: it.isNew,
+        status: '受付済み'
+      };
+    });
+    const { data: insertedItems, error: itemsErr } = await sbClient
+      .from('request_items')
+      .insert(itemsPayload)
+      .select();
+    if(itemsErr) throw itemsErr;
+
+    const datesPayload = [];
+    items.forEach((it,i)=>{
+      it.dates.forEach(d=>{
+        if(!d.date || !d.qty) return;
+        datesPayload.push({
+          request_item_id: insertedItems[i].id,
+          delivery_date: d.date,
+          qty: d.qty,
+          is_urgent: false
+        });
+      });
+    });
+    const { error: datesErr } = await sbClient.from('request_item_dates').insert(datesPayload);
+    if(datesErr) throw datesErr;
+
+    {
+      let html='<p style="text-align:center;font-size:16px;color:#276749;padding:30px 30px 10px">✅ 送信が完了しました！（受付番号：' + reqRow.receipt_no + '）</p>';
 
       const newItems=(window._confirmItems||[]).filter(it=>it.isNew);
       window._shikumiBatch = null;
@@ -864,18 +886,17 @@ function submitForm(){
       checkShikumiBatchProgress();
       // btn-sendをリセット（続けて送信用）
       btn.disabled=false; btn.textContent='送信する';
-    })
-    .catch(()=>{
-      document.getElementById('msg2').className='err';
-      document.getElementById('msg2').textContent='❌ 送信に失敗しました。もう一度お試しください。';
-      btn.disabled=false; btn.textContent='送信する';
-    });
+    }
+  } catch(err) {
+    document.getElementById('msg2').className='err';
+    document.getElementById('msg2').textContent='❌ 送信に失敗しました。もう一度お試しください。（' + (err && err.message ? err.message : '') + '）';
+    btn.disabled=false; btn.textContent='送信する';
+  }
 }
 
 function continueForm(){
   // フォームをリセットして入力画面に戻る
   window._shikumiBatch = null;
-  document.getElementById('requester').value='';
   document.getElementById('note').value='';
   document.getElementById('items-container').innerHTML='';
   Object.keys(pendingSizeCarry).forEach(k=>delete pendingSizeCarry[k]);
@@ -901,7 +922,6 @@ function closeForm(){
     document.getElementById('items-container').innerHTML='';
     Object.keys(pendingSizeCarry).forEach(k=>delete pendingSizeCarry[k]);
     itemCount=0; addItem();
-    document.getElementById('requester').value='';
     document.getElementById('note').value='';
     document.getElementById('msg').textContent='';
     window.scrollTo(0,0);
@@ -915,61 +935,91 @@ function showMsg(text,type){
 }
 
 // =============================================
-// 依頼者一覧をGAS（カレンダースプシ「依頼者一覧」シート）から取得
-// JSONPで取得（GAS Webアプリはfetchで直接読むとCORSで弾かれるため）
+// Supabase（size_master・clients_master）からマスタデータを一括取得し、
+// itemData / KOKI_DATA / CLIENTS を組み立てる
 // =============================================
-function loadRequesters(){
-  const sel = document.getElementById('requester');
-  const cbName = 'onRequestersLoaded_' + Date.now();
-
-  window[cbName] = function(res){
-    delete window[cbName];
-    if(script.parentNode) script.parentNode.removeChild(script);
-
-    sel.innerHTML = '<option value="">-- 選択してください --</option>';
-    const names = (res && res.requesters) ? res.requesters : [];
-    if(!names.length){
-      // 取得失敗・空の場合は選択不可にせず、最低限フォームは使えるようにする
-      sel.innerHTML += '<option value="" disabled>（依頼者一覧の取得に失敗しました）</option>';
-      return;
-    }
-    names.forEach(n=>{
-      const o=document.createElement('option');
-      o.value=n; o.textContent=n;
-      sel.appendChild(o);
+async function loadMasters(){
+  const { data: sizeRows, error: sizeErr } = await sbClient
+    .from('size_master')
+    .select('category, subcategory, size');
+  if(sizeErr){
+    showMsg('サイズ一覧の取得に失敗しました。時間をおいて再度お試しください。','err');
+  } else {
+    const built = {};
+    const koki = {};
+    (sizeRows || []).forEach(row=>{
+      if(row.category === '工機'){
+        if(!koki[row.subcategory]) koki[row.subcategory] = ['該当なし'];
+        koki[row.subcategory].push(row.size);
+      } else if(row.subcategory){
+        if(!built[row.category]) built[row.category] = {};
+        if(!built[row.category][row.subcategory]) built[row.category][row.subcategory] = ['該当なし'];
+        built[row.category][row.subcategory].push(row.size);
+      } else {
+        if(!built[row.category]) built[row.category] = ['該当なし'];
+        built[row.category].push(row.size);
+      }
     });
-  };
+    itemData = built;
+    KOKI_DATA = koki;
+    rebuildFlatIndex();
+  }
 
-  const script = document.createElement('script');
-  script.src = `${GAS_URL}?action=getRequesters&callback=${cbName}`;
-  script.onerror = function(){
-    delete window[cbName];
-    sel.innerHTML = '<option value="">-- 選択してください --</option><option value="" disabled>（依頼者一覧の取得に失敗しました）</option>';
-  };
-  document.body.appendChild(script);
+  const { data: clientRows, error: clientErr } = await sbClient
+    .from('clients_master')
+    .select('name')
+    .order('name');
+  if(!clientErr && clientRows){
+    CLIENTS = clientRows.map(r=>r.name);
+  }
 }
 
 // =============================================
-// 客先名一覧をGAS（カレンダースプシ「客先名一覧」シート）から取得
-// 取得後、既に表示されている品目ブロックの客先名プルダウンも更新する
+// Googleログイン処理
 // =============================================
-function loadClients(){
-  const cbName = 'onClientsLoaded_' + Date.now();
+async function loginWithGoogle(){
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if(error){
+    document.getElementById('auth-msg').textContent = 'ログインに失敗しました：' + error.message;
+  }
+}
 
-  window[cbName] = function(res){
-    delete window[cbName];
-    if(script.parentNode) script.parentNode.removeChild(script);
+// =============================================
+// 起動処理：ログイン状態を確認し、許可リストと照合してからフォームを表示する
+// =============================================
+async function initAuth(){
+  const { data: { user } } = await sbClient.auth.getUser();
 
-    const names = (res && res.clients) ? res.clients : [];
-    if(!names.length) return; // 取得失敗時は初期値のまま維持
+  if(!user){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-login').style.display='block';
+    return;
+  }
 
-    CLIENTS = names; // 次回の入力・候補表示時に自動で反映される
-  };
+  const { data: allowRow, error: allowErr } = await sbClient
+    .from('users_allowlist')
+    .select('name, role')
+    .eq('email', user.email)
+    .maybeSingle();
 
-  const script = document.createElement('script');
-  script.src = `${GAS_URL}?action=getClients&callback=${cbName}`;
-  script.onerror = function(){ delete window[cbName]; }; // 失敗時は初期値のまま維持
-  document.body.appendChild(script);
+  if(allowErr || !allowRow || !allowRow.name){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-denied').style.display='block';
+    return;
+  }
+
+  currentUser.email = user.email;
+  currentUser.name = allowRow.name;
+
+  await loadMasters();
+
+  document.getElementById('login-name-display').textContent = currentUser.name;
+  document.getElementById('auth-loading').style.display='none';
+  document.getElementById('app-content').style.display='block';
+  addItem();
 }
 
 // =============================================
@@ -1013,10 +1063,7 @@ window.addEventListener('storage', function(e){
   }
 });
 
-addItem();
-loadRequesters();
-loadClients();
-ensureKokiLoaded(function(){}); // ★サイズ検索が工機データも即座に検索できるよう、起動時に先読みしておく
+initAuth();
 </script>
 </body>
 </html>
