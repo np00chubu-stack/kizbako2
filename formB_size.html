@@ -759,16 +759,6 @@ function parseSizeLWH(str){
   return [parseInt(last[1],10), parseInt(last[2],10), parseInt(last[3],10)];
 }
 
-// 受付番号を生成（採番方法は今後見直す可能性あり。現状は日時ベースで一意性を確保）
-function generateReceiptNo(){
-  const now = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const datePart = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
-  const timePart = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  const rand = Math.random().toString(36).slice(2,6);
-  return `${datePart}-${timePart}-${rand}`;
-}
-
 async function submitForm(){
   const btn=document.getElementById('btn-send');
   btn.disabled=true; btn.textContent='送信中...';
@@ -798,7 +788,6 @@ async function submitForm(){
       .insert({
         requester_email: currentUser.email,
         requester_name: requester,
-        receipt_no: generateReceiptNo(),
         note_common: note,
         submission_token: crypto.randomUUID()
       })
