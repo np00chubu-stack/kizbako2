@@ -832,26 +832,21 @@ async function submitForm(){
     {
       let html='<p style="text-align:center;font-size:16px;color:#276749;padding:30px 30px 10px">✅ 送信が完了しました！（受付番号：' + reqRow.receipt_no + '）</p>';
 
-      const newItems=(window._confirmItems||[]).filter(it=>it.isNew);
+      const newItemsWithId = items
+        .map((it, i) => ({ ...it, requestItemId: insertedItems[i].id }))
+        .filter(it => it.isNew);
       window._shikumiBatch = null;
-      if(newItems.length){
+      if(newItemsWithId.length){
         const batchId = 'sb' + Date.now();
         localStorage.setItem('shikumi_batch_' + batchId, JSON.stringify([]));
-        window._shikumiBatch = { id: batchId, total: newItems.length };
+        window._shikumiBatch = { id: batchId, total: newItemsWithId.length };
 
-        const linksHtml=newItems.map((it,idx)=>{
-          const lwh=it.size.split('×');
+        const linksHtml=newItemsWithId.map((it,idx)=>{
           const q=new URLSearchParams();
-          q.set('client', it.client||'');
-          q.set('product', it.cat||'');
-          q.set('staff', requester);
-          q.set('l', lwh[0]||'');
-          q.set('w', lwh[1]||'');
-          q.set('h', lwh[2]||'');
-          q.set('date', (it.dates[0]&&it.dates[0].date)||'');
+          q.set('request_item_id', it.requestItemId);
           q.set('batch', batchId);
           q.set('idx', String(idx));
-          q.set('total', String(newItems.length));
+          q.set('total', String(newItemsWithId.length));
           return `<li style="margin-bottom:8px">
             ${it.cat}　${it.size}<br>
             <a href="${SHIKUMI_FORM_URL}?${q.toString()}" target="_blank"
@@ -862,7 +857,7 @@ async function submitForm(){
         }).join('');
         html+=`
           <div id="shikumi-notice" style="margin:0 0 20px;padding:12px 14px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:13px;color:#856404;line-height:1.6">
-            ⚠️ ${newItems.length}件の新サイズがあります。仕組オーダーシートを入力・送信してください。
+            ⚠️ ${newItemsWithId.length}件の新サイズがあります。仕組オーダーシートを入力・送信してください。
             <ul style="margin:6px 0 0 18px;list-style:none;padding:0">${linksHtml}</ul>
           </div>`;
       }
