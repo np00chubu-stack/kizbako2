@@ -25,13 +25,40 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .tab-panel.active{display:block}
 
 /* カード */
-.stock-card{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.stock-card{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);padding:14px 16px;margin-bottom:10px}
+.stock-card .top-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .stock-card .main{flex:1;min-width:0}
 .stock-card .item-name{font-size:15px;font-weight:bold;color:#1a3a5c;margin-bottom:4px}
 .stock-card .sub-line{font-size:12px;color:#666}
 .stock-card .qty-box{flex-shrink:0;text-align:center;background:#eef3f8;border-radius:6px;padding:6px 14px}
 .stock-card .qty-num{font-size:20px;font-weight:bold;color:#1a3a5c;line-height:1}
 .stock-card .qty-label{font-size:10px;color:#888;margin-top:2px}
+
+/* 発注状況表示 */
+.order-status{margin-top:10px;padding:8px 10px;border-radius:6px;background:#f0fff4;border:1px solid #9ae6b4;font-size:12px;color:#276749;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.order-status.proxy{background:#fff3cd;border-color:#ffc107;color:#856404}
+.order-status .tag{font-size:10px;font-weight:bold;padding:2px 6px;border-radius:10px;background:#856404;color:#fff;margin-left:4px}
+.btn-cancel-order{font-size:11px;color:#c53030;background:none;border:1px solid #c53030;border-radius:4px;padding:3px 8px;cursor:pointer;flex-shrink:0}
+.btn-cancel-order:hover{background:#fff5f5}
+
+.btn-order{margin-top:10px;width:100%;padding:9px;border:1px dashed #3182ce;border-radius:6px;background:#fff;color:#3182ce;font-size:13px;font-weight:bold;cursor:pointer}
+.btn-order:hover{background:#ebf8ff}
+
+/* 発注フォーム（インライン展開） */
+.order-form{margin-top:10px;padding:12px;border:1px solid #d0d8e4;border-radius:6px;background:#f7f9fc}
+.mode-row{display:flex;gap:6px;margin-bottom:10px}
+.mode-row label{flex:1;text-align:center;font-size:12px;font-weight:normal;color:#555;padding:8px 4px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer}
+.mode-row input[type="radio"]{display:none}
+.mode-row label.selected{border-color:#2c5282;background:#dbeafe;color:#1a3a5c;font-weight:bold}
+.order-form .field-group{margin-bottom:10px}
+.order-form label.field-label{display:block;font-size:11px;color:#777;margin-bottom:3px}
+.order-form select,.order-form input[type="number"],.order-form input[type="date"]{
+  width:100%;padding:7px 9px;border:1px solid #ccc;border-radius:4px;font-size:13px;font-family:inherit;background:#fff;
+}
+.order-form-btns{display:flex;gap:8px}
+.btn-order-submit{flex:1;padding:9px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer}
+.btn-order-cancel{padding:9px 14px;background:#fff;border:1px solid #999;color:#555;border-radius:6px;font-size:13px;cursor:pointer}
+.order-form-msg{font-size:12px;color:#c53030;margin-top:6px}
 
 .empty-msg{text-align:center;color:#999;font-size:13px;padding:30px 0}
 #load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
@@ -80,7 +107,9 @@ const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let currentUser = { email: '', name: '' };
+let currentUser = { email: '', name: '', role: '' };
+let stockItemsCache = [];   // stock_items 全件
+let ordersCache = {};       // stock_item_id -> 有効な注文の配列（複数人分ありうる想定だが表示は先頭優先）
 
 function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -93,48 +122,264 @@ function switchTab(which){
   document.getElementById('tab-panel-common').classList.toggle('active', which==='common');
 }
 
+// =============================================
+// 発注状況の文言生成
+// =============================================
+function orderModeLabel(order){
+  if(order.mode === '○') return '○（今すぐ欲しい）';
+  if(order.mode === '数量') return `数量 ${order.qty}`;
+  if(order.mode === '日付') return `希望日 ${order.desired_date || ''}`;
+  return order.mode;
+}
+
+// =============================================
+// 個人依頼品カード
+// =============================================
 function renderIndividualCard(row){
   const sizeText = [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
+  const activeOrders = ordersCache[row.id] || [];
+  const order = activeOrders[0];
+
+  const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
+  const isSelfItem = currentUser.name && row.requester_name === currentUser.name;
+  const showOrderBtn = canOperate && !order && (isSelfItem || currentUser.role === '管理者');
+
+  let statusHtml = '';
+  if(order){
+    const proxyTag = order.is_proxy ? '<span class="tag">代理</span>' : '';
+    const canCancel = (order.operated_by_email === currentUser.email) || currentUser.role === '管理者';
+    statusHtml = `
+      <div class="order-status${order.is_proxy ? ' proxy' : ''}">
+        <span>${escapeHtml(orderModeLabel(order))}　${escapeHtml(order.operated_by_name)}さん${proxyTag}</span>
+        ${canCancel ? `<button class="btn-cancel-order" onclick="cancelOrder('${order.id}')">取消</button>` : ''}
+      </div>`;
+  }
+
+  const orderBtnHtml = showOrderBtn
+    ? `<button class="btn-order" onclick="openOrderForm('${row.id}', 'individual', this)">${isSelfItem ? '発注する' : '代理で発注する'}</button>`
+    : '';
+
   return `
-    <div class="stock-card">
-      <div class="main">
-        <div class="item-name">${escapeHtml(row.item_name)}</div>
-        <div class="sub-line">${escapeHtml(sizeText)}　依頼者：${escapeHtml(row.requester_name || '（不明）')}</div>
+    <div class="stock-card" data-stock-item-id="${row.id}">
+      <div class="top-row">
+        <div class="main">
+          <div class="item-name">${escapeHtml(row.item_name)}</div>
+          <div class="sub-line">${escapeHtml(sizeText)}　依頼者：${escapeHtml(row.requester_name || '（不明）')}</div>
+        </div>
+        <div class="qty-box">
+          <div class="qty-num">${row.stock_qty ?? 0}</div>
+          <div class="qty-label">在庫</div>
+        </div>
       </div>
-      <div class="qty-box">
-        <div class="qty-num">${row.stock_qty ?? 0}</div>
-        <div class="qty-label">在庫</div>
-      </div>
+      ${statusHtml}
+      ${orderBtnHtml}
+      <div class="order-form-slot"></div>
     </div>`;
 }
 
+// =============================================
+// 共通品カード
+// =============================================
 function renderCommonCard(row){
+  const activeOrders = ordersCache[row.id] || [];
+  const order = activeOrders[0];
+  const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
+
+  let statusHtml = '';
+  if(order){
+    const proxyTag = order.is_proxy ? '<span class="tag">代理</span>' : '';
+    const destText = order.destination ? `（${escapeHtml(order.destination)}）` : '';
+    const canCancel = (order.operated_by_email === currentUser.email) || currentUser.role === '管理者';
+    statusHtml = `
+      <div class="order-status${order.is_proxy ? ' proxy' : ''}">
+        <span>${escapeHtml(orderModeLabel(order))}${destText}　${escapeHtml(order.operated_by_name)}さん${proxyTag}</span>
+        ${canCancel ? `<button class="btn-cancel-order" onclick="cancelOrder('${order.id}')">取消</button>` : ''}
+      </div>`;
+  }
+
+  const orderBtnHtml = canOperate
+    ? `<button class="btn-order" onclick="openOrderForm('${row.id}', 'common', this)">${order ? '追加で発注する' : '発注する'}</button>`
+    : '';
+
   return `
-    <div class="stock-card">
-      <div class="main">
-        <div class="item-name">${escapeHtml(row.item_name)}</div>
+    <div class="stock-card" data-stock-item-id="${row.id}">
+      <div class="top-row">
+        <div class="main">
+          <div class="item-name">${escapeHtml(row.item_name)}</div>
+        </div>
+        <div class="qty-box">
+          <div class="qty-num">${row.stock_qty ?? 0}</div>
+          <div class="qty-label">在庫</div>
+        </div>
       </div>
-      <div class="qty-box">
-        <div class="qty-num">${row.stock_qty ?? 0}</div>
-        <div class="qty-label">在庫</div>
-      </div>
+      ${statusHtml}
+      ${orderBtnHtml}
+      <div class="order-form-slot"></div>
     </div>`;
 }
 
+// =============================================
+// 発注フォームをカード内に展開する
+// =============================================
+function openOrderForm(stockItemId, itemType, btnEl){
+  const card = btnEl.closest('.stock-card');
+  const slot = card.querySelector('.order-form-slot');
+  btnEl.style.display = 'none';
+
+  const destFieldHtml = itemType === 'common' ? `
+    <div class="field-group">
+      <label class="field-label">配送先</label>
+      <select id="order-dest-${stockItemId}">
+        <option value="FA">FA</option>
+        <option value="新工場">新工場</option>
+      </select>
+    </div>` : '';
+
+  slot.innerHTML = `
+    <div class="order-form">
+      <div class="mode-row" id="order-mode-row-${stockItemId}">
+        <label class="selected" id="mode-lbl-circle-${stockItemId}"><input type="radio" name="order-mode-${stockItemId}" value="○" checked onchange="onOrderModeChange('${stockItemId}')"> ○</label>
+        <label id="mode-lbl-qty-${stockItemId}"><input type="radio" name="order-mode-${stockItemId}" value="数量" onchange="onOrderModeChange('${stockItemId}')"> 数量</label>
+        <label id="mode-lbl-date-${stockItemId}"><input type="radio" name="order-mode-${stockItemId}" value="日付" onchange="onOrderModeChange('${stockItemId}')"> 日付</label>
+      </div>
+      <div class="field-group" id="order-qty-group-${stockItemId}" style="display:none">
+        <label class="field-label">数量</label>
+        <input type="number" id="order-qty-${stockItemId}" min="1">
+      </div>
+      <div class="field-group" id="order-date-group-${stockItemId}" style="display:none">
+        <label class="field-label">希望日</label>
+        <input type="date" id="order-date-${stockItemId}">
+      </div>
+      ${destFieldHtml}
+      <div class="order-form-btns">
+        <button class="btn-order-submit" onclick="submitOrder('${stockItemId}', '${itemType}')">この内容で発注する</button>
+        <button class="btn-order-cancel" onclick="closeOrderForm('${stockItemId}', this)">やめる</button>
+      </div>
+      <div class="order-form-msg" id="order-form-msg-${stockItemId}"></div>
+    </div>`;
+}
+
+function closeOrderForm(stockItemId, btnEl){
+  const card = btnEl.closest('.stock-card');
+  card.querySelector('.order-form-slot').innerHTML = '';
+  const orderBtn = card.querySelector('.btn-order');
+  if(orderBtn) orderBtn.style.display = '';
+}
+
+function onOrderModeChange(stockItemId){
+  const mode = document.querySelector(`input[name="order-mode-${stockItemId}"]:checked`).value;
+  ['circle','qty','date'].forEach(k=>{
+    document.getElementById(`mode-lbl-${k}-${stockItemId}`).classList.remove('selected');
+  });
+  const map = {'○':'circle','数量':'qty','日付':'date'};
+  document.getElementById(`mode-lbl-${map[mode]}-${stockItemId}`).classList.add('selected');
+  document.getElementById(`order-qty-group-${stockItemId}`).style.display = (mode==='数量') ? '' : 'none';
+  document.getElementById(`order-date-group-${stockItemId}`).style.display = (mode==='日付') ? '' : 'none';
+}
+
+// =============================================
+// 発注確定（共通品は二重発注チェックを挟む）
+// =============================================
+async function submitOrder(stockItemId, itemType){
+  const mode = document.querySelector(`input[name="order-mode-${stockItemId}"]:checked`).value;
+  const msgEl = document.getElementById(`order-form-msg-${stockItemId}`);
+  msgEl.textContent = '';
+
+  let qty = null, desiredDate = null;
+  if(mode === '数量'){
+    qty = parseInt(document.getElementById(`order-qty-${stockItemId}`).value, 10);
+    if(!qty || qty < 1){ msgEl.textContent = '数量を入力してください。'; return; }
+  }
+  if(mode === '日付'){
+    desiredDate = document.getElementById(`order-date-${stockItemId}`).value;
+    if(!desiredDate){ msgEl.textContent = '希望日を入力してください。'; return; }
+  }
+
+  let destination = null;
+  if(itemType === 'common'){
+    destination = document.getElementById(`order-dest-${stockItemId}`).value;
+  }
+
+  const stockRow = stockItemsCache.find(r => r.id === stockItemId);
+  const isSelfItem = itemType === 'individual' && stockRow && stockRow.requester_name === currentUser.name;
+  const isProxy = itemType === 'individual' ? !isSelfItem : false;
+
+  // 共通品：既に有効な発注があれば警告
+  const existing = ordersCache[stockItemId] || [];
+  if(itemType === 'common' && existing.length > 0){
+    const other = existing[0];
+    const who = other.is_proxy ? `管理者が代理で` : `${other.operated_by_name}さんが`;
+    const ok = confirm(`既に${who}発注済みです。それでも発注しますか？`);
+    if(!ok) return;
+  }
+
+  const payload = {
+    stock_item_id: stockItemId,
+    operated_by_email: currentUser.email,
+    operated_by_name: currentUser.name,
+    destination: destination,
+    mode: mode,
+    qty: qty,
+    desired_date: desiredDate,
+    is_proxy: isProxy,
+    is_canceled: false
+  };
+
+  const { error } = await sbClient.from('stock_orders').insert(payload);
+  if(error){
+    msgEl.textContent = '発注に失敗しました：' + error.message;
+    return;
+  }
+
+  await loadStockItems();
+}
+
+// =============================================
+// 発注取消
+// =============================================
+async function cancelOrder(orderId){
+  if(!confirm('この発注を取消しますか？')) return;
+  const { error } = await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', orderId);
+  if(error){
+    alert('取消に失敗しました：' + error.message);
+    return;
+  }
+  await loadStockItems();
+}
+
+// =============================================
+// データ読み込み・再描画
+// =============================================
 async function loadStockItems(){
-  const { data, error } = await sbClient
+  const { data: items, error: itemsErr } = await sbClient
     .from('stock_items')
     .select('id, item_type, item_name, size_l, size_w, size_h, requester_name, stock_qty')
     .order('item_name', { ascending: true });
 
-  if(error){
+  if(itemsErr){
     document.getElementById('load-error').style.display = 'block';
-    document.getElementById('load-error').textContent = '在庫データの取得に失敗しました：' + error.message;
+    document.getElementById('load-error').textContent = '在庫データの取得に失敗しました：' + itemsErr.message;
     return;
   }
+  document.getElementById('load-error').style.display = 'none';
+  stockItemsCache = items || [];
 
-  const individualRows = (data || []).filter(r => r.item_type === 'individual');
-  const commonRows = (data || []).filter(r => r.item_type === 'common');
+  const { data: orders, error: ordersErr } = await sbClient
+    .from('stock_orders')
+    .select('id, stock_item_id, operated_by_email, operated_by_name, destination, mode, qty, desired_date, is_proxy')
+    .eq('is_canceled', false)
+    .order('created_at', { ascending: true });
+
+  ordersCache = {};
+  if(!ordersErr && orders){
+    orders.forEach(o=>{
+      if(!ordersCache[o.stock_item_id]) ordersCache[o.stock_item_id] = [];
+      ordersCache[o.stock_item_id].push(o);
+    });
+  }
+
+  const individualRows = stockItemsCache.filter(r => r.item_type === 'individual');
+  const commonRows = stockItemsCache.filter(r => r.item_type === 'common');
 
   const indEl = document.getElementById('individual-list');
   const comEl = document.getElementById('common-list');
@@ -181,6 +426,7 @@ async function initAuth(){
 
   currentUser.email = user.email;
   currentUser.name = allowRow.name;
+  currentUser.role = allowRow.role;
 
   document.getElementById('login-name-display').textContent = currentUser.name;
   document.getElementById('auth-loading').style.display='none';
