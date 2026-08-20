@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>配送予定</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.container{max-width:720px;margin:24px auto;padding:0 12px 40px}
+h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
+
+.login-box{max-width:360px;margin:80px auto;text-align:center}
+.login-box h1{border:none;margin-bottom:20px}
+.btn-google{padding:13px 24px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-google:hover{background:#2c5282}
+#auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
+.login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:6px;margin-bottom:14px}
+
+/* 絞り込みタブ */
+.filter-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.filter-tab{flex:1;min-width:70px;padding:8px 4px;border:1px solid #1a3a5c;border-radius:6px;background:#fff;color:#1a3a5c;font-size:12px;font-weight:bold;cursor:pointer;text-align:center}
+.filter-tab.active{background:#1a3a5c;color:#fff}
+
+/* 一覧行 */
+.delivery-row{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.delivery-row.delivered{opacity:.5;background:#f0f0f0}
+.delivery-row .name{font-size:14px;font-weight:bold;color:#1a3a5c}
+.delivery-row .meta{font-size:11px;color:#888;margin-top:2px}
+.round-badge{font-size:11px;font-weight:bold;padding:3px 8px;border-radius:10px;background:#eef3f8;color:#1a3a5c;white-space:nowrap;flex-shrink:0}
+.round-badge.unassigned{background:#fff3cd;color:#856404}
+.round-badge.delivered{background:#d4edda;color:#276749}
+
+.empty-msg{text-align:center;color:#999;font-size:13px;padding:30px 0}
+#load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
+
+/* 詳細ボトムシート */
+.sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50}
+.sheet-overlay.show{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:14px 14px 0 0;padding:20px;max-width:720px;margin:0 auto;z-index:51;max-height:80vh;overflow-y:auto}
+.sheet h2{font-size:16px;color:#1a3a5c;margin-bottom:14px}
+.sheet .detail-line{font-size:13px;color:#444;margin-bottom:6px}
+.sheet .detail-line b{color:#1a3a5c}
+.sheet .field-group{margin:14px 0}
+.sheet label.field-label{display:block;font-size:12px;font-weight:bold;color:#555;margin-bottom:5px}
+.sheet select{width:100%;padding:9px;border:1px solid #ccc;border-radius:4px;font-size:14px}
+.btn-mark-delivered{width:100%;padding:12px;background:#276749;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer;margin-top:10px}
+.btn-mark-delivered:disabled{background:#aaa;cursor:not-allowed}
+.btn-close-sheet{width:100%;padding:10px;background:#fff;border:1px solid #999;color:#555;border-radius:6px;font-size:14px;cursor:pointer;margin-top:8px}
+.sheet-msg{font-size:12px;color:#c53030;margin-top:8px;text-align:center}
+.view-only-note{font-size:12px;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:8px 10px;margin-top:10px;text-align:center}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div id="auth-loading">読み込み中...</div>
+
+<div id="auth-login" class="login-box" style="display:none">
+  <h1>🚚 配送予定</h1>
+  <button class="btn-google" onclick="loginWithGoogle()">Googleでログイン</button>
+  <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#c53030"></div>
+</div>
+
+<div id="auth-denied" class="login-box" style="display:none">
+  <h1>🚚 配送予定</h1>
+  <p style="font-size:14px;color:#c53030">このアカウントはまだ利用登録されていません。管理者に連絡してください。</p>
+</div>
+
+<div id="app-content" style="display:none">
+  <h1>🚚 配送予定</h1>
+  <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
+
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-filter="all" onclick="switchFilter('all')">全体</button>
+    <button class="filter-tab" data-filter="unassigned" onclick="switchFilter('unassigned')">未振り分け</button>
+    <button class="filter-tab" data-filter="1便目" onclick="switchFilter('1便目')">1便目</button>
+    <button class="filter-tab" data-filter="2便目" onclick="switchFilter('2便目')">2便目</button>
+  </div>
+
+  <div id="delivery-list"></div>
+  <div id="load-error" style="display:none"></div>
+</div>
+
+</div>
+
+<!-- 詳細ボトムシート -->
+<div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2 id="sheet-title"></h2>
+    <div id="sheet-detail"></div>
+    <div id="sheet-operate-area"></div>
+    <button class="btn-close-sheet" onclick="closeSheet()">閉じる</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = { email: '', name: '', role: '' };
+let deliveryRows = [];   // 整形済みの配送予定データ
+let currentFilter = 'all';
+let currentSheetRow = null;
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function switchFilter(f){
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.filter === f);
+  });
+  renderList();
+}
+
+function roundBadgeHtml(row){
+  if(row.is_delivered) return `<span class="round-badge delivered">配送済み（${escapeHtml(row.delivery_round || '')}）</span>`;
+  if(row.delivery_round) return `<span class="round-badge">${escapeHtml(row.delivery_round)}</span>`;
+  return `<span class="round-badge unassigned">未振り分け</span>`;
+}
+
+function renderList(){
+  let rows = deliveryRows;
+  if(currentFilter === 'unassigned') rows = rows.filter(r => !r.delivery_round);
+  else if(currentFilter === '1便目' || currentFilter === '2便目') rows = rows.filter(r => r.delivery_round === currentFilter);
+
+  const listEl = document.getElementById('delivery-list');
+  if(!rows.length){
+    listEl.innerHTML = '<div class="empty-msg">該当する配送予定はありません</div>';
+    return;
+  }
+
+  listEl.innerHTML = rows.map(row => `
+    <div class="delivery-row${row.is_delivered ? ' delivered' : ''}" onclick="openSheet('${row.order_id}')">
+      <div>
+        <div class="name">${escapeHtml(row.item_name)}</div>
+        <div class="meta">${escapeHtml(row.metaText)}</div>
+      </div>
+      ${roundBadgeHtml(row)}
+    </div>`).join('');
+}
+
+function openSheet(orderId){
+  const row = deliveryRows.find(r => r.order_id === orderId);
+  if(!row) return;
+  currentSheetRow = row;
+
+  document.getElementById('sheet-title').textContent = row.item_name;
+
+  const isViewOnly = currentUser.role === '依頼者';
+  const canOperate = currentUser.role === '作業者' || currentUser.role === '管理者';
+
+  let detailHtml = `<div class="detail-line"><b>依頼内容：</b>${escapeHtml(row.metaText)}</div>`;
+  detailHtml += `<div class="detail-line"><b>発注者：</b>${escapeHtml(row.operated_by_name)}${row.is_proxy ? '（代理）' : ''}</div>`;
+  if(row.destination) detailHtml += `<div class="detail-line"><b>配送先：</b>${escapeHtml(row.destination)}</div>`;
+  document.getElementById('sheet-detail').innerHTML = detailHtml;
+
+  let operateHtml = '';
+  if(canOperate){
+    operateHtml = `
+      <div class="field-group">
+        <label class="field-label">便の割り当て</label>
+        <select id="sheet-round-select" onchange="onRoundChange()">
+          <option value="" ${!row.delivery_round ? 'selected' : ''}>未振り分け</option>
+          <option value="1便目" ${row.delivery_round==='1便目' ? 'selected' : ''}>1便目</option>
+          <option value="2便目" ${row.delivery_round==='2便目' ? 'selected' : ''}>2便目</option>
+        </select>
+      </div>
+      <button class="btn-mark-delivered" id="sheet-deliver-btn" onclick="markDelivered()" ${(row.is_delivered || !row.delivery_round) ? 'disabled' : ''}>
+        ${row.is_delivered ? '配送済みです' : '配送済みにする'}
+      </button>
+      ${!row.delivery_round && !row.is_delivered ? '<div class="sheet-msg" style="color:#856404">便を割り当ててから配送済みにできます</div>' : ''}
+      <div class="sheet-msg" id="sheet-msg"></div>`;
+  } else if(isViewOnly){
+    operateHtml = `<div class="view-only-note">閲覧のみです（便の割り当て・配送済み操作はできません）</div>`;
+  }
+  document.getElementById('sheet-operate-area').innerHTML = operateHtml;
+
+  document.getElementById('sheet-overlay').classList.add('show');
+}
+
+function closeSheet(e){
+  if(e && e.target !== e.currentTarget && e.type==='click' && e.currentTarget.id !== 'sheet-overlay') return;
+  document.getElementById('sheet-overlay').classList.remove('show');
+  currentSheetRow = null;
+}
+
+async function onRoundChange(){
+  if(!currentSheetRow) return;
+  const val = document.getElementById('sheet-round-select').value; // '' / '1便目' / '2便目'
+  const msgEl = document.getElementById('sheet-msg');
+
+  let error;
+  if(currentSheetRow.delivery_id){
+    ({ error } = await sbClient.from('stock_deliveries')
+      .update({ delivery_round: val || null })
+      .eq('id', currentSheetRow.delivery_id));
+  } else {
+    const { data, error: insErr } = await sbClient.from('stock_deliveries')
+      .insert({ stock_order_id: currentSheetRow.order_id, delivery_round: val || null, is_delivered: false })
+      .select().single();
+    error = insErr;
+    if(!error && data) currentSheetRow.delivery_id = data.id;
+  }
+
+  if(error){
+    if(msgEl) msgEl.textContent = '割り当てに失敗しました：' + error.message;
+    return;
+  }
+
+  await loadDeliveries();
+  const refreshed = deliveryRows.find(r => r.order_id === currentSheetRow.order_id);
+  if(refreshed) openSheet(refreshed.order_id);
+}
+
+async function markDelivered(){
+  if(!currentSheetRow || !currentSheetRow.delivery_id) return;
+  const btn = document.getElementById('sheet-deliver-btn');
+  btn.disabled = true;
+
+  const { error } = await sbClient.from('stock_deliveries')
+    .update({ is_delivered: true, delivered_by_email: currentUser.email, delivered_at: new Date().toISOString() })
+    .eq('id', currentSheetRow.delivery_id);
+
+  if(error){
+    document.getElementById('sheet-msg').textContent = '配送済み操作に失敗しました：' + error.message;
+    btn.disabled = false;
+    return;
+  }
+
+  await loadDeliveries();
+  closeSheet();
+}
+
+// =============================================
+// データ取得（stock_orders + stock_items + stock_deliveries）
+// 対象：mode in ('○','数量') かつ is_canceled=false
+// =============================================
+async function loadDeliveries(){
+  const { data, error } = await sbClient
+    .from('stock_orders')
+    .select(`
+      id, mode, qty, destination, operated_by_name, is_proxy,
+      stock_items ( item_name, item_type, size_l, size_w, size_h, requester_name ),
+      stock_deliveries ( id, delivery_round, is_delivered )
+    `)
+    .in('mode', ['○', '数量'])
+    .eq('is_canceled', false);
+
+  if(error){
+    document.getElementById('load-error').style.display = 'block';
+    document.getElementById('load-error').textContent = '配送予定の取得に失敗しました：' + error.message;
+    return;
+  }
+  document.getElementById('load-error').style.display = 'none';
+
+  deliveryRows = (data || []).map(row => {
+    const item = row.stock_items || {};
+    const delivery = (row.stock_deliveries && row.stock_deliveries[0]) || null;
+    const sizeText = [item.size_l, item.size_w, item.size_h].filter(v=>v!=null).join('×');
+    const modeText = row.mode === '数量' ? `数量${row.qty}` : '○';
+
+    let metaText = modeText;
+    if(item.item_type === 'individual'){
+      metaText += sizeText ? `　${sizeText}` : '';
+    }
+
+    return {
+      order_id: row.id,
+      item_name: item.item_name || '',
+      item_type: item.item_type,
+      metaText: metaText,
+      operated_by_name: row.operated_by_name,
+      is_proxy: row.is_proxy,
+      destination: row.destination,
+      delivery_id: delivery ? delivery.id : null,
+      delivery_round: delivery ? delivery.delivery_round : null,
+      is_delivered: delivery ? delivery.is_delivered : false
+    };
+  });
+
+  renderList();
+}
+
+async function loginWithGoogle(){
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if(error){
+    document.getElementById('auth-msg').textContent = 'ログインに失敗しました：' + error.message;
+  }
+}
+
+async function initAuth(){
+  const { data: { user } } = await sbClient.auth.getUser();
+
+  if(!user){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-login').style.display='block';
+    return;
+  }
+
+  const { data: allowRow, error: allowErr } = await sbClient
+    .from('users_allowlist')
+    .select('name, role')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  if(allowErr || !allowRow || !allowRow.name){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-denied').style.display='block';
+    return;
+  }
+
+  currentUser.email = user.email;
+  currentUser.name = allowRow.name;
+  currentUser.role = allowRow.role;
+
+  document.getElementById('login-name-display').textContent = currentUser.name;
+  document.getElementById('auth-loading').style.display='none';
+  document.getElementById('app-content').style.display='block';
+
+  await loadDeliveries();
+}
+
+initAuth();
+</script>
+</body>
+</html>
