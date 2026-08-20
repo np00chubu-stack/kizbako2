@@ -363,7 +363,6 @@ async function loadStockItems(){
   }
   document.getElementById('load-error').style.display = 'none';
   stockItemsCache = items || [];
-  console.log('[debug] stock_items取得件数:', stockItemsCache.length, stockItemsCache);
 
   const { data: orders, error: ordersErr } = await sbClient
     .from('stock_orders')
