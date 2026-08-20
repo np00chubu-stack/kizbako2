@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>在庫表</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.container{max-width:720px;margin:24px auto;padding:0 12px 40px}
+h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
+
+.login-box{max-width:360px;margin:80px auto;text-align:center}
+.login-box h1{border:none;margin-bottom:20px}
+.btn-google{padding:13px 24px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-google:hover{background:#2c5282}
+#auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
+.login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:6px;margin-bottom:14px}
+
+/* タブ */
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tab-btn{flex:1;padding:10px;border:1px solid #1a3a5c;border-radius:6px;background:#fff;color:#1a3a5c;font-size:14px;font-weight:bold;cursor:pointer}
+.tab-btn.active{background:#1a3a5c;color:#fff}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* カード */
+.stock-card{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.stock-card .main{flex:1;min-width:0}
+.stock-card .item-name{font-size:15px;font-weight:bold;color:#1a3a5c;margin-bottom:4px}
+.stock-card .sub-line{font-size:12px;color:#666}
+.stock-card .qty-box{flex-shrink:0;text-align:center;background:#eef3f8;border-radius:6px;padding:6px 14px}
+.stock-card .qty-num{font-size:20px;font-weight:bold;color:#1a3a5c;line-height:1}
+.stock-card .qty-label{font-size:10px;color:#888;margin-top:2px}
+
+.empty-msg{text-align:center;color:#999;font-size:13px;padding:30px 0}
+#load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div id="auth-loading">読み込み中...</div>
+
+<div id="auth-login" class="login-box" style="display:none">
+  <h1>📦 在庫表</h1>
+  <button class="btn-google" onclick="loginWithGoogle()">Googleでログイン</button>
+  <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#c53030"></div>
+</div>
+
+<div id="auth-denied" class="login-box" style="display:none">
+  <h1>📦 在庫表</h1>
+  <p style="font-size:14px;color:#c53030">このアカウントはまだ利用登録されていません。管理者に連絡してください。</p>
+</div>
+
+<div id="app-content" style="display:none">
+  <h1>📦 在庫表</h1>
+  <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-btn-individual" onclick="switchTab('individual')">個人依頼品</button>
+    <button class="tab-btn" id="tab-btn-common" onclick="switchTab('common')">共通品</button>
+  </div>
+
+  <div id="tab-panel-individual" class="tab-panel active">
+    <div id="individual-list"></div>
+  </div>
+  <div id="tab-panel-common" class="tab-panel">
+    <div id="common-list"></div>
+  </div>
+
+  <div id="load-error" style="display:none"></div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = { email: '', name: '' };
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function switchTab(which){
+  document.getElementById('tab-btn-individual').classList.toggle('active', which==='individual');
+  document.getElementById('tab-btn-common').classList.toggle('active', which==='common');
+  document.getElementById('tab-panel-individual').classList.toggle('active', which==='individual');
+  document.getElementById('tab-panel-common').classList.toggle('active', which==='common');
+}
+
+function renderIndividualCard(row){
+  const sizeText = [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
+  return `
+    <div class="stock-card">
+      <div class="main">
+        <div class="item-name">${escapeHtml(row.item_name)}</div>
+        <div class="sub-line">${escapeHtml(sizeText)}　依頼者：${escapeHtml(row.requester_name || '（不明）')}</div>
+      </div>
+      <div class="qty-box">
+        <div class="qty-num">${row.stock_qty ?? 0}</div>
+        <div class="qty-label">在庫</div>
+      </div>
+    </div>`;
+}
+
+function renderCommonCard(row){
+  return `
+    <div class="stock-card">
+      <div class="main">
+        <div class="item-name">${escapeHtml(row.item_name)}</div>
+      </div>
+      <div class="qty-box">
+        <div class="qty-num">${row.stock_qty ?? 0}</div>
+        <div class="qty-label">在庫</div>
+      </div>
+    </div>`;
+}
+
+async function loadStockItems(){
+  const { data, error } = await sbClient
+    .from('stock_items')
+    .select('id, item_type, item_name, size_l, size_w, size_h, requester_name, stock_qty')
+    .order('item_name', { ascending: true });
+
+  if(error){
+    document.getElementById('load-error').style.display = 'block';
+    document.getElementById('load-error').textContent = '在庫データの取得に失敗しました：' + error.message;
+    return;
+  }
+
+  const individualRows = (data || []).filter(r => r.item_type === 'individual');
+  const commonRows = (data || []).filter(r => r.item_type === 'common');
+
+  const indEl = document.getElementById('individual-list');
+  const comEl = document.getElementById('common-list');
+
+  indEl.innerHTML = individualRows.length
+    ? individualRows.map(renderIndividualCard).join('')
+    : '<div class="empty-msg">現在、個人依頼品はありません</div>';
+
+  comEl.innerHTML = commonRows.length
+    ? commonRows.map(renderCommonCard).join('')
+    : '<div class="empty-msg">現在、共通品はありません</div>';
+}
+
+async function loginWithGoogle(){
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if(error){
+    document.getElementById('auth-msg').textContent = 'ログインに失敗しました：' + error.message;
+  }
+}
+
+async function initAuth(){
+  const { data: { user } } = await sbClient.auth.getUser();
+
+  if(!user){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-login').style.display='block';
+    return;
+  }
+
+  const { data: allowRow, error: allowErr } = await sbClient
+    .from('users_allowlist')
+    .select('name, role')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  if(allowErr || !allowRow || !allowRow.name){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-denied').style.display='block';
+    return;
+  }
+
+  currentUser.email = user.email;
+  currentUser.name = allowRow.name;
+
+  document.getElementById('login-name-display').textContent = currentUser.name;
+  document.getElementById('auth-loading').style.display='none';
+  document.getElementById('app-content').style.display='block';
+
+  await loadStockItems();
+}
+
+initAuth();
+</script>
+</body>
+</html>
