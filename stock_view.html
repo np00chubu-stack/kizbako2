@@ -17,6 +17,10 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 #auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
 .login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:6px;margin-bottom:14px}
 
+/* ロック中バナー（依頼者のみ表示） */
+.lock-banner{font-size:13px;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;display:none}
+.lock-banner.show{display:block}
+
 /* タブ */
 .tabs{display:flex;gap:8px;margin-bottom:16px}
 .tab-btn{flex:1;padding:10px;border:1px solid #1a3a5c;border-radius:6px;background:#fff;color:#1a3a5c;font-size:14px;font-weight:bold;cursor:pointer}
@@ -84,6 +88,8 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
   <h1>📦 在庫表</h1>
   <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
 
+  <div class="lock-banner" id="lock-banner">ただいま発注欄はロック中です</div>
+
   <div class="tabs">
     <button class="tab-btn active" id="tab-btn-individual" onclick="switchTab('individual')">個人依頼品</button>
     <button class="tab-btn" id="tab-btn-common" onclick="switchTab('common')">共通品</button>
@@ -111,6 +117,10 @@ let currentUser = { email: '', name: '', role: '' };
 let stockItemsCache = [];   // stock_items 全件
 let ordersCache = {};       // stock_item_id -> 有効な注文の配列（複数人分ありうる想定だが表示は先頭優先）
 
+// 締切・解除ロック関連
+let lockSettings = { start: null, end: null }; // 'HH:MM:SS' 形式
+let isLocked = false; // 依頼者ロールに対してのみ意味を持つ判定結果
+
 function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -123,6 +133,44 @@ function switchTab(which){
 }
 
 // =============================================
+// 締切・解除時刻の設定を読み込み、今の時刻と比較してロック中かどうかを判定する
+// 判定は画面を開いた（データを読み込んだ）タイミングで1回だけ行う（cron等は使わない）
+// ロックの概念自体は依頼者ロールにのみ適用する（作業者・管理者は無関係）
+// =============================================
+async function loadLockSettings(){
+  const { data, error } = await sbClient
+    .from('business_settings')
+    .select('lock_start_time, lock_end_time')
+    .limit(1)
+    .maybeSingle();
+
+  if(error || !data){
+    // 設定が取得できない場合は、安全側としてロックしない扱いにする
+    isLocked = false;
+    return;
+  }
+
+  lockSettings.start = data.lock_start_time;
+  lockSettings.end = data.lock_end_time;
+
+  const now = new Date();
+  const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
+
+  // 'HH:MM:SS' 形式同士の単純な文字列比較で時刻の前後判定を行う
+  isLocked = (nowStr >= lockSettings.start && nowStr < lockSettings.end);
+}
+
+function updateLockBanner(){
+  const banner = document.getElementById('lock-banner');
+  // バナー・ロック挙動そのものは依頼者ロールのみに適用する（作業者・管理者には一切出さない）
+  if(currentUser.role === '依頼者' && isLocked){
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+// =============================================
 // 発注状況の文言生成
 // =============================================
 function orderModeLabel(order){
@@ -130,6 +178,11 @@ function orderModeLabel(order){
   if(order.mode === '数量') return `数量 ${order.qty}`;
   if(order.mode === '日付') return `希望日 ${order.desired_date || ''}`;
   return order.mode;
+}
+
+// 依頼者ロールかつロック中は発注ボタン自体を出さない（新規発注操作を止める）
+function isOrderingBlocked(){
+  return currentUser.role === '依頼者' && isLocked;
 }
 
 // =============================================
@@ -142,7 +195,8 @@ function renderIndividualCard(row){
 
   const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
   const isSelfItem = currentUser.name && row.requester_name === currentUser.name;
-  const showOrderBtn = canOperate && !order && (isSelfItem || currentUser.role === '管理者');
+  const blocked = isOrderingBlocked();
+  const showOrderBtn = canOperate && !order && (isSelfItem || currentUser.role === '管理者') && !blocked;
 
   let statusHtml = '';
   if(order){
@@ -184,6 +238,7 @@ function renderCommonCard(row){
   const activeOrders = ordersCache[row.id] || [];
   const order = activeOrders[0];
   const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
+  const blocked = isOrderingBlocked();
 
   let statusHtml = '';
   if(order){
@@ -197,7 +252,7 @@ function renderCommonCard(row){
       </div>`;
   }
 
-  const orderBtnHtml = canOperate
+  const orderBtnHtml = (canOperate && !blocked)
     ? `<button class="btn-order" onclick="openOrderForm('${row.id}', 'common', this)">${order ? '追加で発注する' : '発注する'}</button>`
     : '';
 
@@ -279,8 +334,16 @@ function onOrderModeChange(stockItemId){
 
 // =============================================
 // 発注確定（共通品は二重発注チェックを挟む）
+// 依頼者ロールがロック中に発注しようとした場合は、念のためここでも弾く
+// （ボタン自体は非表示にしているが、二重の安全のため）
 // =============================================
 async function submitOrder(stockItemId, itemType){
+  if(isOrderingBlocked()){
+    const msgEl = document.getElementById(`order-form-msg-${stockItemId}`);
+    if(msgEl) msgEl.textContent = 'ただいま発注欄はロック中のため、発注できません。';
+    return;
+  }
+
   const mode = document.querySelector(`input[name="order-mode-${stockItemId}"]:checked`).value;
   const msgEl = document.getElementById(`order-form-msg-${stockItemId}`);
   msgEl.textContent = '';
@@ -351,6 +414,9 @@ async function cancelOrder(orderId){
 // データ読み込み・再描画
 // =============================================
 async function loadStockItems(){
+  await loadLockSettings();
+  updateLockBanner();
+
   const { data: items, error: itemsErr } = await sbClient
     .from('stock_items')
     .select('id, item_type, item_name, size_l, size_w, size_h, requester_name, stock_qty')
