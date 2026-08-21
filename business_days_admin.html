@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>営業日の例外設定</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.container{max-width:640px;margin:24px auto;padding:0 12px 40px}
+h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
+p.desc{font-size:12px;color:#666;margin-bottom:16px;line-height:1.6}
+
+.login-box{max-width:360px;margin:80px auto;text-align:center}
+.login-box h1{border:none;margin-bottom:20px}
+.btn-google{padding:13px 24px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-google:hover{background:#2c5282}
+#auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
+.login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:6px;margin-bottom:14px}
+
+.card{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);padding:18px;margin-bottom:14px}
+.form-group{margin-bottom:12px}
+label{display:block;font-size:12px;font-weight:bold;color:#555;margin-bottom:3px}
+input[type="date"],input[type="text"]{
+  width:100%;padding:9px 10px;border:1px solid #ccc;border-radius:4px;
+  font-size:14px;font-family:inherit;background:#fff;
+}
+input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px rgba(49,130,206,.2)}
+
+.toggle-row{display:flex;gap:8px;margin-top:2px}
+.toggle-row label{font-size:13px;font-weight:normal;color:#555;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;flex:1;padding:9px 10px;border:1px solid #ccc;border-radius:4px;background:#fff;margin-bottom:0}
+.toggle-row input[type="radio"]{display:none}
+.toggle-row label.selected-business{border-color:#276749;background:#f0fff4;color:#276749;font-weight:bold}
+.toggle-row label.selected-holiday{border-color:#c53030;background:#fff5f5;color:#c53030;font-weight:bold}
+
+.btn-submit{width:100%;padding:12px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-submit:hover{background:#2c5282}
+.btn-submit:disabled{background:#aaa;cursor:not-allowed}
+
+#form-msg{margin-top:10px;font-size:13px;text-align:center;padding:8px;border-radius:4px;display:none}
+#form-msg.ok{display:block;color:#276749;background:#f0fff4;border:1px solid #9ae6b4}
+#form-msg.err{display:block;color:#c53030;background:#fff5f5;border:1px solid #fc8181}
+
+.list-title{font-size:14px;font-weight:bold;color:#1a3a5c;margin-bottom:10px}
+.ex-row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:10px 14px;margin-bottom:8px}
+.ex-row .ex-date{font-size:14px;font-weight:bold;color:#1a3a5c;min-width:100px}
+.ex-row .ex-status{font-size:12px;font-weight:bold;padding:3px 8px;border-radius:10px}
+.ex-row .ex-status.business{background:#f0fff4;color:#276749}
+.ex-row .ex-status.holiday{background:#fff5f5;color:#c53030}
+.ex-row .ex-note{font-size:12px;color:#777;flex:1}
+.btn-delete{font-size:12px;color:#c53030;background:none;border:1px solid #c53030;border-radius:4px;padding:4px 10px;cursor:pointer;flex-shrink:0}
+.btn-delete:hover{background:#fff5f5}
+
+.empty-msg{text-align:center;color:#999;font-size:13px;padding:20px 0}
+#load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div id="auth-loading">読み込み中...</div>
+
+<div id="auth-login" class="login-box" style="display:none">
+  <h1>📅 営業日の例外設定</h1>
+  <button class="btn-google" onclick="loginWithGoogle()">Googleでログイン</button>
+  <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#c53030"></div>
+</div>
+
+<div id="auth-denied" class="login-box" style="display:none">
+  <h1>📅 営業日の例外設定</h1>
+  <p style="font-size:14px;color:#c53030">このページは管理者のみ利用できます。</p>
+</div>
+
+<div id="app-content" style="display:none">
+  <h1>📅 営業日の例外設定</h1>
+  <p class="desc">祝日や特定の土曜出勤など、通常の週間パターンでは表現しきれない日付だけの例外を登録します。</p>
+
+  <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
+
+  <div class="card">
+    <div class="form-group">
+      <label>日付</label>
+      <input type="date" id="ex-date">
+    </div>
+    <div class="form-group">
+      <label>この日の扱い</label>
+      <div class="toggle-row" id="status-row">
+        <label class="selected-business" id="lbl-business"><input type="radio" name="ex-status" value="business" checked onchange="updateStatusStyle()"> 営業</label>
+        <label id="lbl-holiday"><input type="radio" name="ex-status" value="holiday" onchange="updateStatusStyle()"> 休業</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>メモ（任意）</label>
+      <input type="text" id="ex-note" placeholder="例：創立記念日、振替出勤など">
+    </div>
+    <button class="btn-submit" id="btn-add" onclick="submitException()">登録する</button>
+    <div id="form-msg"></div>
+  </div>
+
+  <div class="list-title">登録済みの例外日</div>
+  <div id="ex-list"></div>
+  <div id="load-error" style="display:none"></div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = { email: '', name: '', role: '' };
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function updateStatusStyle(){
+  const checked = document.querySelector('input[name="ex-status"]:checked').value;
+  document.getElementById('lbl-business').classList.toggle('selected-business', checked === 'business');
+  document.getElementById('lbl-holiday').classList.toggle('selected-holiday', checked === 'holiday');
+}
+
+function showFormMsg(text, type){
+  const el = document.getElementById('form-msg');
+  el.className = type;
+  el.textContent = text;
+}
+
+// =============================================
+// 登録
+// =============================================
+async function submitException(){
+  const dateVal = document.getElementById('ex-date').value;
+  const statusVal = document.querySelector('input[name="ex-status"]:checked').value; // 'business' or 'holiday'
+  const noteVal = document.getElementById('ex-note').value.trim();
+
+  showFormMsg('', '');
+  if(!dateVal){ showFormMsg('日付を選択してください。', 'err'); return; }
+
+  const btn = document.getElementById('btn-add');
+  btn.disabled = true; btn.textContent = '登録中...';
+
+  const { error } = await sbClient.from('business_day_exceptions').insert({
+    exception_date: dateVal,
+    is_business_day: statusVal === 'business',
+    note: noteVal || null,
+    created_by_email: currentUser.email
+  });
+
+  btn.disabled = false; btn.textContent = '登録する';
+
+  if(error){
+    showFormMsg('登録に失敗しました：' + error.message, 'err');
+    return;
+  }
+
+  showFormMsg('登録しました。', 'ok');
+  document.getElementById('ex-date').value = '';
+  document.getElementById('ex-note').value = '';
+  document.querySelector('input[name="ex-status"][value="business"]').checked = true;
+  updateStatusStyle();
+
+  await loadExceptions();
+}
+
+// =============================================
+// 削除
+// =============================================
+async function deleteException(id){
+  if(!confirm('この例外設定を削除しますか？')) return;
+  const { error } = await sbClient.from('business_day_exceptions').delete().eq('id', id);
+  if(error){
+    alert('削除に失敗しました：' + error.message);
+    return;
+  }
+  await loadExceptions();
+}
+
+// =============================================
+// 一覧読み込み
+// =============================================
+async function loadExceptions(){
+  const { data, error } = await sbClient
+    .from('business_day_exceptions')
+    .select('id, exception_date, is_business_day, note')
+    .order('exception_date', { ascending: true });
+
+  const listEl = document.getElementById('ex-list');
+  const errEl = document.getElementById('load-error');
+
+  if(error){
+    errEl.style.display = 'block';
+    errEl.textContent = '一覧の取得に失敗しました：' + error.message;
+    return;
+  }
+  errEl.style.display = 'none';
+
+  if(!data || !data.length){
+    listEl.innerHTML = '<div class="empty-msg">登録されている例外日はありません</div>';
+    return;
+  }
+
+  listEl.innerHTML = data.map(row => `
+    <div class="ex-row">
+      <div class="ex-date">${escapeHtml(row.exception_date)}</div>
+      <span class="ex-status ${row.is_business_day ? 'business' : 'holiday'}">${row.is_business_day ? '営業' : '休業'}</span>
+      <div class="ex-note">${escapeHtml(row.note || '')}</div>
+      <button class="btn-delete" onclick="deleteException('${row.id}')">削除</button>
+    </div>`).join('');
+}
+
+async function loginWithGoogle(){
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if(error){
+    document.getElementById('auth-msg').textContent = 'ログインに失敗しました：' + error.message;
+  }
+}
+
+async function initAuth(){
+  const { data: { user } } = await sbClient.auth.getUser();
+
+  if(!user){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-login').style.display='block';
+    return;
+  }
+
+  const { data: allowRow, error: allowErr } = await sbClient
+    .from('users_allowlist')
+    .select('name, role')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  if(allowErr || !allowRow || !allowRow.name || allowRow.role !== '管理者'){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-denied').style.display='block';
+    return;
+  }
+
+  currentUser.email = user.email;
+  currentUser.name = allowRow.name;
+  currentUser.role = allowRow.role;
+
+  document.getElementById('login-name-display').textContent = currentUser.name;
+  document.getElementById('auth-loading').style.display='none';
+  document.getElementById('app-content').style.display='block';
+
+  await loadExceptions();
+}
+
+initAuth();
+</script>
+</body>
+</html>
