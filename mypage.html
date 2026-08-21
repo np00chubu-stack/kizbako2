@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マイページ</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.container{max-width:720px;margin:24px auto;padding:0 12px 40px}
+h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
+
+.login-box{max-width:360px;margin:80px auto;text-align:center}
+.login-box h1{border:none;margin-bottom:20px}
+.btn-google{padding:13px 24px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-google:hover{background:#2c5282}
+#auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
+.login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:6px;margin-bottom:14px}
+
+.section-title{font-size:14px;font-weight:bold;color:#1a3a5c;margin:20px 0 10px}
+.section-title:first-of-type{margin-top:0}
+.section-count{font-size:12px;color:#888;font-weight:normal;margin-left:4px}
+
+.item-card{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);padding:14px 16px;margin-bottom:8px;cursor:pointer}
+.item-card .top-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.item-card .cat-name{font-size:14px;font-weight:bold;color:#1a3a5c}
+.item-card .size-line{font-size:12px;color:#666;margin-top:3px}
+.status-badge{font-size:11px;font-weight:bold;padding:3px 9px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.status-badge.受付済み{background:#eef3f8;color:#1a3a5c}
+.status-badge.作業中{background:#fff3cd;color:#856404}
+.status-badge.発注可能{background:#d4edda;color:#276749}
+
+.empty-msg{text-align:center;color:#999;font-size:13px;padding:24px 0}
+#load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
+
+/* 詳細ボトムシート */
+.sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50}
+.sheet-overlay.show{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:14px 14px 0 0;padding:20px;max-width:720px;margin:0 auto;z-index:51;max-height:80vh;overflow-y:auto}
+.sheet h2{font-size:16px;color:#1a3a5c;margin-bottom:14px}
+.sheet .detail-line{font-size:13px;color:#444;margin-bottom:8px}
+.sheet .detail-line b{color:#1a3a5c;display:inline-block;min-width:80px}
+.btn-close-sheet{width:100%;padding:10px;background:#fff;border:1px solid #999;color:#555;border-radius:6px;font-size:14px;cursor:pointer;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div id="auth-loading">読み込み中...</div>
+
+<div id="auth-login" class="login-box" style="display:none">
+  <h1>📋 マイページ</h1>
+  <button class="btn-google" onclick="loginWithGoogle()">Googleでログイン</button>
+  <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#c53030"></div>
+</div>
+
+<div id="auth-denied" class="login-box" style="display:none">
+  <h1>📋 マイページ</h1>
+  <p style="font-size:14px;color:#c53030">このアカウントはまだ利用登録されていません。管理者に連絡してください。</p>
+</div>
+
+<div id="app-content" style="display:none">
+  <h1>📋 マイページ</h1>
+  <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
+
+  <div class="section-title">発注が必要<span class="section-count" id="count-order"></span></div>
+  <div id="list-order"></div>
+
+  <div class="section-title">受付済み（進行中含む）<span class="section-count" id="count-progress"></span></div>
+  <div id="list-progress"></div>
+
+  <div id="load-error" style="display:none"></div>
+</div>
+
+</div>
+
+<!-- 詳細ボトムシート -->
+<div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2 id="sheet-title"></h2>
+    <div id="sheet-detail"></div>
+    <button class="btn-close-sheet" onclick="closeSheet()">閉じる</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = { email: '', name: '' };
+let myItems = []; // 自分の依頼明細（納入日を集約済み）
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function sizeText(row){
+  return [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
+}
+
+function renderCard(row){
+  const dateText = row.dates && row.dates.length ? row.dates.map(d=>d.delivery_date).join('、') : '';
+  return `
+    <div class="item-card" onclick="openSheet('${row.id}')">
+      <div class="top-row">
+        <div>
+          <div class="cat-name">${escapeHtml(row.category)}</div>
+          <div class="size-line">${escapeHtml(sizeText(row))}${dateText ? '　納入日：' + escapeHtml(dateText) : ''}</div>
+        </div>
+        <span class="status-badge ${escapeHtml(row.status)}">${escapeHtml(row.status)}</span>
+      </div>
+    </div>`;
+}
+
+function renderList(){
+  const orderRows = myItems.filter(r => r.status === '発注可能');
+  const progressRows = myItems.filter(r => r.status === '受付済み' || r.status === '作業中');
+
+  document.getElementById('count-order').textContent = orderRows.length ? `（${orderRows.length}件）` : '';
+  document.getElementById('count-progress').textContent = progressRows.length ? `（${progressRows.length}件）` : '';
+
+  document.getElementById('list-order').innerHTML = orderRows.length
+    ? orderRows.map(renderCard).join('')
+    : '<div class="empty-msg">現在、発注が必要な依頼はありません</div>';
+
+  document.getElementById('list-progress').innerHTML = progressRows.length
+    ? progressRows.map(renderCard).join('')
+    : '<div class="empty-msg">現在、受付済みの依頼はありません</div>';
+}
+
+function openSheet(itemId){
+  const row = myItems.find(r => r.id === itemId);
+  if(!row) return;
+
+  document.getElementById('sheet-title').textContent = row.category;
+
+  const dateText = row.dates && row.dates.length
+    ? row.dates.map(d => `${d.delivery_date}（${d.qty}c/s）`).join('、')
+    : '（未設定）';
+
+  document.getElementById('sheet-detail').innerHTML = `
+    <div class="detail-line"><b>サイズ</b>${escapeHtml(sizeText(row))}</div>
+    <div class="detail-line"><b>納入日・数量</b>${escapeHtml(dateText)}</div>
+    <div class="detail-line"><b>ステータス</b>${escapeHtml(row.status)}</div>
+    ${row.client_name ? `<div class="detail-line"><b>客先名</b>${escapeHtml(row.client_name)}</div>` : ''}
+    ${row.note_item ? `<div class="detail-line"><b>備考</b>${escapeHtml(row.note_item)}</div>` : ''}
+  `;
+
+  document.getElementById('sheet-overlay').classList.add('show');
+}
+
+function closeSheet(e){
+  if(e && e.target !== e.currentTarget) return;
+  document.getElementById('sheet-overlay').classList.remove('show');
+}
+
+// =============================================
+// データ読み込み：自分のrequestsに紐づくrequest_items（発注可能/受付済み/作業中のみ）
+// ＋ request_item_dates を明細ごとに集約
+// =============================================
+async function loadMyItems(){
+  const { data: reqRows, error: reqErr } = await sbClient
+    .from('requests')
+    .select('id')
+    .eq('requester_email', currentUser.email);
+
+  if(reqErr){
+    document.getElementById('load-error').style.display = 'block';
+    document.getElementById('load-error').textContent = '依頼データの取得に失敗しました：' + reqErr.message;
+    return;
+  }
+
+  const requestIds = (reqRows || []).map(r => r.id);
+  if(!requestIds.length){
+    myItems = [];
+    renderList();
+    return;
+  }
+
+  const { data: itemRows, error: itemErr } = await sbClient
+    .from('request_items')
+    .select('id, request_id, client_name, category, size_l, size_w, size_h, note_item, status, canceled_at')
+    .in('request_id', requestIds)
+    .is('canceled_at', null)
+    .in('status', ['受付済み', '作業中', '発注可能']);
+
+  if(itemErr){
+    document.getElementById('load-error').style.display = 'block';
+    document.getElementById('load-error').textContent = '依頼明細の取得に失敗しました：' + itemErr.message;
+    return;
+  }
+
+  const itemIds = (itemRows || []).map(r => r.id);
+  let dateRows = [];
+  if(itemIds.length){
+    const { data, error: dateErr } = await sbClient
+      .from('request_item_dates')
+      .select('request_item_id, delivery_date, qty')
+      .in('request_item_id', itemIds)
+      .order('delivery_date', { ascending: true });
+    if(!dateErr) dateRows = data || [];
+  }
+
+  myItems = (itemRows || []).map(row => ({
+    ...row,
+    dates: dateRows.filter(d => d.request_item_id === row.id)
+  }));
+
+  document.getElementById('load-error').style.display = 'none';
+  renderList();
+}
+
+async function loginWithGoogle(){
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if(error){
+    document.getElementById('auth-msg').textContent = 'ログインに失敗しました：' + error.message;
+  }
+}
+
+async function initAuth(){
+  const { data: { user } } = await sbClient.auth.getUser();
+
+  if(!user){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-login').style.display='block';
+    return;
+  }
+
+  const { data: allowRow, error: allowErr } = await sbClient
+    .from('users_allowlist')
+    .select('name, role')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  if(allowErr || !allowRow || !allowRow.name){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-denied').style.display='block';
+    return;
+  }
+
+  currentUser.email = user.email;
+  currentUser.name = allowRow.name;
+
+  document.getElementById('login-name-display').textContent = currentUser.name;
+  document.getElementById('auth-loading').style.display='none';
+  document.getElementById('app-content').style.display='block';
+
+  await loadMyItems();
+}
+
+initAuth();
+</script>
+</body>
+</html>
