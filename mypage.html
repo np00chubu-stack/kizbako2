@@ -251,6 +251,44 @@ async function initAuth(){
   document.getElementById('app-content').style.display='block';
 
   await loadMyItems();
+  subscribeRealtime();
+}
+
+// =============================================
+// Realtime購読：自分の依頼データ(request_items/request_item_dates)が
+// 変更されたら自動的に一覧を再読み込みする。詳細シートを開いている間は
+// 保留し、閉じたタイミングで反映する
+// =============================================
+let realtimeReloadPending = false;
+
+function isSheetOpen(){
+  const overlay = document.getElementById('sheet-overlay');
+  return overlay && overlay.classList.contains('show');
+}
+
+function requestMyItemsReload(){
+  if(isSheetOpen()){
+    realtimeReloadPending = true;
+    return;
+  }
+  loadMyItems();
+}
+
+function subscribeRealtime(){
+  sbClient
+    .channel('mypage_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'request_items' }, requestMyItemsReload)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'request_item_dates' }, requestMyItemsReload)
+    .subscribe((status, err) => {
+      console.log('[realtime] channel status:', status, err || '');
+    });
+
+  setInterval(() => {
+    if(realtimeReloadPending && !isSheetOpen()){
+      realtimeReloadPending = false;
+      loadMyItems();
+    }
+  }, 1500);
 }
 
 initAuth();
