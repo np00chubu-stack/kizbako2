@@ -79,6 +79,8 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
   <div class="sheet" onclick="event.stopPropagation()">
     <h2 id="sheet-title"></h2>
     <div id="sheet-detail"></div>
+    <div id="sheet-cancel-msg" style="font-size:12px;color:#c53030;margin-top:8px"></div>
+    <button class="btn-close-sheet" id="sheet-cancel-btn" style="background:#fff;border:1.5px solid #c53030;color:#c53030;display:none" onclick="cancelFromDetailSheet()">この依頼を取り消す</button>
     <button class="btn-close-sheet" onclick="closeSheet()">閉じる</button>
   </div>
 </div>
@@ -184,7 +186,40 @@ function openSheet(itemId){
     ${row.note_item ? `<div class="detail-line"><b>備考</b>${escapeHtml(row.note_item)}</div>` : ''}
   `;
 
+  // 取消可能なのは「受付済み」「作業中」のみ（発注可能は別シート＝発注設定シート側で取消を扱う）
+  const cancelBtn = document.getElementById('sheet-cancel-btn');
+  const cancelMsg = document.getElementById('sheet-cancel-msg');
+  cancelMsg.textContent = '';
+  if(row.status === '受付済み' || row.status === '作業中'){
+    cancelBtn.style.display = 'block';
+    cancelBtn.dataset.itemId = itemId;
+  } else {
+    cancelBtn.style.display = 'none';
+  }
+
   document.getElementById('sheet-overlay').classList.add('show');
+}
+
+// =============================================
+// 受付済み/作業中の詳細シートからの取消
+// =============================================
+async function cancelFromDetailSheet(){
+  const itemId = document.getElementById('sheet-cancel-btn').dataset.itemId;
+  if(!itemId) return;
+  if(!confirm('この依頼を取り消しますか？取消後も本日中は依頼一覧に取消線付きで表示されます。')) return;
+
+  const { error } = await sbClient
+    .from('request_items')
+    .update({ canceled_at: new Date().toISOString() })
+    .eq('id', itemId);
+
+  if(error){
+    document.getElementById('sheet-cancel-msg').textContent = '取消に失敗しました：' + error.message;
+    return;
+  }
+
+  document.getElementById('sheet-overlay').classList.remove('show');
+  await loadMyItems();
 }
 
 function closeSheet(e){
