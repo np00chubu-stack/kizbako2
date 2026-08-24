@@ -83,6 +83,41 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
   </div>
 </div>
 
+<!-- 発注設定ボトムシート（完成品タップ時） -->
+<div class="sheet-overlay" id="order-sheet-overlay" onclick="closeOrderSheet(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2 id="order-sheet-title"></h2>
+    <div id="order-sheet-detail" style="font-size:12px;color:#666;margin-bottom:14px"></div>
+
+    <div id="order-mode-row" style="display:flex;gap:8px;margin-bottom:12px">
+      <label style="flex:1;text-align:center;padding:10px 4px;border:1px solid #ccc;border-radius:6px;cursor:pointer" id="order-mode-lbl-circle">
+        <input type="radio" name="order-mode" value="circle" checked style="display:none" onchange="onOrderModeChange()">○
+      </label>
+      <label style="flex:1;text-align:center;padding:10px 4px;border:1px solid #ccc;border-radius:6px;cursor:pointer" id="order-mode-lbl-qty">
+        <input type="radio" name="order-mode" value="qty" style="display:none" onchange="onOrderModeChange()">数量
+      </label>
+      <label style="flex:1;text-align:center;padding:10px 4px;border:1px solid #ccc;border-radius:6px;cursor:pointer" id="order-mode-lbl-date">
+        <input type="radio" name="order-mode" value="date" style="display:none" onchange="onOrderModeChange()">日付
+      </label>
+    </div>
+
+    <div id="order-qty-group" style="display:none;margin-bottom:12px">
+      <label style="font-size:12px;color:#555">数量</label>
+      <input type="number" id="order-qty-input" min="1" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px">
+    </div>
+    <div id="order-date-group" style="display:none;margin-bottom:12px">
+      <label style="font-size:12px;color:#555">希望日</label>
+      <input type="date" id="order-date-input" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px">
+    </div>
+
+    <div id="order-sheet-msg" style="font-size:12px;color:#c53030;margin-bottom:8px"></div>
+
+    <button class="btn-close-sheet" id="order-confirm-btn" style="background:#1a3a5c;color:#fff;border:none" onclick="submitOrderFromMypage()">この内容で発注する</button>
+    <button class="btn-close-sheet" style="background:#fff;border:1.5px solid #c53030;color:#c53030;margin-top:8px" onclick="cancelRequestItem()">この依頼を取り消す</button>
+    <button class="btn-close-sheet" onclick="closeOrderSheet()">閉じる</button>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
@@ -102,8 +137,9 @@ function sizeText(row){
 
 function renderCard(row){
   const dateText = row.dates && row.dates.length ? row.dates.map(d=>d.delivery_date).join('、') : '';
+  const clickFn = row.status === '発注可能' ? `openOrderSheet('${row.id}')` : `openSheet('${row.id}')`;
   return `
-    <div class="item-card" onclick="openSheet('${row.id}')">
+    <div class="item-card" onclick="${clickFn}">
       <div class="top-row">
         <div>
           <div class="cat-name">${escapeHtml(row.category)}</div>
@@ -154,6 +190,126 @@ function openSheet(itemId){
 function closeSheet(e){
   if(e && e.target !== e.currentTarget) return;
   document.getElementById('sheet-overlay').classList.remove('show');
+}
+
+// =============================================
+// 完成品タップ時：発注設定シート（○/数量/日付）を開く
+// stock_view.htmlと同じ考え方で、対応するstock_itemsの行を探して
+// stock_ordersに書き込む
+// =============================================
+let orderSheetState = { requestItemId: null, stockItemId: null };
+
+async function openOrderSheet(itemId){
+  const row = myItems.find(r => r.id === itemId);
+  if(!row) return;
+
+  const { data: stockRow, error } = await sbClient
+    .from('stock_items')
+    .select('id')
+    .eq('request_item_id', itemId)
+    .maybeSingle();
+
+  if(error || !stockRow){
+    alert('在庫データが見つかりませんでした。時間をおいて再度お試しください。');
+    return;
+  }
+
+  orderSheetState.requestItemId = itemId;
+  orderSheetState.stockItemId = stockRow.id;
+
+  document.getElementById('order-sheet-title').textContent = row.category;
+  const dateText = row.dates && row.dates.length
+    ? row.dates.map(d => `${d.delivery_date}（${d.qty}c/s）`).join('、')
+    : '（未設定）';
+  document.getElementById('order-sheet-detail').textContent = `${sizeText(row)}／納入日：${dateText}`;
+
+  document.querySelector('input[name="order-mode"][value="circle"]').checked = true;
+  document.getElementById('order-qty-input').value = '';
+  document.getElementById('order-date-input').value = '';
+  document.getElementById('order-sheet-msg').textContent = '';
+  onOrderModeChange();
+
+  document.getElementById('order-sheet-overlay').classList.add('show');
+}
+
+function onOrderModeChange(){
+  const mode = document.querySelector('input[name="order-mode"]:checked').value;
+  ['circle','qty','date'].forEach(k => {
+    document.getElementById(`order-mode-lbl-${k}`).style.background = (k === mode) ? '#dbeafe' : '';
+    document.getElementById(`order-mode-lbl-${k}`).style.borderColor = (k === mode) ? '#2c5282' : '#ccc';
+  });
+  document.getElementById('order-qty-group').style.display = (mode === 'qty') ? 'block' : 'none';
+  document.getElementById('order-date-group').style.display = (mode === 'date') ? 'block' : 'none';
+}
+
+async function submitOrderFromMypage(){
+  const mode = document.querySelector('input[name="order-mode"]:checked').value;
+  const msgEl = document.getElementById('order-sheet-msg');
+  msgEl.textContent = '';
+
+  let qty = null, desiredDate = null;
+  if(mode === 'qty'){
+    qty = parseInt(document.getElementById('order-qty-input').value, 10);
+    if(!qty || qty < 1){ msgEl.textContent = '数量を入力してください。'; return; }
+  }
+  if(mode === 'date'){
+    desiredDate = document.getElementById('order-date-input').value;
+    if(!desiredDate){ msgEl.textContent = '希望日を入力してください。'; return; }
+  }
+
+  const modeLabel = mode === 'circle' ? '○' : (mode === 'qty' ? '数量' : '日付');
+
+  const { error: orderErr } = await sbClient.from('stock_orders').insert({
+    stock_item_id: orderSheetState.stockItemId,
+    operated_by_email: currentUser.email,
+    operated_by_name: currentUser.name,
+    destination: null,
+    mode: modeLabel,
+    qty: qty,
+    desired_date: desiredDate,
+    is_proxy: false,
+    is_canceled: false
+  });
+
+  if(orderErr){
+    msgEl.textContent = '発注に失敗しました：' + orderErr.message;
+    return;
+  }
+
+  const { error: statusErr } = await sbClient
+    .from('request_items')
+    .update({ status: '発注済み' })
+    .eq('id', orderSheetState.requestItemId);
+
+  if(statusErr){
+    msgEl.textContent = '発注は完了しましたが、状態更新に失敗しました：' + statusErr.message;
+    return;
+  }
+
+  document.getElementById('order-sheet-overlay').classList.remove('show');
+  await loadMyItems();
+}
+
+async function cancelRequestItem(){
+  if(!confirm('この依頼を取り消しますか？取消後も本日中は依頼一覧に取消線付きで表示されます。')) return;
+
+  const { error } = await sbClient
+    .from('request_items')
+    .update({ canceled_at: new Date().toISOString() })
+    .eq('id', orderSheetState.requestItemId);
+
+  if(error){
+    document.getElementById('order-sheet-msg').textContent = '取消に失敗しました：' + error.message;
+    return;
+  }
+
+  document.getElementById('order-sheet-overlay').classList.remove('show');
+  await loadMyItems();
+}
+
+function closeOrderSheet(e){
+  if(e && e.target !== e.currentTarget) return;
+  document.getElementById('order-sheet-overlay').classList.remove('show');
 }
 
 // =============================================
@@ -263,7 +419,8 @@ let realtimeReloadPending = false;
 
 function isSheetOpen(){
   const overlay = document.getElementById('sheet-overlay');
-  return overlay && overlay.classList.contains('show');
+  const orderOverlay = document.getElementById('order-sheet-overlay');
+  return (overlay && overlay.classList.contains('show')) || (orderOverlay && orderOverlay.classList.contains('show'));
 }
 
 function requestMyItemsReload(){
