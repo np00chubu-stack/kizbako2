@@ -278,7 +278,7 @@ async function submitOrderFromMypage(){
 
   const { error: statusErr } = await sbClient
     .from('request_items')
-    .update({ status: '発注済み' })
+    .update({ status: '発注済み・受取待ち' })
     .eq('id', orderSheetState.requestItemId);
 
   if(statusErr){
