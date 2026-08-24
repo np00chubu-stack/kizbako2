@@ -499,6 +499,44 @@ async function initAuth(){
   document.getElementById('app-content').style.display='block';
 
   await loadStockItems();
+  subscribeRealtime();
+}
+
+// =============================================
+// Realtime購読：他の人がstock_items/stock_orders/stock_deliveriesを
+// 変更したら自動的に画面を再読み込みする（F5不要にする）
+// 発注操作中のフォーム入力を消さないよう、開いている発注フォームがある間は
+// 再描画をスキップし、閉じたタイミングで最新化する
+// =============================================
+let realtimeReloadPending = false;
+
+function isAnyOrderFormOpen(){
+  return document.querySelector('.order-form') !== null;
+}
+
+function requestStockReload(){
+  if(isAnyOrderFormOpen()){
+    realtimeReloadPending = true;
+    return;
+  }
+  loadStockItems();
+}
+
+function subscribeRealtime(){
+  sbClient
+    .channel('stock_view_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_items' }, requestStockReload)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_orders' }, requestStockReload)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_deliveries' }, requestStockReload)
+    .subscribe();
+
+  // 発注フォームが閉じられたタイミングで、保留していた再読み込みを反映する
+  setInterval(() => {
+    if(realtimeReloadPending && !isAnyOrderFormOpen()){
+      realtimeReloadPending = false;
+      loadStockItems();
+    }
+  }, 1500);
 }
 
 initAuth();
