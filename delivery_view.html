@@ -326,6 +326,44 @@ async function initAuth(){
   document.getElementById('app-content').style.display='block';
 
   await loadDeliveries();
+  subscribeRealtime();
+}
+
+// =============================================
+// Realtime購読：他の人がstock_orders/stock_deliveriesを変更したら
+// 自動的に一覧を再読み込みする。詳細シートを開いている間は保留し、
+// 閉じたタイミングで反映する
+// =============================================
+let realtimeReloadPending = false;
+
+function isSheetOpen(){
+  const overlay = document.getElementById('sheet-overlay');
+  return overlay && overlay.classList.contains('show');
+}
+
+function requestDeliveriesReload(){
+  if(isSheetOpen()){
+    realtimeReloadPending = true;
+    return;
+  }
+  loadDeliveries();
+}
+
+function subscribeRealtime(){
+  sbClient
+    .channel('delivery_view_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_orders' }, requestDeliveriesReload)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_deliveries' }, requestDeliveriesReload)
+    .subscribe((status, err) => {
+      console.log('[realtime] channel status:', status, err || '');
+    });
+
+  setInterval(() => {
+    if(realtimeReloadPending && !isSheetOpen()){
+      realtimeReloadPending = false;
+      loadDeliveries();
+    }
+  }, 1500);
 }
 
 initAuth();
