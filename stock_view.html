@@ -525,10 +525,12 @@ function requestStockReload(){
 function subscribeRealtime(){
   sbClient
     .channel('stock_view_changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_items' }, requestStockReload)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_orders' }, requestStockReload)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_deliveries' }, requestStockReload)
-    .subscribe();
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_items' }, (payload) => { console.log('[realtime] stock_items changed', payload); requestStockReload(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_orders' }, (payload) => { console.log('[realtime] stock_orders changed', payload); requestStockReload(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_deliveries' }, (payload) => { console.log('[realtime] stock_deliveries changed', payload); requestStockReload(); })
+    .subscribe((status, err) => {
+      console.log('[realtime] channel status:', status, err || '');
+    });
 
   // 発注フォームが閉じられたタイミングで、保留していた再読み込みを反映する
   setInterval(() => {
