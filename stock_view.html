@@ -127,12 +127,13 @@ const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '', role: '' };
-let stockItemsCache = [];   // stock_items 全件
-let ordersCache = {};       // stock_item_id -> 有効な注文の配列（複数人分ありうる想定だが表示は先頭優先）
+let stockItemsCache = [];   // stock_items 全件（個人依頼品は request_item_date_id を持つ）
+let ordersCache = {};       // stock_item_id -> 有効な注文の配列
+let dateInfoCache = {};     // request_item_date_id -> { delivery_date }
 
 // 締切・解除ロック関連
-let lockSettings = { start: null, end: null }; // 'HH:MM:SS' 形式
-let isLocked = false; // 依頼者ロールに対してのみ意味を持つ判定結果
+let lockSettings = { start: null, end: null };
+let isLocked = false;
 
 function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -147,8 +148,6 @@ function switchTab(which){
 
 // =============================================
 // 締切・解除時刻の設定を読み込み、今の時刻と比較してロック中かどうかを判定する
-// 判定は画面を開いた（データを読み込んだ）タイミングで1回だけ行う（cron等は使わない）
-// ロックの概念自体は依頼者ロールにのみ適用する（作業者・管理者は無関係）
 // =============================================
 async function loadLockSettings(){
   const { data, error } = await sbClient
@@ -158,7 +157,6 @@ async function loadLockSettings(){
     .maybeSingle();
 
   if(error || !data){
-    // 設定が取得できない場合は、安全側としてロックしない扱いにする
     isLocked = false;
     return;
   }
@@ -169,13 +167,11 @@ async function loadLockSettings(){
   const now = new Date();
   const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
 
-  // 'HH:MM:SS' 形式同士の単純な文字列比較で時刻の前後判定を行う
   isLocked = (nowStr >= lockSettings.start && nowStr < lockSettings.end);
 }
 
 function updateLockBanner(){
   const banner = document.getElementById('lock-banner');
-  // バナー・ロック挙動そのものは依頼者ロールのみに適用する（作業者・管理者には一切出さない）
   if(currentUser.role === '依頼者' && isLocked){
     banner.classList.add('show');
   } else {
@@ -183,9 +179,6 @@ function updateLockBanner(){
   }
 }
 
-// =============================================
-// 発注状況の文言生成
-// =============================================
 function orderModeLabel(order){
   if(order.mode === '○') return '○（今すぐ欲しい）';
   if(order.mode === '数量') return `数量 ${order.qty}`;
@@ -193,16 +186,17 @@ function orderModeLabel(order){
   return order.mode;
 }
 
-// 依頼者ロールかつロック中は発注ボタン自体を出さない（新規発注操作を止める）
 function isOrderingBlocked(){
   return currentUser.role === '依頼者' && isLocked;
 }
 
 // =============================================
-// 個人依頼品カード
+// 個人依頼品カード（納入日を表示。同じ品目でも納入日ごとに別カードになる）
 // =============================================
 function renderIndividualCard(row){
   const sizeText = [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
+  const dateInfo = row.request_item_date_id ? dateInfoCache[row.request_item_date_id] : null;
+  const dateText = dateInfo ? `納入日：${dateInfo.delivery_date}` : '';
   const activeOrders = ordersCache[row.id] || [];
   const order = activeOrders[0];
 
@@ -232,6 +226,7 @@ function renderIndividualCard(row){
         <div class="main">
           <div class="item-name">${escapeHtml(row.item_name)}</div>
           <div class="sub-line">${escapeHtml(sizeText)}　依頼者：${escapeHtml(row.requester_name || '（不明）')}</div>
+          ${dateText ? `<div class="sub-line">${escapeHtml(dateText)}</div>` : ''}
         </div>
         <div class="qty-box">
           <div class="qty-num">${row.stock_qty ?? 0}</div>
@@ -245,7 +240,7 @@ function renderIndividualCard(row){
 }
 
 // =============================================
-// 共通品カード
+// 共通品カード（変更なし）
 // =============================================
 function renderCommonCard(row){
   const activeOrders = ordersCache[row.id] || [];
@@ -271,7 +266,6 @@ function renderCommonCard(row){
     ? `<button class="btn-order" onclick="openOrderForm('${row.id}', 'common', this)">${order ? '追加で発注する' : '発注する'}</button>`
     : '';
 
-  // 作業者・管理者は在庫数をタップして補充シートを開ける（依頼者は不可）
   const qtyBoxAttrs = canReplenish ? `onclick="openReplenishForm('${row.id}', this)"` : '';
 
   return `
@@ -292,13 +286,10 @@ function renderCommonCard(row){
     </div>`;
 }
 
-// =============================================
-// 補充シートをカード内に展開する（共通品・作業者/管理者のみ）
-// =============================================
 function openReplenishForm(stockItemId, boxEl){
   const card = boxEl.closest('.stock-card');
   const slot = card.querySelector('.replenish-form-slot');
-  if(slot.innerHTML){ slot.innerHTML = ''; return; } // 既に開いていればトグルで閉じる
+  if(slot.innerHTML){ slot.innerHTML = ''; return; }
 
   const stockRow = stockItemsCache.find(r => r.id === stockItemId);
   const currentQty = stockRow ? (stockRow.stock_qty ?? 0) : 0;
@@ -332,10 +323,6 @@ function adjustReplenishQty(stockItemId, delta){
   el.textContent = next;
 }
 
-// =============================================
-// 補充確定：stock_qtyのみをカラム単位で加算更新する
-// （行全体の再送信ではなく、現在値に加算した値だけを書き込む）
-// =============================================
 async function submitReplenish(stockItemId){
   const qtyEl = document.getElementById(`replenish-qty-${stockItemId}`);
   const msgEl = document.getElementById(`replenish-msg-${stockItemId}`);
@@ -359,9 +346,6 @@ async function submitReplenish(stockItemId){
   await loadStockItems();
 }
 
-// =============================================
-// 発注フォームをカード内に展開する
-// =============================================
 function openOrderForm(stockItemId, itemType, btnEl){
   const card = btnEl.closest('.stock-card');
   const slot = card.querySelector('.order-form-slot');
@@ -418,11 +402,6 @@ function onOrderModeChange(stockItemId){
   document.getElementById(`order-date-group-${stockItemId}`).style.display = (mode==='日付') ? '' : 'none';
 }
 
-// =============================================
-// 発注確定（共通品は二重発注チェックを挟む）
-// 依頼者ロールがロック中に発注しようとした場合は、念のためここでも弾く
-// （ボタン自体は非表示にしているが、二重の安全のため）
-// =============================================
 async function submitOrder(stockItemId, itemType){
   if(isOrderingBlocked()){
     const msgEl = document.getElementById(`order-form-msg-${stockItemId}`);
@@ -453,7 +432,6 @@ async function submitOrder(stockItemId, itemType){
   const isSelfItem = itemType === 'individual' && stockRow && stockRow.requester_name === currentUser.name;
   const isProxy = itemType === 'individual' ? !isSelfItem : false;
 
-  // 共通品：既に有効な発注があれば警告
   const existing = ordersCache[stockItemId] || [];
   if(itemType === 'common' && existing.length > 0){
     const other = existing[0];
@@ -483,9 +461,6 @@ async function submitOrder(stockItemId, itemType){
   await loadStockItems();
 }
 
-// =============================================
-// 発注取消
-// =============================================
 async function cancelOrder(orderId){
   if(!confirm('この発注を取消しますか？')) return;
   const { error } = await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', orderId);
@@ -505,7 +480,7 @@ async function loadStockItems(){
 
   const { data: items, error: itemsErr } = await sbClient
     .from('stock_items')
-    .select('id, item_type, item_name, size_l, size_w, size_h, requester_name, stock_qty, min_line')
+    .select('id, item_type, item_name, size_l, size_w, size_h, requester_name, stock_qty, min_line, request_item_date_id')
     .order('item_name', { ascending: true });
 
   if(itemsErr){
@@ -515,6 +490,20 @@ async function loadStockItems(){
   }
   document.getElementById('load-error').style.display = 'none';
   stockItemsCache = items || [];
+
+  // 個人依頼品の納入日を取得
+  const dateIds = stockItemsCache
+    .filter(r => r.item_type === 'individual' && r.request_item_date_id)
+    .map(r => r.request_item_date_id);
+
+  dateInfoCache = {};
+  if(dateIds.length){
+    const { data: dateRows } = await sbClient
+      .from('request_item_dates')
+      .select('id, delivery_date')
+      .in('id', dateIds);
+    (dateRows || []).forEach(d => { dateInfoCache[d.id] = { delivery_date: d.delivery_date }; });
+  }
 
   const { data: orders, error: ordersErr } = await sbClient
     .from('stock_orders')
@@ -588,12 +577,6 @@ async function initAuth(){
   subscribeRealtime();
 }
 
-// =============================================
-// Realtime購読：他の人がstock_items/stock_orders/stock_deliveriesを
-// 変更したら自動的に画面を再読み込みする（F5不要にする）
-// 発注操作中のフォーム入力を消さないよう、開いている発注フォームがある間は
-// 再描画をスキップし、閉じたタイミングで最新化する
-// =============================================
 let realtimeReloadPending = false;
 
 function isAnyOrderFormOpen(){
@@ -618,7 +601,6 @@ function subscribeRealtime(){
       console.log('[realtime] channel status:', status, err || '');
     });
 
-  // 発注フォームが閉じられたタイミングで、保留していた再読み込みを反映する
   setInterval(() => {
     if(realtimeReloadPending && !isAnyOrderFormOpen()){
       realtimeReloadPending = false;
