@@ -35,8 +35,21 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .stock-card .item-name{font-size:15px;font-weight:bold;color:#1a3a5c;margin-bottom:4px}
 .stock-card .sub-line{font-size:12px;color:#666}
 .stock-card .qty-box{flex-shrink:0;text-align:center;background:#eef3f8;border-radius:6px;padding:6px 14px}
+.stock-card .qty-box.replenishable{cursor:pointer}
 .stock-card .qty-num{font-size:20px;font-weight:bold;color:#1a3a5c;line-height:1}
+.stock-card .qty-num.low{color:#c53030}
 .stock-card .qty-label{font-size:10px;color:#888;margin-top:2px}
+
+/* 補充シート（共通品・作業者/管理者のみ） */
+.replenish-sheet{margin-top:10px;padding:12px;border:1px solid #d0d8e4;border-radius:6px;background:#f7f9fc}
+.replenish-sheet .rs-current{font-size:12px;color:#666;margin-bottom:8px;text-align:center}
+.replenish-sheet .rs-stepper{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px}
+.replenish-sheet .rs-stepper button{width:32px;height:32px;border-radius:50%;border:1px solid #ccc;background:#fff;font-size:16px;font-weight:bold;cursor:pointer}
+.replenish-sheet .rs-stepper .rs-val{font-size:18px;font-weight:bold;min-width:36px;text-align:center}
+.replenish-sheet .rs-btns{display:flex;gap:8px}
+.btn-replenish-submit{flex:1;padding:9px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer}
+.btn-replenish-cancel{padding:9px 14px;background:#fff;border:1px solid #999;color:#555;border-radius:6px;font-size:13px;cursor:pointer}
+.replenish-msg{font-size:12px;color:#c53030;margin-top:6px}
 
 /* 発注状況表示 */
 .order-status{margin-top:10px;padding:8px 10px;border-radius:6px;background:#f0fff4;border:1px solid #9ae6b4;font-size:12px;color:#276749;display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -239,6 +252,8 @@ function renderCommonCard(row){
   const order = activeOrders[0];
   const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
   const blocked = isOrderingBlocked();
+  const canReplenish = currentUser.role === '作業者' || currentUser.role === '管理者';
+  const isLow = (row.min_line ?? 0) > 0 && (row.stock_qty ?? 0) <= row.min_line;
 
   let statusHtml = '';
   if(order){
@@ -256,21 +271,92 @@ function renderCommonCard(row){
     ? `<button class="btn-order" onclick="openOrderForm('${row.id}', 'common', this)">${order ? '追加で発注する' : '発注する'}</button>`
     : '';
 
+  // 作業者・管理者は在庫数をタップして補充シートを開ける（依頼者は不可）
+  const qtyBoxAttrs = canReplenish ? `onclick="openReplenishForm('${row.id}', this)"` : '';
+
   return `
     <div class="stock-card" data-stock-item-id="${row.id}">
       <div class="top-row">
         <div class="main">
           <div class="item-name">${escapeHtml(row.item_name)}</div>
         </div>
-        <div class="qty-box">
-          <div class="qty-num">${row.stock_qty ?? 0}</div>
+        <div class="qty-box${canReplenish ? ' replenishable' : ''}" ${qtyBoxAttrs}>
+          <div class="qty-num${isLow ? ' low' : ''}">${row.stock_qty ?? 0}</div>
           <div class="qty-label">在庫</div>
         </div>
       </div>
       ${statusHtml}
       ${orderBtnHtml}
       <div class="order-form-slot"></div>
+      <div class="replenish-form-slot"></div>
     </div>`;
+}
+
+// =============================================
+// 補充シートをカード内に展開する（共通品・作業者/管理者のみ）
+// =============================================
+function openReplenishForm(stockItemId, boxEl){
+  const card = boxEl.closest('.stock-card');
+  const slot = card.querySelector('.replenish-form-slot');
+  if(slot.innerHTML){ slot.innerHTML = ''; return; } // 既に開いていればトグルで閉じる
+
+  const stockRow = stockItemsCache.find(r => r.id === stockItemId);
+  const currentQty = stockRow ? (stockRow.stock_qty ?? 0) : 0;
+
+  slot.innerHTML = `
+    <div class="replenish-sheet">
+      <div class="rs-current">現在の在庫 <b>${currentQty}</b>　↓ この数だけ追加します</div>
+      <div class="rs-stepper">
+        <button type="button" onclick="adjustReplenishQty('${stockItemId}', -1)">−</button>
+        <div class="rs-val" id="replenish-qty-${stockItemId}">1</div>
+        <button type="button" onclick="adjustReplenishQty('${stockItemId}', 1)">＋</button>
+      </div>
+      <div class="rs-btns">
+        <button class="btn-replenish-submit" onclick="submitReplenish('${stockItemId}')">この数を補充する</button>
+        <button class="btn-replenish-cancel" onclick="closeReplenishForm('${stockItemId}')">やめる</button>
+      </div>
+      <div class="replenish-msg" id="replenish-msg-${stockItemId}"></div>
+    </div>`;
+}
+
+function closeReplenishForm(stockItemId){
+  const input = document.getElementById(`replenish-qty-${stockItemId}`);
+  if(!input) return;
+  input.closest('.replenish-form-slot').innerHTML = '';
+}
+
+function adjustReplenishQty(stockItemId, delta){
+  const el = document.getElementById(`replenish-qty-${stockItemId}`);
+  if(!el) return;
+  const next = Math.max(1, parseInt(el.textContent, 10) + delta);
+  el.textContent = next;
+}
+
+// =============================================
+// 補充確定：stock_qtyのみをカラム単位で加算更新する
+// （行全体の再送信ではなく、現在値に加算した値だけを書き込む）
+// =============================================
+async function submitReplenish(stockItemId){
+  const qtyEl = document.getElementById(`replenish-qty-${stockItemId}`);
+  const msgEl = document.getElementById(`replenish-msg-${stockItemId}`);
+  const addQty = parseInt(qtyEl.textContent, 10);
+
+  const stockRow = stockItemsCache.find(r => r.id === stockItemId);
+  if(!stockRow){ msgEl.textContent = '在庫データが見つかりません。'; return; }
+
+  const newQty = (stockRow.stock_qty ?? 0) + addQty;
+
+  const { error } = await sbClient
+    .from('stock_items')
+    .update({ stock_qty: newQty })
+    .eq('id', stockItemId);
+
+  if(error){
+    msgEl.textContent = '補充に失敗しました：' + error.message;
+    return;
+  }
+
+  await loadStockItems();
 }
 
 // =============================================
@@ -419,7 +505,7 @@ async function loadStockItems(){
 
   const { data: items, error: itemsErr } = await sbClient
     .from('stock_items')
-    .select('id, item_type, item_name, size_l, size_w, size_h, requester_name, stock_qty')
+    .select('id, item_type, item_name, size_l, size_w, size_h, requester_name, stock_qty, min_line')
     .order('item_name', { ascending: true });
 
   if(itemsErr){
@@ -511,7 +597,7 @@ async function initAuth(){
 let realtimeReloadPending = false;
 
 function isAnyOrderFormOpen(){
-  return document.querySelector('.order-form') !== null;
+  return document.querySelector('.order-form') !== null || document.querySelector('.replenish-sheet') !== null;
 }
 
 function requestStockReload(){
