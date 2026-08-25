@@ -84,7 +84,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
     <h2 id="sheet-title"></h2>
     <div id="sheet-detail"></div>
     <div id="sheet-cancel-msg" style="font-size:12px;color:#c53030;margin-top:8px"></div>
-    <button class="btn-close-sheet" id="sheet-cancel-btn" style="background:#fff;border:1.5px solid #c53030;color:#c53030;display:none" onclick="cancelFromDetailSheet()">この依頼を取り消す</button>
+    <button class="btn-close-sheet" id="sheet-cancel-btn" style="background:#fff;border:1.5px solid #c53030;color:#c53030;display:none" onclick="cancelFromDetailSheet()">この納入日の依頼を取り消す</button>
     <button class="btn-close-sheet" onclick="closeSheet()">閉じる</button>
   </div>
 </div>
@@ -119,7 +119,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
     <div id="order-sheet-msg" style="font-size:12px;color:#c53030;margin-bottom:8px"></div>
 
     <button class="btn-close-sheet" id="order-confirm-btn" style="background:#1a3a5c;color:#fff;border:none" onclick="submitOrderFromMypage()">この内容で発注する</button>
-    <button class="btn-close-sheet" style="background:#fff;border:1.5px solid #c53030;color:#c53030;margin-top:8px" onclick="cancelRequestItem()">この依頼を取り消す</button>
+    <button class="btn-close-sheet" style="background:#fff;border:1.5px solid #c53030;color:#c53030;margin-top:8px" onclick="cancelRequestItem()">この納入日の依頼を取り消す</button>
     <button class="btn-close-sheet" onclick="closeOrderSheet()">閉じる</button>
   </div>
 </div>
@@ -131,7 +131,8 @@ const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '' };
-let myItems = []; // 自分の依頼明細（納入日を集約済み）
+// myItems の1件 = 「納入日1件」のカード。親の request_items 情報(カテゴリ・サイズ等)を合成して持つ。
+let myItems = [];
 
 function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -141,8 +142,7 @@ function sizeText(row){
   return [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
 }
 
-// JST基準で「今日」かどうかを判定（Supabaseのtimestamptzはisoで返るため、
-// タイムゾーン指定のIntlフォーマットで日本時間の日付文字列同士を比較する）
+// JST基準で「今日」かどうかを判定
 function isTodayJST(isoString){
   if(!isoString) return false;
   const fmt = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit' });
@@ -151,7 +151,7 @@ function isTodayJST(isoString){
 
 function renderCard(row){
   const cancelled = !!row.canceled_at;
-  const dateText = row.dates && row.dates.length ? row.dates.map(d=>d.delivery_date).join('、') : '';
+  const dateText = `${row.delivery_date}（${row.qty}c/s）`;
   const clickFn = (row.status === '発注可能' && !cancelled) ? `openOrderSheet('${row.id}')` : `openSheet('${row.id}')`;
   const badgeLabel = cancelled ? '取消済み' : row.status;
   return `
@@ -159,7 +159,7 @@ function renderCard(row){
       <div class="top-row">
         <div>
           <div class="cat-name">${escapeHtml(row.category)}</div>
-          <div class="size-line">${escapeHtml(sizeText(row))}${dateText ? '　納入日：' + escapeHtml(dateText) : ''}</div>
+          <div class="size-line">${escapeHtml(sizeText(row))}　納入日：${escapeHtml(dateText)}</div>
         </div>
         <span class="status-badge ${cancelled ? '取消済み' : escapeHtml(row.status)}">${escapeHtml(badgeLabel)}</span>
       </div>
@@ -167,9 +167,7 @@ function renderCard(row){
 }
 
 function renderList(){
-  // 発注が必要（完成品）は取消済みを含めない
   const orderRows = myItems.filter(r => r.status === '発注可能' && !r.canceled_at);
-  // 受付済み・作業中（取消していないもの）＋ 本日中に取消したもの全部（依頼一覧としてまとめて表示）
   const progressRows = myItems.filter(r => (r.status === '受付済み' || r.status === '作業中') && !r.canceled_at);
   const cancelledTodayRows = myItems.filter(r => r.canceled_at);
   const progressListAll = [...progressRows, ...cancelledTodayRows];
@@ -186,31 +184,26 @@ function renderList(){
     : '<div class="empty-msg">現在、受付済みの依頼はありません</div>';
 }
 
-function openSheet(itemId){
-  const row = myItems.find(r => r.id === itemId);
+function openSheet(dateRowId){
+  const row = myItems.find(r => r.id === dateRowId);
   if(!row) return;
 
   document.getElementById('sheet-title').textContent = row.category;
 
-  const dateText = row.dates && row.dates.length
-    ? row.dates.map(d => `${d.delivery_date}（${d.qty}c/s）`).join('、')
-    : '（未設定）';
-
   document.getElementById('sheet-detail').innerHTML = `
     <div class="detail-line"><b>サイズ</b>${escapeHtml(sizeText(row))}</div>
-    <div class="detail-line"><b>納入日・数量</b>${escapeHtml(dateText)}</div>
+    <div class="detail-line"><b>納入日</b>${escapeHtml(row.delivery_date)}（${escapeHtml(String(row.qty))}c/s）</div>
     <div class="detail-line"><b>ステータス</b>${row.canceled_at ? '取消済み' : escapeHtml(row.status)}</div>
     ${row.client_name ? `<div class="detail-line"><b>客先名</b>${escapeHtml(row.client_name)}</div>` : ''}
     ${row.note_item ? `<div class="detail-line"><b>備考</b>${escapeHtml(row.note_item)}</div>` : ''}
   `;
 
-  // 取消可能なのは「受付済み」「作業中」かつ未取消のみ
   const cancelBtn = document.getElementById('sheet-cancel-btn');
   const cancelMsg = document.getElementById('sheet-cancel-msg');
   cancelMsg.textContent = row.canceled_at ? '本日中のみ表示されます（日付が変わると一覧から消えます）' : '';
   if(!row.canceled_at && (row.status === '受付済み' || row.status === '作業中')){
     cancelBtn.style.display = 'block';
-    cancelBtn.dataset.itemId = itemId;
+    cancelBtn.dataset.dateRowId = dateRowId;
   } else {
     cancelBtn.style.display = 'none';
   }
@@ -218,18 +211,15 @@ function openSheet(itemId){
   document.getElementById('sheet-overlay').classList.add('show');
 }
 
-// =============================================
-// 受付済み/作業中の詳細シートからの取消
-// =============================================
 async function cancelFromDetailSheet(){
-  const itemId = document.getElementById('sheet-cancel-btn').dataset.itemId;
-  if(!itemId) return;
-  if(!confirm('この依頼を取り消しますか？取消後も本日中は依頼一覧に取消線付きで表示されます。')) return;
+  const dateRowId = document.getElementById('sheet-cancel-btn').dataset.dateRowId;
+  if(!dateRowId) return;
+  if(!confirm('この納入日の依頼を取り消しますか？取消後も本日中は依頼一覧に取消線付きで表示されます。')) return;
 
   const { error } = await sbClient
-    .from('request_items')
+    .from('request_item_dates')
     .update({ canceled_at: new Date().toISOString() })
-    .eq('id', itemId);
+    .eq('id', dateRowId);
 
   if(error){
     document.getElementById('sheet-cancel-msg').textContent = '取消に失敗しました：' + error.message;
@@ -246,20 +236,19 @@ function closeSheet(e){
 }
 
 // =============================================
-// 完成品タップ時：発注設定シート（○/数量/日付）を開く
-// stock_view.htmlと同じ考え方で、対応するstock_itemsの行を探して
-// stock_ordersに書き込む
+// 発注可能（完成）タップ時：発注設定シート（○/数量/日付）を開く
+// 在庫は request_item_date_id 単位で紐づく
 // =============================================
-let orderSheetState = { requestItemId: null, stockItemId: null };
+let orderSheetState = { dateRowId: null, stockItemId: null };
 
-async function openOrderSheet(itemId){
-  const row = myItems.find(r => r.id === itemId);
+async function openOrderSheet(dateRowId){
+  const row = myItems.find(r => r.id === dateRowId);
   if(!row) return;
 
   const { data: stockRow, error } = await sbClient
     .from('stock_items')
     .select('id')
-    .eq('request_item_id', itemId)
+    .eq('request_item_date_id', dateRowId)
     .maybeSingle();
 
   if(error || !stockRow){
@@ -267,14 +256,11 @@ async function openOrderSheet(itemId){
     return;
   }
 
-  orderSheetState.requestItemId = itemId;
+  orderSheetState.dateRowId = dateRowId;
   orderSheetState.stockItemId = stockRow.id;
 
   document.getElementById('order-sheet-title').textContent = row.category;
-  const dateText = row.dates && row.dates.length
-    ? row.dates.map(d => `${d.delivery_date}（${d.qty}c/s）`).join('、')
-    : '（未設定）';
-  document.getElementById('order-sheet-detail').textContent = `${sizeText(row)}／納入日：${dateText}`;
+  document.getElementById('order-sheet-detail').textContent = `${sizeText(row)}／納入日：${row.delivery_date}（${row.qty}c/s）`;
 
   document.querySelector('input[name="order-mode"][value="circle"]').checked = true;
   document.getElementById('order-qty-input').value = '';
@@ -330,9 +316,9 @@ async function submitOrderFromMypage(){
   }
 
   const { error: statusErr } = await sbClient
-    .from('request_items')
+    .from('request_item_dates')
     .update({ status: '発注済み・受取待ち' })
-    .eq('id', orderSheetState.requestItemId);
+    .eq('id', orderSheetState.dateRowId);
 
   if(statusErr){
     msgEl.textContent = '発注は完了しましたが、状態更新に失敗しました：' + statusErr.message;
@@ -344,12 +330,12 @@ async function submitOrderFromMypage(){
 }
 
 async function cancelRequestItem(){
-  if(!confirm('この依頼を取り消しますか？取消後も本日中は依頼一覧に取消線付きで表示されます。')) return;
+  if(!confirm('この納入日の依頼を取り消しますか？取消後も本日中は依頼一覧に取消線付きで表示されます。')) return;
 
   const { error } = await sbClient
-    .from('request_items')
+    .from('request_item_dates')
     .update({ canceled_at: new Date().toISOString() })
-    .eq('id', orderSheetState.requestItemId);
+    .eq('id', orderSheetState.dateRowId);
 
   if(error){
     document.getElementById('order-sheet-msg').textContent = '取消に失敗しました：' + error.message;
@@ -366,8 +352,9 @@ function closeOrderSheet(e){
 }
 
 // =============================================
-// データ読み込み：自分のrequestsに紐づくrequest_items（発注可能/受付済み/作業中のみ）
-// ＋ request_item_dates を明細ごとに集約
+// データ読み込み：自分のrequestsに紐づくrequest_items（カテゴリ・サイズ等）と、
+// それぞれに紐づくrequest_item_dates（納入日ごとの状態・数量）を合成して
+// 「納入日1件=1カード」のリストを作る
 // =============================================
 async function loadMyItems(){
   const { data: reqRows, error: reqErr } = await sbClient
@@ -390,9 +377,8 @@ async function loadMyItems(){
 
   const { data: itemRows, error: itemErr } = await sbClient
     .from('request_items')
-    .select('id, request_id, client_name, category, size_l, size_w, size_h, note_item, status, canceled_at')
-    .in('request_id', requestIds)
-    .in('status', ['受付済み', '作業中', '発注可能']);
+    .select('id, request_id, client_name, category, size_l, size_w, size_h, note_item')
+    .in('request_id', requestIds);
 
   if(itemErr){
     document.getElementById('load-error').style.display = 'block';
@@ -400,25 +386,51 @@ async function loadMyItems(){
     return;
   }
 
-  // 取消していないもの、または「本日」取消したものだけを表示対象にする
-  // （日付が変わった取消済みは自然に一覧から外れる）
-  const filteredRows = (itemRows || []).filter(row => !row.canceled_at || isTodayJST(row.canceled_at));
-
-  const itemIds = filteredRows.map(r => r.id);
-  let dateRows = [];
-  if(itemIds.length){
-    const { data, error: dateErr } = await sbClient
-      .from('request_item_dates')
-      .select('request_item_id, delivery_date, qty')
-      .in('request_item_id', itemIds)
-      .order('delivery_date', { ascending: true });
-    if(!dateErr) dateRows = data || [];
+  const itemIds = (itemRows || []).map(r => r.id);
+  if(!itemIds.length){
+    myItems = [];
+    renderList();
+    return;
   }
 
-  myItems = filteredRows.map(row => ({
-    ...row,
-    dates: dateRows.filter(d => d.request_item_id === row.id)
-  }));
+  const { data: dateRows, error: dateErr } = await sbClient
+    .from('request_item_dates')
+    .select('id, request_item_id, delivery_date, qty, status, canceled_at')
+    .in('request_item_id', itemIds)
+    .order('delivery_date', { ascending: true });
+
+  if(dateErr){
+    document.getElementById('load-error').style.display = 'block';
+    document.getElementById('load-error').textContent = '納入日データの取得に失敗しました：' + dateErr.message;
+    return;
+  }
+
+  const itemById = {};
+  (itemRows || []).forEach(it => { itemById[it.id] = it; });
+
+  // 表示対象：ステータスが受付済み/作業中/発注可能で未取消、または本日取消したもの
+  myItems = (dateRows || [])
+    .filter(d => {
+      if(d.canceled_at) return isTodayJST(d.canceled_at);
+      return ['受付済み','作業中','発注可能'].includes(d.status);
+    })
+    .map(d => {
+      const parent = itemById[d.request_item_id] || {};
+      return {
+        id: d.id,
+        request_item_id: d.request_item_id,
+        delivery_date: d.delivery_date,
+        qty: d.qty,
+        status: d.status,
+        canceled_at: d.canceled_at,
+        client_name: parent.client_name,
+        category: parent.category,
+        size_l: parent.size_l,
+        size_w: parent.size_w,
+        size_h: parent.size_h,
+        note_item: parent.note_item
+      };
+    });
 
   document.getElementById('load-error').style.display = 'none';
   renderList();
@@ -467,9 +479,7 @@ async function initAuth(){
 }
 
 // =============================================
-// Realtime購読：自分の依頼データ(request_items/request_item_dates)が
-// 変更されたら自動的に一覧を再読み込みする。詳細シートを開いている間は
-// 保留し、閉じたタイミングで反映する
+// Realtime購読：request_item_dates（納入日ごとの状態）の変更を監視する
 // =============================================
 let realtimeReloadPending = false;
 
@@ -490,7 +500,6 @@ function requestMyItemsReload(){
 function subscribeRealtime(){
   sbClient
     .channel('mypage_changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'request_items' }, requestMyItemsReload)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'request_item_dates' }, requestMyItemsReload)
     .subscribe((status, err) => {
       console.log('[realtime] channel status:', status, err || '');
