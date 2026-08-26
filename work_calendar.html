@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作業カレンダー</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.container{max-width:1100px;margin:24px auto;padding:0 12px 80px}
+h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
+
+.login-box{max-width:360px;margin:80px auto;text-align:center}
+.login-box h1{border:none;margin-bottom:20px}
+.btn-google{padding:13px 24px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-google:hover{background:#2c5282}
+#auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
+.login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:6px;margin-bottom:14px}
+
+/* 凡例 */
+.legend-row{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px;font-size:11px;color:#666}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-dot{width:12px;height:12px;border-radius:3px;border:1px solid #ccc;flex-shrink:0}
+.legend-dot.st-none{background:#fff}
+.legend-dot.st-pink{background:#fbe7ee;border-color:#b23b63}
+.legend-dot.st-blue{background:#e3eefb;border-color:#2e6ba6}
+.legend-dot.st-ready{background:linear-gradient(135deg,#fbe7ee 0%,#fbe7ee 48%,#e3eefb 52%,#e3eefb 100%);border-color:#999}
+.legend-dot.st-done{background:#fbf1c7;border-color:#8a6d12}
+
+#load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
+.empty-note{text-align:center;color:#999;font-size:13px;padding:30px 0}
+
+/* 週ブロック */
+.week-block{margin-bottom:22px}
+.week-label{font-size:12px;font-weight:bold;color:#1a3a5c;margin-bottom:6px}
+.week-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:8px;overflow-x:auto}
+@media (max-width:760px){
+  .week-grid{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:78%}
+}
+
+.day-col{display:flex;flex-direction:column;background:#fff;border:1px solid #e2e6ec;border-radius:10px;overflow:hidden;min-height:120px}
+.day-head{display:flex;align-items:baseline;justify-content:space-between;padding:8px 9px 6px;border-bottom:1px solid #e2e6ec;background:#f7f9fc}
+.day-head .dh-date{font-size:14px;font-weight:bold;color:#1a3a5c}
+.day-head .dh-dow{font-size:10px;color:#888;margin-left:3px}
+.day-head .dh-total{font-size:10px;font-weight:bold;color:#1a3a5c;background:#e6ecf7;padding:2px 7px;border-radius:999px;white-space:nowrap}
+.day-head .dh-total.zero{background:#f0f0f0;color:#aaa}
+.day-body{padding:7px;display:flex;flex-direction:column;gap:5px;max-height:280px;overflow-y:auto}
+.day-empty{font-size:10px;color:#bbb;text-align:center;padding:10px 4px}
+
+.req-card{position:relative;background:#fff;border:1px solid #e2e6ec;border-radius:8px;padding:6px 8px 5px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:box-shadow .15s ease}
+.req-card.st-pink{background:#fbe7ee}
+.req-card.st-blue{background:#e3eefb}
+.req-card.st-ready{background:linear-gradient(135deg,#fbe7ee 0%,#fbe7ee 48%,#e3eefb 52%,#e3eefb 100%)}
+.req-card.st-done{background:#fbf1c7}
+.req-card.pressing{box-shadow:0 0 0 2px #1a3a5c inset}
+.req-card.is-cancelled{opacity:.55}
+.req-card.is-cancelled .rq-name,.req-card.is-cancelled .rq-size{text-decoration:line-through}
+
+.rq-line{display:flex;align-items:baseline;gap:5px;overflow:hidden}
+.rq-name{font-size:11px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.rq-size{font-size:9.5px;color:#888;white-space:nowrap;flex-shrink:0}
+.rq-row{display:flex;align-items:center;justify-content:space-between;margin-top:3px}
+.rq-qty{font-weight:bold;font-size:10.5px;color:#1a3a5c;background:#e6ecf7;padding:1px 7px;border-radius:999px}
+.rq-requester{font-size:9px;color:#999}
+
+/* 土曜帯 */
+.sat-strip{margin-top:6px}
+.sat-day{max-width:220px;background:#e6ecf7;border:1.4px dashed #1a3a5c;border-radius:10px;overflow:hidden}
+.sat-day .day-head{background:#1a3a5c;color:#fff}
+.sat-day .day-head .dh-dow{color:rgba(255,255,255,.75)}
+.sat-day .day-head .dh-total{background:rgba(255,255,255,.25);color:#fff}
+.sat-flag{font-size:9.5px;font-weight:bold;color:#1a3a5c;padding:5px 9px 0}
+
+/* 猶予バナー */
+.grace-banner{position:fixed;left:12px;right:12px;bottom:14px;max-width:520px;margin:0 auto;z-index:60;background:#16181b;color:#fff;border-radius:12px;padding:10px 14px;font-size:12px;font-weight:bold;display:none;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 10px 20px rgba(0,0,0,.3)}
+.grace-banner.show{display:flex}
+.grace-banner button{appearance:none;border:none;background:rgba(255,255,255,.18);color:#fff;font-weight:bold;font-size:11px;padding:6px 12px;border-radius:999px;cursor:pointer;flex-shrink:0}
+
+.toast-wrap{position:fixed;left:0;right:0;bottom:74px;display:flex;justify-content:center;z-index:61;pointer-events:none;padding:0 14px}
+.toast{pointer-events:auto;max-width:360px;background:#16181b;color:#fff;font-size:12px;font-weight:bold;line-height:1.5;padding:9px 14px;border-radius:10px;box-shadow:0 10px 20px rgba(0,0,0,.3);opacity:0;transform:translateY(6px);transition:opacity .2s ease,transform .2s ease}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.warn{background:#c4531f}
+
+/* ボトムシート共通 */
+.sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:70}
+.sheet-overlay.show{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:14px 14px 0 0;padding:20px;max-width:520px;margin:0 auto;z-index:71;max-height:82vh;overflow-y:auto}
+.sheet-title{font-size:15px;font-weight:bold;color:#1a3a5c}
+.sheet-sub{font-size:11px;color:#777;margin-top:3px}
+
+.sheet-diagram{margin-top:16px;height:140px;border-radius:10px;background:#f7f9fc;border:1.4px dashed #e2e6ec;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#aaa;font-size:11px}
+
+.prog-rows{margin-top:16px;display:flex;flex-direction:column;gap:9px}
+.prog-row{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:#f7f9fc;border-radius:10px}
+.pr-label{font-size:13px;font-weight:bold}
+.pr-switch{appearance:none;cursor:pointer;border-radius:999px;padding:7px 18px;font-size:11.5px;font-weight:bold;background:#fff;border:1.4px solid #ccc;color:#888;min-width:64px}
+.pr-switch.p1.on{background:#b23b63;border-color:#b23b63;color:#fff}
+.pr-switch.p2.on{background:#2e6ba6;border-color:#2e6ba6;color:#fff}
+.pr-switch:disabled{cursor:not-allowed;opacity:.5}
+
+.prog-complete{width:100%;margin-top:16px;appearance:none;border:none;cursor:pointer;font-weight:bold;font-size:13.5px;padding:13px 0;border-radius:10px;background:#f0f0f0;color:#aaa}
+.prog-complete.ready{background:#f3d251;color:#5b4600}
+.prog-complete.completed{background:#fce4d6;color:#c4531f}
+.prog-complete:disabled{cursor:not-allowed}
+.prog-hint{margin-top:8px;font-size:10.5px;color:#888;text-align:center;line-height:1.6}
+
+.btn-close-sheet{width:100%;padding:10px;background:#fff;border:1px solid #999;color:#555;border-radius:6px;font-size:14px;cursor:pointer;margin-top:14px}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div id="auth-loading">読み込み中...</div>
+
+<div id="auth-login" class="login-box" style="display:none">
+  <h1>🗓️ 作業カレンダー</h1>
+  <button class="btn-google" onclick="loginWithGoogle()">Googleでログイン</button>
+  <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#c53030"></div>
+</div>
+
+<div id="auth-denied" class="login-box" style="display:none">
+  <h1>🗓️ 作業カレンダー</h1>
+  <p style="font-size:14px;color:#c53030">このページは作業者・管理者のみ利用できます。</p>
+</div>
+
+<div id="app-content" style="display:none">
+  <h1>🗓️ 作業カレンダー</h1>
+  <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
+
+  <div class="legend-row">
+    <div class="legend-item"><span class="legend-dot st-none"></span>受付済み</div>
+    <div class="legend-item"><span class="legend-dot st-pink"></span>工程Aのみ</div>
+    <div class="legend-item"><span class="legend-dot st-blue"></span>工程Bのみ</div>
+    <div class="legend-item"><span class="legend-dot st-ready"></span>両方完了（未完成）</div>
+    <div class="legend-item"><span class="legend-dot st-done"></span>完成</div>
+  </div>
+
+  <div id="calendar-content"></div>
+  <div id="load-error" style="display:none"></div>
+</div>
+
+</div>
+
+<div class="grace-banner" id="grace-banner">
+  <span id="grace-text"></span>
+  <button id="grace-cancel-btn">取り消す</button>
+</div>
+<div class="toast-wrap"><div class="toast" id="toast"></div></div>
+
+<!-- 手順書ポップアップ（プレースホルダー） -->
+<div class="sheet-overlay" id="proc-overlay" onclick="closeProcSheet(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-title" id="proc-name"></div>
+    <div class="sheet-sub" id="proc-detail"></div>
+    <div class="sheet-diagram">📄 手順書（設計図）のプレースホルダー</div>
+    <button class="btn-close-sheet" onclick="closeProcSheet()">閉じる</button>
+  </div>
+</div>
+
+<!-- 進捗操作メニュー（長押しで開く） -->
+<div class="sheet-overlay" id="prog-overlay" onclick="closeProgSheet(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-title" id="prog-name"></div>
+    <div class="sheet-sub" id="prog-detail"></div>
+    <div class="prog-rows">
+      <div class="prog-row">
+        <span class="pr-label">工程A</span>
+        <button class="pr-switch p1" id="prog-p1-btn"></button>
+      </div>
+      <div class="prog-row">
+        <span class="pr-label">工程B</span>
+        <button class="pr-switch p2" id="prog-p2-btn"></button>
+      </div>
+    </div>
+    <button class="prog-complete" id="prog-complete-btn"></button>
+    <div class="prog-hint" id="prog-hint"></div>
+    <button class="btn-close-sheet" onclick="closeProgSheet()">閉じる</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = { email: '', name: '', role: '' };
+let weeks = [];          // 表示用の週データ（曜日ごとにitems配列を持つ）
+let rawItems = [];       // request_item_datesの生データ（キャッシュ）
+let activeProcId = null;
+let activeProgId = null;
+let graceTimerHandle = null;
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// =============================================
+// JST基準の日付ユーティリティ
+// =============================================
+function getJSTDateStr(d){
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit' });
+  return fmt.format(d); // "YYYY-MM-DD"
+}
+function ymdToDate(ymd){
+  const [y,m,d] = ymd.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+function dateToYmd(d){
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function addDays(d, n){
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()+n);
+}
+function dowLabel(d){
+  return ['日','月','火','水','木','金','土'][d.getDay()];
+}
+function formatMD(d){
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+function getThisMondayJST(){
+  const todayStr = getJSTDateStr(new Date());
+  const today = ymdToDate(todayStr);
+  const dow = today.getDay();
+  const diff = (dow === 0) ? -6 : (1 - dow);
+  return addDays(today, diff);
+}
+function endOfMonth(d){
+  return new Date(d.getFullYear(), d.getMonth()+1, 0);
+}
+
+// =============================================
+// データ読み込み
+// =============================================
+async function loadCalendarItems(){
+  const monday = getThisMondayJST();
+  const mondayStr = dateToYmd(monday);
+
+  const { data, error } = await sbClient
+    .from('request_item_dates')
+    .select(`
+      id, request_item_id, delivery_date, qty, status, canceled_at,
+      stage1_done, stage1_done_by, stage1_done_at,
+      stage2_done, stage2_done_by, stage2_done_at,
+      completed, completed_by, completed_at,
+      reflected_to_stock, grace_ends_at,
+      request_items ( id, category, size_l, size_w, size_h, request_id, requests ( requester_name ) )
+    `)
+    .gte('delivery_date', mondayStr)
+    .order('delivery_date', { ascending: true });
+
+  if(error){
+    document.getElementById('load-error').style.display = 'block';
+    document.getElementById('load-error').textContent = '依頼データの取得に失敗しました：' + error.message;
+    return;
+  }
+  document.getElementById('load-error').style.display = 'none';
+
+  // 表示対象：取消済み、または ステータスが 受付済み/作業中/発注可能
+  rawItems = (data || []).filter(row => {
+    if(row.canceled_at) return true;
+    return ['受付済み','作業中','発注可能'].includes(row.status);
+  }).map(row => {
+    const item = row.request_items || {};
+    const req = item.requests || {};
+    return {
+      id: row.id,
+      delivery_date: row.delivery_date,
+      qty: row.qty,
+      status: row.status,
+      canceled_at: row.canceled_at,
+      stage1_done: row.stage1_done,
+      stage2_done: row.stage2_done,
+      completed: row.completed,
+      reflected_to_stock: row.reflected_to_stock,
+      grace_ends_at: row.grace_ends_at,
+      category: item.category || '',
+      sizeText: [item.size_l, item.size_w, item.size_h].filter(v=>v!=null).join('×'),
+      requester_name: req.requester_name || ''
+    };
+  });
+
+  // 猶予期限切れ・未反映のものを反映する
+  await reflectExpiredGraceItems(rawItems);
+
+  // 表示範囲の決定：今週月曜〜（来月末 と 実データの最大納入日 のうち遅い方）
+  let finalEnd = endOfMonth(addDays(endOfMonth(monday), 1)); // 来月末
+  rawItems.forEach(it => {
+    const d = ymdToDate(it.delivery_date);
+    if(d > finalEnd) finalEnd = d;
+  });
+  const finalEndStr = dateToYmd(finalEnd);
+
+  const { data: exRows } = await sbClient
+    .from('business_day_exceptions')
+    .select('exception_date, is_business_day')
+    .gte('exception_date', mondayStr)
+    .lte('exception_date', finalEndStr)
+    .eq('is_business_day', true);
+
+  const satExceptionSet = new Set((exRows || [])
+    .filter(r => ymdToDate(r.exception_date).getDay() === 6)
+    .map(r => r.exception_date));
+
+  buildWeeks(monday, finalEnd, satExceptionSet);
+  render();
+}
+
+// =============================================
+// 猶予期限切れの完成データを在庫反映する（システム的な巻き上げ処理）
+// =============================================
+async function reflectExpiredGraceItems(items){
+  const now = new Date();
+  const targets = items.filter(it =>
+    it.completed && !it.reflected_to_stock && it.grace_ends_at && new Date(it.grace_ends_at) <= now
+  );
+  if(!targets.length) return;
+
+  for(const it of targets){
+    const { error } = await sbClient
+      .from('request_item_dates')
+      .update({ status: '発注可能', reflected_to_stock: true })
+      .eq('id', it.id);
+    if(!error){
+      it.status = '発注可能';
+      it.reflected_to_stock = true;
+    }
+  }
+}
+
+// =============================================
+// 週データの構築
+// =============================================
+function buildWeeks(monday, finalEnd, satExceptionSet){
+  weeks = [];
+  let cur = monday;
+  while(cur <= finalEnd){
+    const days = [];
+    for(let i=0;i<5;i++){
+      const d = addDays(cur, i);
+      const ymd = dateToYmd(d);
+      days.push({
+        dateStr: formatMD(d),
+        dow: dowLabel(d),
+        ymd,
+        items: rawItems.filter(it => it.delivery_date === ymd)
+      });
+    }
+    const satDate = addDays(cur, 5);
+    const satYmd = dateToYmd(satDate);
+    let saturday = null;
+    if(satExceptionSet.has(satYmd)){
+      saturday = {
+        dateStr: formatMD(satDate),
+        dow: '土',
+        ymd: satYmd,
+        items: rawItems.filter(it => it.delivery_date === satYmd)
+      };
+    }
+    weeks.push({ weekLabel: `${formatMD(cur)}週`, days, saturday });
+    cur = addDays(cur, 7);
+  }
+}
+
+// =============================================
+// 進捗ステージの色クラス判定
+// =============================================
+function computeStageClass(item){
+  if(item.completed) return 'st-done';
+  if(item.stage1_done && item.stage2_done) return 'st-ready';
+  if(item.stage1_done) return 'st-pink';
+  if(item.stage2_done) return 'st-blue';
+  return '';
+}
+
+function totalOf(items){
+  return items.filter(it => !it.canceled_at).reduce((sum, it) => sum + (it.qty || 0), 0);
+}
+
+function reqCardHtml(it){
+  const stageClass = computeStageClass(it);
+  const cancelledClass = it.canceled_at ? 'is-cancelled' : '';
+  return `
+    <div class="req-card ${stageClass} ${cancelledClass}" data-item="${it.id}">
+      <div class="rq-line"><span class="rq-name">${escapeHtml(it.category)}</span><span class="rq-size">${escapeHtml(it.sizeText)}</span></div>
+      <div class="rq-row">
+        <span class="rq-qty">${it.qty}</span>
+        <span class="rq-requester">${escapeHtml(it.requester_name)}</span>
+      </div>
+    </div>`;
+}
+
+function dayColHtml(day){
+  const total = totalOf(day.items);
+  const body = day.items.length ? day.items.map(reqCardHtml).join('') : `<div class="day-empty">依頼なし</div>`;
+  return `
+    <div class="day-col">
+      <div class="day-head">
+        <div><span class="dh-date">${day.dateStr}</span><span class="dh-dow">${day.dow}</span></div>
+        <span class="dh-total ${total===0?'zero':''}">計 ${total}</span>
+      </div>
+      <div class="day-body">${body}</div>
+    </div>`;
+}
+
+function satStripHtml(saturday){
+  if(!saturday) return '';
+  const total = totalOf(saturday.items);
+  const body = saturday.items.length ? saturday.items.map(reqCardHtml).join('') : `<div class="day-empty">依頼なし</div>`;
+  return `
+    <div class="sat-strip">
+      <div class="sat-day">
+        <div class="sat-flag">臨時出勤日</div>
+        <div class="day-head">
+          <div><span class="dh-date">${saturday.dateStr}</span><span class="dh-dow">${saturday.dow}</span></div>
+          <span class="dh-total">計 ${total}</span>
+        </div>
+        <div class="day-body">${body}</div>
+      </div>
+    </div>`;
+}
+
+function render(){
+  const el = document.getElementById('calendar-content');
+  if(!weeks.length){
+    el.innerHTML = '<div class="empty-note">表示できる依頼がありません</div>';
+    return;
+  }
+  el.innerHTML = weeks.map(w => `
+    <div class="week-block">
+      <div class="week-label">${w.weekLabel}</div>
+      <div class="week-grid">${w.days.map(dayColHtml).join('')}</div>
+      ${satStripHtml(w.saturday)}
+    </div>
+  `).join('');
+  bindCardEvents();
+  updateGraceBanner();
+}
+
+function findItem(id){
+  return rawItems.find(it => it.id === id);
+}
+
+// =============================================
+// タップ（手順書）／長押し（進捗操作）の分離
+// =============================================
+let pressTimer = null;
+let longPressFired = false;
+let pressStartXY = null;
+
+function cardAt(target){ return target.closest ? target.closest('.req-card') : null; }
+
+function bindCardEvents(){
+  const root = document.getElementById('calendar-content');
+
+  root.onpointerdown = (e) => {
+    const card = cardAt(e.target);
+    if(!card) return;
+    longPressFired = false;
+    pressStartXY = { x:e.clientX, y:e.clientY };
+    clearTimeout(pressTimer);
+    card.classList.add('pressing');
+    pressTimer = setTimeout(() => {
+      longPressFired = true;
+      card.classList.remove('pressing');
+      const item = findItem(card.dataset.item);
+      if(item) openProgSheet(item);
+    }, 500);
+  };
+  ['pointerup','pointerleave','pointercancel'].forEach(evt => {
+    root.addEventListener(evt, (e) => {
+      clearTimeout(pressTimer);
+      const card = cardAt(e.target);
+      if(card) card.classList.remove('pressing');
+    });
+  });
+  root.addEventListener('pointermove', (e) => {
+    if(!pressStartXY) return;
+    const dx = Math.abs(e.clientX - pressStartXY.x), dy = Math.abs(e.clientY - pressStartXY.y);
+    if(dx > 10 || dy > 10) clearTimeout(pressTimer);
+  });
+  root.addEventListener('click', (e) => {
+    if(longPressFired){ longPressFired = false; return; }
+    const card = cardAt(e.target);
+    if(!card) return;
+    const item = findItem(card.dataset.item);
+    if(item) openProcSheet(item);
+  });
+}
+
+// =============================================
+// 手順書ポップアップ（プレースホルダー）
+// =============================================
+function openProcSheet(item){
+  activeProcId = item.id;
+  document.getElementById('proc-name').textContent = item.category;
+  document.getElementById('proc-detail').textContent = `サイズ：${item.sizeText || '-'}／数量 ${item.qty}／依頼者：${item.requester_name || '-'}`;
+  document.getElementById('proc-overlay').classList.add('show');
+}
+function closeProcSheet(e){
+  if(e && e.target !== e.currentTarget) return;
+  document.getElementById('proc-overlay').classList.remove('show');
+}
+
+// =============================================
+// 進捗操作メニュー
+// =============================================
+function openProgSheet(item){
+  if(item.canceled_at) return;
+  activeProgId = item.id;
+  document.getElementById('prog-name').textContent = item.category;
+  document.getElementById('prog-detail').textContent = `サイズ：${item.sizeText || '-'}／数量 ${item.qty}`;
+  renderProgSheet();
+  document.getElementById('prog-overlay').classList.add('show');
+}
+function closeProgSheet(e){
+  if(e && e.target !== e.currentTarget) return;
+  document.getElementById('prog-overlay').classList.remove('show');
+}
+
+function renderProgSheet(){
+  const item = findItem(activeProgId);
+  if(!item) return;
+
+  const p1btn = document.getElementById('prog-p1-btn');
+  const p2btn = document.getElementById('prog-p2-btn');
+  const locked = item.completed; // 完成後は個別工程の直接変更不可（取り消してから）
+  p1btn.textContent = item.stage1_done ? '完了' : '未完了';
+  p1btn.className = 'pr-switch p1' + (item.stage1_done ? ' on' : '');
+  p1btn.disabled = locked;
+  p2btn.textContent = item.stage2_done ? '完了' : '未完了';
+  p2btn.className = 'pr-switch p2' + (item.stage2_done ? ' on' : '');
+  p2btn.disabled = locked;
+
+  const completeBtn = document.getElementById('prog-complete-btn');
+  const hint = document.getElementById('prog-hint');
+  const bothDone = item.stage1_done && item.stage2_done;
+
+  if(item.completed && !item.reflected_to_stock){
+    completeBtn.textContent = '完成を取り消す';
+    completeBtn.className = 'prog-complete completed';
+    completeBtn.disabled = false;
+    hint.textContent = 'まだ在庫・マイページへは反映されていません。今なら取り消せます（残り時間は画面下部に表示）';
+  } else if(item.completed && item.reflected_to_stock){
+    completeBtn.textContent = '反映済みです';
+    completeBtn.className = 'prog-complete completed';
+    completeBtn.disabled = true;
+    hint.textContent = '在庫へ反映済みのため、この画面からは取り消せません。間違いに気づいた場合は在庫表側で修正してください。';
+  } else if(bothDone){
+    completeBtn.textContent = '完成にする';
+    completeBtn.className = 'prog-complete ready';
+    completeBtn.disabled = false;
+    hint.textContent = '工程A・工程Bがそろいました。組み立てが完了したらこのボタンを押してください。';
+  } else {
+    completeBtn.textContent = '完成にする';
+    completeBtn.className = 'prog-complete';
+    completeBtn.disabled = true;
+    hint.textContent = '工程A・工程Bの両方が完了すると押せるようになります。';
+  }
+}
+
+document.getElementById('prog-p1-btn').addEventListener('click', () => toggleStage(1));
+document.getElementById('prog-p2-btn').addEventListener('click', () => toggleStage(2));
+
+async function toggleStage(n){
+  const item = findItem(activeProgId);
+  if(!item || item.completed) return;
+  const field = `stage${n}_done`;
+  const byField = `stage${n}_done_by`;
+  const atField = `stage${n}_done_at`;
+  const newVal = !item[field];
+
+  const payload = newVal
+    ? { [field]: true, [byField]: currentUser.name, [atField]: new Date().toISOString() }
+    : { [field]: false, [byField]: null, [atField]: null };
+
+  const { error } = await sbClient.from('request_item_dates').update(payload).eq('id', item.id);
+  if(error){ toast('更新に失敗しました：' + error.message, true); return; }
+
+  item[field] = newVal;
+  renderProgSheet();
+  render();
+}
+
+document.getElementById('prog-complete-btn').addEventListener('click', async () => {
+  const item = findItem(activeProgId);
+  if(!item) return;
+
+  if(item.completed && !item.reflected_to_stock){
+    // 取り消し（工程A/Bの状態は維持）
+    const { error } = await sbClient.from('request_item_dates').update({
+      completed: false, completed_by: null, completed_at: null, grace_ends_at: null
+    }).eq('id', item.id);
+    if(error){ toast('取り消しに失敗しました：' + error.message, true); return; }
+    item.completed = false;
+    item.grace_ends_at = null;
+    toast(`${item.category}：完成前の状態に戻しました`);
+  } else if(item.stage1_done && item.stage2_done && !item.completed){
+    const graceEnds = new Date(Date.now() + 60*1000).toISOString();
+    const { error } = await sbClient.from('request_item_dates').update({
+      completed: true, completed_by: currentUser.name, completed_at: new Date().toISOString(), grace_ends_at: graceEnds
+    }).eq('id', item.id);
+    if(error){ toast('完成操作に失敗しました：' + error.message, true); return; }
+    item.completed = true;
+    item.grace_ends_at = graceEnds;
+  } else {
+    return;
+  }
+
+  renderProgSheet();
+  render();
+});
+
+// =============================================
+// 猶予バナー・自動反映タイマー
+// =============================================
+function updateGraceBanner(){
+  const active = rawItems.filter(it => it.completed && !it.reflected_to_stock && it.grace_ends_at);
+  const banner = document.getElementById('grace-banner');
+  if(!active.length){ banner.classList.remove('show'); return; }
+
+  const nearest = active.reduce((a,b) => new Date(a.grace_ends_at) < new Date(b.grace_ends_at) ? a : b);
+  const remain = Math.max(0, Math.ceil((new Date(nearest.grace_ends_at) - Date.now())/1000));
+  const m = Math.floor(remain/60), s = remain%60;
+  const label = active.length > 1
+    ? `${nearest.category} 他${active.length-1}件：反映まで ${m}:${String(s).padStart(2,'0')}`
+    : `${nearest.category}：反映まで ${m}:${String(s).padStart(2,'0')}`;
+  document.getElementById('grace-text').textContent = label;
+  banner.classList.add('show');
+  document.getElementById('grace-cancel-btn').onclick = () => revertFromBanner(nearest.id);
+}
+
+async function revertFromBanner(itemId){
+  const item = findItem(itemId);
+  if(!item || item.reflected_to_stock) return;
+  const { error } = await sbClient.from('request_item_dates').update({
+    completed: false, completed_by: null, completed_at: null, grace_ends_at: null
+  }).eq('id', item.id);
+  if(error){ toast('取り消しに失敗しました：' + error.message, true); return; }
+  item.completed = false;
+  item.grace_ends_at = null;
+  toast(`${item.category}：完成前の状態に戻しました`);
+  render();
+}
+
+function toast(message, warn){
+  const el = document.getElementById('toast');
+  el.textContent = message;
+  el.className = 'toast show' + (warn ? ' warn' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.classList.remove('show'); }, 3600);
+}
+
+// 1秒ごとに猶予表示を更新し、期限切れがあれば反映処理を回してリロードする
+function startGraceTicker(){
+  clearInterval(graceTimerHandle);
+  graceTimerHandle = setInterval(async () => {
+    updateGraceBanner();
+    const now = new Date();
+    const expired = rawItems.some(it => it.completed && !it.reflected_to_stock && it.grace_ends_at && new Date(it.grace_ends_at) <= now);
+    if(expired){
+      await reflectExpiredGraceItems(rawItems);
+      render();
+    }
+  }, 1000);
+}
+
+// =============================================
+// 認証
+// =============================================
+async function loginWithGoogle(){
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if(error){
+    document.getElementById('auth-msg').textContent = 'ログインに失敗しました：' + error.message;
+  }
+}
+
+async function initAuth(){
+  const { data: { user } } = await sbClient.auth.getUser();
+
+  if(!user){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-login').style.display='block';
+    return;
+  }
+
+  const { data: allowRow, error: allowErr } = await sbClient
+    .from('users_allowlist')
+    .select('name, role')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  if(allowErr || !allowRow || !allowRow.name || !['作業者','管理者'].includes(allowRow.role)){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-denied').style.display='block';
+    return;
+  }
+
+  currentUser.email = user.email;
+  currentUser.name = allowRow.name;
+  currentUser.role = allowRow.role;
+
+  document.getElementById('login-name-display').textContent = currentUser.name;
+  document.getElementById('auth-loading').style.display='none';
+  document.getElementById('app-content').style.display='block';
+
+  await loadCalendarItems();
+  startGraceTicker();
+  subscribeRealtime();
+}
+
+// =============================================
+// Realtime購読
+// =============================================
+let realtimeReloadPending = false;
+
+function isAnySheetOpen(){
+  return document.getElementById('prog-overlay').classList.contains('show')
+      || document.getElementById('proc-overlay').classList.contains('show');
+}
+
+function requestReload(){
+  if(isAnySheetOpen()){ realtimeReloadPending = true; return; }
+  loadCalendarItems();
+}
+
+function subscribeRealtime(){
+  sbClient
+    .channel('work_calendar_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'request_item_dates' }, requestReload)
+    .subscribe();
+
+  setInterval(() => {
+    if(realtimeReloadPending && !isAnySheetOpen()){
+      realtimeReloadPending = false;
+      loadCalendarItems();
+    }
+  }, 1500);
+}
+
+initAuth();
+</script>
+</body>
+</html>
