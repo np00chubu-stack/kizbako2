@@ -257,11 +257,8 @@ async function loadCalendarItems(){
   }
   document.getElementById('load-error').style.display = 'none';
 
-  // 表示対象：取消済み、または ステータスが 受付済み/作業中/発注可能
-  rawItems = (data || []).filter(row => {
-    if(row.canceled_at) return true;
-    return ['受付済み','作業中','発注可能'].includes(row.status);
-  }).map(row => {
+  // まず全件を整形（絞り込みはまだしない）
+  const allItems = (data || []).map(row => {
     const item = row.request_items || {};
     const req = item.requests || {};
     return {
@@ -281,8 +278,15 @@ async function loadCalendarItems(){
     };
   });
 
-  // 猶予期限切れ・未反映のものを反映する
-  await reflectExpiredGraceItems(rawItems);
+  // 猶予期限切れのものを先に在庫反映する（allItemsのreflected_to_stockが更新される）
+  await reflectExpiredGraceItems(allItems);
+
+  // 反映後の状態を踏まえて、表示対象を絞り込む
+  rawItems = allItems.filter(it => {
+    if(it.canceled_at) return true;
+    if(it.reflected_to_stock) return false;
+    return ['受付済み','作業中','発注可能'].includes(it.status);
+  });
 
   // 表示範囲の決定：今週月曜〜（来月末 と 実データの最大納入日 のうち遅い方）
   let finalEnd = endOfMonth(addDays(endOfMonth(monday), 1)); // 来月末
