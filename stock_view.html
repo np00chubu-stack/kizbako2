@@ -79,6 +79,17 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 
 .empty-msg{text-align:center;color:#999;font-size:13px;padding:30px 0}
 #load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
+
+/* 在庫データ削除確認シート（管理者・長押しのみ） */
+.sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50}
+.sheet-overlay.show{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:14px 14px 0 0;padding:20px;max-width:720px;margin:0 auto;z-index:51;max-height:80vh;overflow-y:auto}
+.sheet h2{font-size:16px;color:#1a3a5c;margin-bottom:14px}
+.sheet .detail-line{font-size:13px;color:#444;margin-bottom:6px}
+.sheet .detail-line b{color:#1a3a5c;display:inline-block;min-width:70px}
+.btn-delete-confirm{width:100%;padding:12px;background:#c53030;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-close-sheet{width:100%;padding:10px;background:#fff;border:1px solid #999;color:#555;border-radius:6px;font-size:14px;cursor:pointer;margin-top:8px}
+.stock-card.pressing{box-shadow:0 0 0 2px #1a3a5c inset}
 </style>
 </head>
 <body>
@@ -118,6 +129,20 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
   <div id="load-error" style="display:none"></div>
 </div>
 
+</div>
+
+<!-- 在庫データ削除確認シート（管理者・個人依頼品のみ・長押しで開く） -->
+<div class="sheet-overlay" id="delete-sheet-overlay" onclick="closeDeleteSheet(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2>この在庫データを削除しますか？</h2>
+    <div id="delete-sheet-detail"></div>
+    <div style="font-size:12px;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:8px 10px;margin-top:10px">
+      間違って「完成」にしてしまった場合の取消用です。削除すると、元の依頼は作業カレンダー上で工程A・工程Bの状態を保ったまま「未完成」に戻ります。
+    </div>
+    <div id="delete-sheet-msg" style="font-size:12px;color:#c53030;margin-top:8px"></div>
+    <button class="btn-delete-confirm" style="margin-top:14px" onclick="confirmDeleteStockItem()">削除する</button>
+    <button class="btn-close-sheet" onclick="closeDeleteSheet()">閉じる</button>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -532,6 +557,107 @@ async function loadStockItems(){
   comEl.innerHTML = commonRows.length
     ? commonRows.map(renderCommonCard).join('')
     : '<div class="empty-msg">現在、共通品はありません</div>';
+
+  bindIndividualLongPress();
+}
+
+// =============================================
+// 個人依頼品カードの長押し（管理者のみ）→ 在庫データ削除確認シート
+// 誤って「完成」にしてしまった依頼を取り消すための管理者専用機能。
+// 通常タップの操作（発注欄など）とは別に、カード全体への長押しで発火する。
+// =============================================
+let deleteTargetStockItemId = null;
+let indPressTimer = null;
+let indLongPressFired = false;
+let indPressStartXY = null;
+
+function bindIndividualLongPress(){
+  const root = document.getElementById('individual-list');
+  if(!root) return;
+  if(currentUser.role !== '管理者') return; // 管理者以外には長押し自体を仕込まない
+
+  root.onpointerdown = (e) => {
+    const card = e.target.closest ? e.target.closest('.stock-card') : null;
+    if(!card) return;
+    indLongPressFired = false;
+    indPressStartXY = { x:e.clientX, y:e.clientY };
+    clearTimeout(indPressTimer);
+    card.classList.add('pressing');
+    indPressTimer = setTimeout(() => {
+      indLongPressFired = true;
+      card.classList.remove('pressing');
+      openDeleteSheet(card.dataset.stockItemId);
+    }, 600);
+  };
+  ['pointerup','pointerleave','pointercancel'].forEach(evt => {
+    root.addEventListener(evt, (e) => {
+      clearTimeout(indPressTimer);
+      const card = e.target.closest ? e.target.closest('.stock-card') : null;
+      if(card) card.classList.remove('pressing');
+    });
+  });
+  root.addEventListener('pointermove', (e) => {
+    if(!indPressStartXY) return;
+    const dx = Math.abs(e.clientX - indPressStartXY.x), dy = Math.abs(e.clientY - indPressStartXY.y);
+    if(dx > 10 || dy > 10) clearTimeout(indPressTimer);
+  });
+}
+
+function openDeleteSheet(stockItemId){
+  const row = stockItemsCache.find(r => r.id === stockItemId);
+  if(!row) return;
+  deleteTargetStockItemId = stockItemId;
+
+  const sizeText = [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
+  document.getElementById('delete-sheet-detail').innerHTML = `
+    <div class="detail-line"><b>品名</b>${escapeHtml(row.item_name)}</div>
+    <div class="detail-line"><b>サイズ</b>${escapeHtml(sizeText)}</div>
+    <div class="detail-line"><b>依頼者</b>${escapeHtml(row.requester_name || '（不明）')}</div>
+    <div class="detail-line"><b>在庫数</b>${row.stock_qty ?? 0}</div>`;
+  document.getElementById('delete-sheet-msg').textContent = '';
+  document.getElementById('delete-sheet-overlay').classList.add('show');
+}
+
+function closeDeleteSheet(e){
+  if(e && e.target !== e.currentTarget) return;
+  document.getElementById('delete-sheet-overlay').classList.remove('show');
+  deleteTargetStockItemId = null;
+}
+
+async function confirmDeleteStockItem(){
+  if(!deleteTargetStockItemId) return;
+  const row = stockItemsCache.find(r => r.id === deleteTargetStockItemId);
+  if(!row) return;
+
+  if(!confirm(`「${row.item_name}」の在庫データを削除します。元の依頼は作業カレンダー上で未完成の状態に戻ります。よろしいですか？`)) return;
+
+  const msgEl = document.getElementById('delete-sheet-msg');
+
+  const { error: delErr } = await sbClient
+    .from('stock_items')
+    .delete()
+    .eq('id', deleteTargetStockItemId);
+
+  if(delErr){
+    msgEl.textContent = '削除に失敗しました：' + delErr.message;
+    return;
+  }
+
+  if(row.request_item_date_id){
+    const { error: updErr } = await sbClient
+      .from('request_item_dates')
+      .update({ completed: false, reflected_to_stock: false })
+      .eq('id', row.request_item_date_id);
+
+    if(updErr){
+      msgEl.textContent = '在庫データは削除しましたが、依頼側の状態を戻す処理に失敗しました：' + updErr.message;
+      return;
+    }
+  }
+
+  document.getElementById('delete-sheet-overlay').classList.remove('show');
+  deleteTargetStockItemId = null;
+  await loadStockItems();
 }
 
 async function loginWithGoogle(){
@@ -580,7 +706,8 @@ async function initAuth(){
 let realtimeReloadPending = false;
 
 function isAnyOrderFormOpen(){
-  return document.querySelector('.order-form') !== null || document.querySelector('.replenish-sheet') !== null;
+  const deleteSheetOpen = document.getElementById('delete-sheet-overlay')?.classList.contains('show');
+  return document.querySelector('.order-form') !== null || document.querySelector('.replenish-sheet') !== null || deleteSheetOpen;
 }
 
 function requestStockReload(){
