@@ -45,6 +45,13 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .sheet .detail-line{font-size:13px;color:#444;margin-bottom:8px}
 .sheet .detail-line b{color:#1a3a5c;display:inline-block;min-width:80px}
 .btn-close-sheet{width:100%;padding:10px;background:#fff;border:1px solid #999;color:#555;border-radius:6px;font-size:14px;cursor:pointer;margin-top:10px}
+
+.edit-area{margin-top:14px;padding-top:14px;border-top:1px solid #eee}
+.edit-area .edit-title{font-size:12px;font-weight:bold;color:#1a3a5c;margin-bottom:8px}
+.edit-area label{display:block;font-size:12px;color:#555;margin-bottom:3px}
+.edit-area input[type="date"],.edit-area input[type="number"]{width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;font-size:14px;margin-bottom:10px}
+.edit-note{font-size:12px;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:8px;margin-bottom:10px}
+.btn-save-edit{width:100%;padding:10px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer}
 </style>
 </head>
 <body>
@@ -83,6 +90,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
   <div class="sheet" onclick="event.stopPropagation()">
     <h2 id="sheet-title"></h2>
     <div id="sheet-detail"></div>
+    <div id="sheet-edit-area"></div>
     <div id="sheet-cancel-msg" style="font-size:12px;color:#c53030;margin-top:8px"></div>
     <button class="btn-close-sheet" id="sheet-cancel-btn" style="background:#fff;border:1.5px solid #c53030;color:#c53030;display:none" onclick="cancelFromDetailSheet()">この納入日の依頼を取り消す</button>
     <button class="btn-close-sheet" onclick="closeSheet()">閉じる</button>
@@ -184,6 +192,66 @@ function renderList(){
     : '<div class="empty-msg">現在、受付済みの依頼はありません</div>';
 }
 
+// =============================================
+// 日程・数量変更欄（受付済み：日程＋数量／作業中：日程のみ、数量は管理者連絡案内）
+// 中3日ルールはこの変更には適用しない
+// =============================================
+function renderEditArea(row){
+  if(row.canceled_at) return '';
+  if(row.status !== '受付済み' && row.status !== '作業中') return '';
+
+  const qtyFieldHtml = row.status === '受付済み'
+    ? `<label>数量(c/s)</label><input type="number" id="edit-qty-input" min="1" value="${row.qty}">`
+    : `<div class="edit-note">数量の変更は管理者へご連絡ください（作業に取りかかっているため）</div>`;
+
+  return `
+    <div class="edit-area">
+      <div class="edit-title">日程・数量の変更</div>
+      <label>納入日</label>
+      <input type="date" id="edit-date-input" value="${row.delivery_date}">
+      ${qtyFieldHtml}
+      <button class="btn-save-edit" onclick="saveEditChanges('${row.id}')">この内容で変更する</button>
+      <div id="sheet-edit-msg" style="font-size:12px;color:#c53030;margin-top:6px"></div>
+    </div>`;
+}
+
+async function saveEditChanges(dateRowId){
+  const row = myItems.find(r => r.id === dateRowId);
+  if(!row) return;
+
+  const dateInput = document.getElementById('edit-date-input');
+  const newDate = dateInput ? dateInput.value : '';
+  const msgEl = document.getElementById('sheet-edit-msg');
+
+  if(!newDate){ msgEl.textContent = '納入日を入力してください。'; return; }
+
+  const payload = {
+    delivery_date: newDate,
+    last_changed_by: currentUser.name,
+    last_changed_at: new Date().toISOString()
+  };
+
+  if(row.status === '受付済み'){
+    const qtyInput = document.getElementById('edit-qty-input');
+    const newQty = qtyInput ? parseInt(qtyInput.value, 10) : NaN;
+    if(!newQty || newQty < 1){ msgEl.textContent = '数量を入力してください。'; return; }
+    payload.qty = newQty;
+  }
+
+  const { error } = await sbClient
+    .from('request_item_dates')
+    .update(payload)
+    .eq('id', dateRowId);
+
+  if(error){
+    msgEl.textContent = '変更に失敗しました：' + error.message;
+    return;
+  }
+
+  document.getElementById('sheet-overlay').classList.remove('show');
+  await loadMyItems();
+}
+
 function openSheet(dateRowId){
   const row = myItems.find(r => r.id === dateRowId);
   if(!row) return;
@@ -197,6 +265,8 @@ function openSheet(dateRowId){
     ${row.client_name ? `<div class="detail-line"><b>客先名</b>${escapeHtml(row.client_name)}</div>` : ''}
     ${row.note_item ? `<div class="detail-line"><b>備考</b>${escapeHtml(row.note_item)}</div>` : ''}
   `;
+
+  document.getElementById('sheet-edit-area').innerHTML = renderEditArea(row);
 
   const cancelBtn = document.getElementById('sheet-cancel-btn');
   const cancelMsg = document.getElementById('sheet-cancel-msg');
