@@ -219,6 +219,7 @@ async function onRoundChange(){
 
 async function markDelivered(){
   if(!currentSheetRow || !currentSheetRow.delivery_id) return;
+  if(!confirm(`「${currentSheetRow.item_name}」を配送済みにします。よろしいですか？`)) return;
   const btn = document.getElementById('sheet-deliver-btn');
   btn.disabled = true;
 
