@@ -629,16 +629,30 @@ async function toggleStage(n){
   const field = `stage${n}_done`;
   const byField = `stage${n}_done_by`;
   const atField = `stage${n}_done_at`;
+  const otherField = n === 1 ? 'stage2_done' : 'stage1_done';
   const newVal = !item[field];
 
   const payload = newVal
     ? { [field]: true, [byField]: currentUser.name, [atField]: new Date().toISOString() }
     : { [field]: false, [byField]: null, [atField]: null };
 
+  // 工程A・Bのどちらかが完了した時点で「受付済み」→「作業中」に、
+  // 両方とも未完了に戻った場合は「作業中」→「受付済み」に連動させる
+  // （行全体の上書きではなく、statusカラムのみ追加で送る）
+  let newStatus = item.status;
+  if(newVal && item.status === '受付済み'){
+    newStatus = '作業中';
+    payload.status = newStatus;
+  } else if(!newVal && !item[otherField] && item.status === '作業中'){
+    newStatus = '受付済み';
+    payload.status = newStatus;
+  }
+
   const { error } = await sbClient.from('request_item_dates').update(payload).eq('id', item.id);
   if(error){ toast('更新に失敗しました：' + error.message, true); return; }
 
   item[field] = newVal;
+  item.status = newStatus;
   renderProgSheet();
   render();
 }
