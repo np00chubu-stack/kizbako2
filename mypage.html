@@ -29,6 +29,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .status-badge.受付済み{background:#eef3f8;color:#1a3a5c}
 .status-badge.作業中{background:#fff3cd;color:#856404}
 .status-badge.発注可能{background:#d4edda;color:#276749}
+.status-badge.発注済み{background:#e6ecf7;color:#1a3a5c}
 .status-badge.取消済み{background:#f1e9e7;color:#9c7a72}
 
 .item-card.is-cancelled{cursor:default;opacity:.8}
@@ -161,7 +162,9 @@ function renderCard(row){
   const cancelled = !!row.canceled_at;
   const dateText = `${row.delivery_date}（${row.qty}c/s）`;
   const clickFn = (row.status === '発注可能' && !cancelled) ? `openOrderSheet('${row.id}')` : `openSheet('${row.id}')`;
-  const badgeLabel = cancelled ? '取消済み' : row.status;
+  const isOrdered = row.status === '発注済み・受取待ち';
+  const badgeClass = cancelled ? '取消済み' : (isOrdered ? '発注済み' : escapeHtml(row.status));
+  const badgeLabel = cancelled ? '取消済み' : (isOrdered ? '発注済み' : row.status);
   return `
     <div class="item-card${cancelled ? ' is-cancelled' : ''}" onclick="${clickFn}">
       <div class="top-row">
@@ -169,14 +172,14 @@ function renderCard(row){
           <div class="cat-name">${escapeHtml(row.category)}</div>
           <div class="size-line">${escapeHtml(sizeText(row))}　納入日：${escapeHtml(dateText)}</div>
         </div>
-        <span class="status-badge ${cancelled ? '取消済み' : escapeHtml(row.status)}">${escapeHtml(badgeLabel)}</span>
+        <span class="status-badge ${badgeClass}">${escapeHtml(badgeLabel)}</span>
       </div>
     </div>`;
 }
 
 function renderList(){
   const orderRows = myItems.filter(r => r.status === '発注可能' && !r.canceled_at);
-  const progressRows = myItems.filter(r => (r.status === '受付済み' || r.status === '作業中') && !r.canceled_at);
+  const progressRows = myItems.filter(r => (r.status === '受付済み' || r.status === '作業中' || r.status === '発注済み・受取待ち') && !r.canceled_at);
   const cancelledTodayRows = myItems.filter(r => r.canceled_at);
   const progressListAll = [...progressRows, ...cancelledTodayRows];
 
@@ -261,7 +264,7 @@ function openSheet(dateRowId){
   document.getElementById('sheet-detail').innerHTML = `
     <div class="detail-line"><b>サイズ</b>${escapeHtml(sizeText(row))}</div>
     <div class="detail-line"><b>納入日</b>${escapeHtml(row.delivery_date)}（${escapeHtml(String(row.qty))}c/s）</div>
-    <div class="detail-line"><b>ステータス</b>${row.canceled_at ? '取消済み' : escapeHtml(row.status)}</div>
+    <div class="detail-line"><b>ステータス</b>${row.canceled_at ? '取消済み' : (row.status === '発注済み・受取待ち' ? '発注済み' : escapeHtml(row.status))}</div>
     ${row.client_name ? `<div class="detail-line"><b>客先名</b>${escapeHtml(row.client_name)}</div>` : ''}
     ${row.note_item ? `<div class="detail-line"><b>備考</b>${escapeHtml(row.note_item)}</div>` : ''}
   `;
@@ -478,11 +481,12 @@ async function loadMyItems(){
   const itemById = {};
   (itemRows || []).forEach(it => { itemById[it.id] = it; });
 
-  // 表示対象：ステータスが受付済み/作業中/発注可能で未取消、または本日取消したもの
+  // 表示対象：ステータスが受付済み/作業中/発注可能/発注済み・受取待ちで未取消、または本日取消したもの
+  // （発注済み・受取待ちは、配送済みになるまで一覧に残す。配送済みかどうかは後段で判定して除外する）
   myItems = (dateRows || [])
     .filter(d => {
       if(d.canceled_at) return isTodayJST(d.canceled_at);
-      return ['受付済み','作業中','発注可能'].includes(d.status);
+      return ['受付済み','作業中','発注可能','発注済み・受取待ち'].includes(d.status);
     })
     .map(d => {
       const parent = itemById[d.request_item_id] || {};
@@ -502,8 +506,58 @@ async function loadMyItems(){
       };
     });
 
+  // 発注済み・受取待ちのうち、配送済みになったものは一覧から除外する
+  const orderedIds = myItems.filter(r => r.status === '発注済み・受取待ち').map(r => r.id);
+  if(orderedIds.length){
+    const deliveredDateIds = await getDeliveredDateIds(orderedIds);
+    myItems = myItems.filter(r => !(r.status === '発注済み・受取待ち' && deliveredDateIds.has(r.id)));
+  }
+
   document.getElementById('load-error').style.display = 'none';
   renderList();
+}
+
+// =============================================
+// 発注済み・受取待ちの納入日IDのうち、配送済み（stock_deliveries.is_delivered=true）
+// になっているものの request_item_date_id をSetで返す
+// =============================================
+async function getDeliveredDateIds(dateIds){
+  const deliveredSet = new Set();
+
+  const { data: stockRows } = await sbClient
+    .from('stock_items')
+    .select('id, request_item_date_id')
+    .in('request_item_date_id', dateIds);
+
+  if(!stockRows || !stockRows.length) return deliveredSet;
+
+  const stockIdToDateId = {};
+  const stockIds = stockRows.map(s => { stockIdToDateId[s.id] = s.request_item_date_id; return s.id; });
+
+  const { data: orderRows } = await sbClient
+    .from('stock_orders')
+    .select('id, stock_item_id')
+    .in('stock_item_id', stockIds)
+    .eq('is_canceled', false);
+
+  if(!orderRows || !orderRows.length) return deliveredSet;
+
+  const orderIdToStockId = {};
+  const orderIds = orderRows.map(o => { orderIdToStockId[o.id] = o.stock_item_id; return o.id; });
+
+  const { data: deliveryRows } = await sbClient
+    .from('stock_deliveries')
+    .select('stock_order_id, is_delivered')
+    .in('stock_order_id', orderIds)
+    .eq('is_delivered', true);
+
+  (deliveryRows || []).forEach(d => {
+    const stockId = orderIdToStockId[d.stock_order_id];
+    const dateId = stockIdToDateId[stockId];
+    if(dateId) deliveredSet.add(dateId);
+  });
+
+  return deliveredSet;
 }
 
 async function loginWithGoogle(){
