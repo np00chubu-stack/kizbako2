@@ -633,6 +633,22 @@ async function confirmDeleteStockItem(){
 
   const msgEl = document.getElementById('delete-sheet-msg');
 
+  // 発注（有効なもの）が入っている場合は削除自体をブロックする
+  const { data: activeOrders, error: checkErr } = await sbClient
+    .from('stock_orders')
+    .select('id')
+    .eq('stock_item_id', deleteTargetStockItemId)
+    .eq('is_canceled', false);
+
+  if(checkErr){
+    msgEl.textContent = '発注状況の確認に失敗しました：' + checkErr.message;
+    return;
+  }
+  if(activeOrders && activeOrders.length){
+    msgEl.textContent = '発注が入っているため削除できません。先に発注を取消してください。';
+    return;
+  }
+
   const { error: delErr } = await sbClient
     .from('stock_items')
     .delete()
