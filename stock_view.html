@@ -17,79 +17,87 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 #auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
 .login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:6px;margin-bottom:14px}
 
-/* ロック中バナー（依頼者のみ表示） */
 .lock-banner{font-size:13px;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;display:none}
 .lock-banner.show{display:block}
 
-/* タブ */
-.tabs{display:flex;gap:8px;margin-bottom:16px}
-.tab-btn{flex:1;padding:10px;border:1px solid #1a3a5c;border-radius:6px;background:#fff;color:#1a3a5c;font-size:14px;font-weight:bold;cursor:pointer}
-.tab-btn.active{background:#1a3a5c;color:#fff}
-.tab-panel{display:none}
-.tab-panel.active{display:block}
+.section-label{font-size:13px;font-weight:bold;color:#1a3a5c;margin:18px 0 8px}
+.section-label:first-of-type{margin-top:0}
 
-/* カード */
-.stock-card{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);padding:14px 16px;margin-bottom:10px}
-.stock-card .top-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.stock-card .main{flex:1;min-width:0}
-.stock-card .item-name{font-size:15px;font-weight:bold;color:#1a3a5c;margin-bottom:4px}
-.stock-card .sub-line{font-size:12px;color:#666}
-.stock-card .qty-box{flex-shrink:0;text-align:center;background:#eef3f8;border-radius:6px;padding:6px 14px}
-.stock-card .qty-box.replenishable{cursor:pointer}
-.stock-card .qty-num{font-size:20px;font-weight:bold;color:#1a3a5c;line-height:1}
-.stock-card .qty-num.low{color:#c53030}
-.stock-card .qty-label{font-size:10px;color:#888;margin-top:2px}
+/* ---- 台帳テーブル共通 ---- */
+.ledger-table{background:#fff;border:1px solid #e2e6ec;border-radius:10px;overflow:hidden}
+.ledger-head{display:grid;align-items:center;padding:8px 10px;background:#e6ecf7;font-size:10px;font-weight:bold;color:#1a3a5c}
+.ledger-head span{text-align:center}
+.ledger-head span:first-child{text-align:left}
 
-/* 補充シート（共通品・作業者/管理者のみ） */
-.replenish-sheet{margin-top:10px;padding:12px;border:1px solid #d0d8e4;border-radius:6px;background:#f7f9fc}
-.replenish-sheet .rs-current{font-size:12px;color:#666;margin-bottom:8px;text-align:center}
-.replenish-sheet .rs-stepper{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px}
-.replenish-sheet .rs-stepper button{width:32px;height:32px;border-radius:50%;border:1px solid #ccc;background:#fff;font-size:16px;font-weight:bold;cursor:pointer}
-.replenish-sheet .rs-stepper .rs-val{font-size:18px;font-weight:bold;min-width:36px;text-align:center}
-.replenish-sheet .rs-btns{display:flex;gap:8px}
-.btn-replenish-submit{flex:1;padding:9px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer}
-.btn-replenish-cancel{padding:9px 14px;background:#fff;border:1px solid #999;color:#555;border-radius:6px;font-size:13px;cursor:pointer}
-.replenish-msg{font-size:12px;color:#c53030;margin-top:6px}
+/* 個人依頼品：発注/日付/品目(サイズ)/数量/依頼者 */
+.ledger-head.indiv-head{grid-template-columns:52px 62px 1fr 46px 56px}
+.indiv-row{display:grid;grid-template-columns:52px 62px 1fr 46px 56px;align-items:center;gap:4px;padding:9px 8px;border-top:1px solid #eef0f3}
+.indiv-row:first-of-type{border-top:none}
+.indiv-row.is-cancelled{opacity:.55}
+.ir-date{font-size:10px;color:#777;text-align:center}
+.ir-main{min-width:0}
+.ir-name{font-size:12px;font-weight:bold;color:#1a3a5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ir-size{font-size:9.5px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ir-qty{font-size:11px;text-align:center;color:#555}
+.ir-requester{font-size:10px;color:#666;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ir-cell{display:flex;justify-content:center}
 
-/* 発注状況表示 */
-.order-status{margin-top:10px;padding:8px 10px;border-radius:6px;background:#f0fff4;border:1px solid #9ae6b4;font-size:12px;color:#276749;display:flex;justify-content:space-between;align-items:center;gap:8px}
-.order-status.proxy{background:#fff3cd;border-color:#ffc107;color:#856404}
-.order-status .tag{font-size:10px;font-weight:bold;padding:2px 6px;border-radius:10px;background:#856404;color:#fff;margin-left:4px}
-.btn-cancel-order{font-size:11px;color:#c53030;background:none;border:1px solid #c53030;border-radius:4px;padding:3px 8px;cursor:pointer;flex-shrink:0}
-.btn-cancel-order:hover{background:#fff5f5}
+/* 共通品：品目/在庫/班ごと */
+.common-table-wrap{overflow-x:auto}
+.ledger-row.common{display:grid;align-items:center;gap:4px;padding:9px 10px;border-top:1px solid #eef0f3}
+.ledger-row.common:first-of-type{border-top:none}
+.cm-name{font-size:12px;font-weight:bold;color:#1a3a5c}
+.cm-stock{font-size:12px;text-align:center;color:#555}
+.cm-stock.low{color:#c53030;font-weight:bold}
+.cm-stock.clickable{cursor:pointer;text-decoration:underline dotted}
+.cm-cell{display:flex;justify-content:center}
 
-.btn-order{margin-top:10px;width:100%;padding:9px;border:1px dashed #3182ce;border-radius:6px;background:#fff;color:#3182ce;font-size:13px;font-weight:bold;cursor:pointer}
-.btn-order:hover{background:#ebf8ff}
+/* 発注欄フィールド */
+.order-field{appearance:none;cursor:pointer;font-weight:bold;border-radius:8px;padding:5px 9px;font-size:10.5px;min-width:34px;text-align:center;background:#fff;border:1.4px solid #ccc;color:#333}
+.order-field.empty{color:#bbb;border-style:dashed;font-weight:normal}
+.order-field.disabled{opacity:.5;cursor:not-allowed}
 
-/* 発注フォーム（インライン展開） */
-.order-form{margin-top:10px;padding:12px;border:1px solid #d0d8e4;border-radius:6px;background:#f7f9fc}
+.empty-msg{text-align:center;color:#999;font-size:13px;padding:20px 0}
+#load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
+
+/* ---- ボトムシート共通 ---- */
+.sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50}
+.sheet-overlay.show{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:14px 14px 0 0;padding:20px;max-width:720px;margin:0 auto;z-index:51;max-height:82vh;overflow-y:auto}
+.sheet h2{font-size:16px;color:#1a3a5c;margin-bottom:6px}
+.sheet .sheet-sub{font-size:12px;color:#777;margin-bottom:14px}
+.sheet .detail-line{font-size:13px;color:#444;margin-bottom:6px}
+.sheet .detail-line b{color:#1a3a5c;display:inline-block;min-width:70px}
+
 .mode-row{display:flex;gap:6px;margin-bottom:10px}
 .mode-row label{flex:1;text-align:center;font-size:12px;font-weight:normal;color:#555;padding:8px 4px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer}
 .mode-row input[type="radio"]{display:none}
 .mode-row label.selected{border-color:#2c5282;background:#dbeafe;color:#1a3a5c;font-weight:bold}
-.order-form .field-group{margin-bottom:10px}
-.order-form label.field-label{display:block;font-size:11px;color:#777;margin-bottom:3px}
-.order-form select,.order-form input[type="number"],.order-form input[type="date"]{
+.field-group{margin-bottom:10px}
+.field-group label.field-label{display:block;font-size:11px;color:#777;margin-bottom:3px}
+.field-group select,.field-group input[type="number"],.field-group input[type="date"]{
   width:100%;padding:7px 9px;border:1px solid #ccc;border-radius:4px;font-size:13px;font-family:inherit;background:#fff;
 }
-.order-form-btns{display:flex;gap:8px}
-.btn-order-submit{flex:1;padding:9px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer}
-.btn-order-cancel{padding:9px 14px;background:#fff;border:1px solid #999;color:#555;border-radius:6px;font-size:13px;cursor:pointer}
-.order-form-msg{font-size:12px;color:#c53030;margin-top:6px}
+.sheet-btns{display:flex;gap:8px;margin-top:14px}
+.btn-sheet-submit{flex:1;padding:10px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer}
+.btn-sheet-cancel{padding:10px 14px;background:#fff;border:1px solid #999;color:#555;border-radius:6px;font-size:13px;cursor:pointer}
+.btn-cancel-order-link{width:100%;margin-top:8px;padding:9px;background:#fff;border:1px solid #c53030;color:#c53030;border-radius:6px;font-size:12.5px;font-weight:bold;cursor:pointer}
+.sheet-msg{font-size:12px;color:#c53030;margin-top:8px}
+.order-status-note{font-size:12px;color:#276749;background:#f0fff4;border:1px solid #9ae6b4;border-radius:6px;padding:8px 10px;margin-bottom:10px}
+.order-status-note.proxy{background:#fff3cd;border-color:#ffc107;color:#856404}
+.view-only-note{font-size:12px;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:8px 10px;margin-top:10px;text-align:center}
 
-.empty-msg{text-align:center;color:#999;font-size:13px;padding:30px 0}
-#load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
+/* 補充シート */
+.repl-current{margin-top:6px;text-align:center;font-size:12px;color:#666;background:#f7f9fc;border-radius:8px;padding:9px}
+.repl-current b{font-size:18px;color:#1a3a5c}
+.qty-stepper{display:flex;align-items:center;justify-content:center;gap:16px;margin:14px 0}
+.qty-stepper button{width:34px;height:34px;border-radius:50%;border:1.5px solid #ccc;background:#fff;font-size:16px;font-weight:bold;cursor:pointer}
+.qty-stepper .qs-val{font-size:20px;font-weight:bold;min-width:36px;text-align:center}
 
 /* 在庫データ削除確認シート（管理者・長押しのみ） */
-.sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50}
-.sheet-overlay.show{display:block}
-.sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:14px 14px 0 0;padding:20px;max-width:720px;margin:0 auto;z-index:51;max-height:80vh;overflow-y:auto}
-.sheet h2{font-size:16px;color:#1a3a5c;margin-bottom:14px}
-.sheet .detail-line{font-size:13px;color:#444;margin-bottom:6px}
-.sheet .detail-line b{color:#1a3a5c;display:inline-block;min-width:70px}
 .btn-delete-confirm{width:100%;padding:12px;background:#c53030;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
 .btn-close-sheet{width:100%;padding:10px;background:#fff;border:1px solid #999;color:#555;border-radius:6px;font-size:14px;cursor:pointer;margin-top:8px}
-.stock-card.pressing{box-shadow:0 0 0 2px #1a3a5c inset}
+.indiv-row.pressing,.ledger-row.common.pressing{box-shadow:0 0 0 2px #1a3a5c inset}
 </style>
 </head>
 <body>
@@ -114,21 +122,45 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 
   <div class="lock-banner" id="lock-banner">ただいま発注欄はロック中です</div>
 
-  <div class="tabs">
-    <button class="tab-btn active" id="tab-btn-individual" onclick="switchTab('individual')">個人依頼品</button>
-    <button class="tab-btn" id="tab-btn-common" onclick="switchTab('common')">共通品</button>
-  </div>
+  <div class="section-label">個人依頼品</div>
+  <div id="individual-table-wrap"></div>
 
-  <div id="tab-panel-individual" class="tab-panel active">
-    <div id="individual-list"></div>
-  </div>
-  <div id="tab-panel-common" class="tab-panel">
-    <div id="common-list"></div>
-  </div>
+  <div class="section-label">共通品</div>
+  <div class="common-table-wrap" id="common-table-wrap"></div>
 
   <div id="load-error" style="display:none"></div>
 </div>
 
+</div>
+
+<!-- 発注設定シート（個人依頼品・共通品 共用） -->
+<div class="sheet-overlay" id="order-sheet-overlay" onclick="closeOrderSheet(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2 id="order-sheet-title"></h2>
+    <div class="sheet-sub" id="order-sheet-sub"></div>
+    <div id="order-sheet-status"></div>
+    <div id="order-sheet-form"></div>
+    <div id="order-sheet-viewonly"></div>
+    <div class="sheet-msg" id="order-sheet-msg"></div>
+    <button class="btn-close-sheet" onclick="closeOrderSheet()">閉じる</button>
+  </div>
+</div>
+
+<!-- 補充シート（共通品・作業者/管理者のみ） -->
+<div class="sheet-overlay" id="replenish-overlay" onclick="closeReplenishSheet(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2 id="replenish-title"></h2>
+    <div class="sheet-sub">補充する数量を入力してください</div>
+    <div class="repl-current" id="replenish-current"></div>
+    <div class="qty-stepper">
+      <button type="button" onclick="adjustReplenishQty(-1)">−</button>
+      <div class="qs-val" id="replenish-qty-val">1</div>
+      <button type="button" onclick="adjustReplenishQty(1)">＋</button>
+    </div>
+    <button class="btn-sheet-submit" style="width:100%" onclick="submitReplenish()">この数を補充する</button>
+    <div class="sheet-msg" id="replenish-msg"></div>
+    <button class="btn-close-sheet" onclick="closeReplenishSheet()">閉じる</button>
+  </div>
 </div>
 
 <!-- 在庫データ削除確認シート（管理者・個人依頼品のみ・長押しで開く） -->
@@ -152,11 +184,11 @@ const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '', role: '' };
-let stockItemsCache = [];   // stock_items 全件（個人依頼品は request_item_date_id を持つ）
-let ordersCache = {};       // stock_item_id -> 有効な注文の配列
+let stockItemsCache = [];   // stock_items 全件
+let ordersCache = {};       // stock_item_id -> 有効な注文の配列（共通品は班ごとに複数件持ちうる）
 let dateInfoCache = {};     // request_item_date_id -> { delivery_date }
+let teams = [];             // team_master 全件（sort_order順）
 
-// 締切・解除ロック関連
 let lockSettings = { start: null, end: null };
 let isLocked = false;
 
@@ -164,15 +196,8 @@ function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function switchTab(which){
-  document.getElementById('tab-btn-individual').classList.toggle('active', which==='individual');
-  document.getElementById('tab-btn-common').classList.toggle('active', which==='common');
-  document.getElementById('tab-panel-individual').classList.toggle('active', which==='individual');
-  document.getElementById('tab-panel-common').classList.toggle('active', which==='common');
-}
-
 // =============================================
-// 締切・解除時刻の設定を読み込み、今の時刻と比較してロック中かどうかを判定する
+// 締切・解除ロック判定
 // =============================================
 async function loadLockSettings(){
   const { data, error } = await sbClient
@@ -181,27 +206,24 @@ async function loadLockSettings(){
     .limit(1)
     .maybeSingle();
 
-  if(error || !data){
-    isLocked = false;
-    return;
-  }
+  if(error || !data){ isLocked = false; return; }
 
   lockSettings.start = data.lock_start_time;
   lockSettings.end = data.lock_end_time;
 
   const now = new Date();
   const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
-
   isLocked = (nowStr >= lockSettings.start && nowStr < lockSettings.end);
 }
 
 function updateLockBanner(){
   const banner = document.getElementById('lock-banner');
-  if(currentUser.role === '依頼者' && isLocked){
-    banner.classList.add('show');
-  } else {
-    banner.classList.remove('show');
-  }
+  if(currentUser.role === '依頼者' && isLocked) banner.classList.add('show');
+  else banner.classList.remove('show');
+}
+
+function isOrderingBlocked(){
+  return currentUser.role === '依頼者' && isLocked;
 }
 
 function orderModeLabel(order){
@@ -211,265 +233,238 @@ function orderModeLabel(order){
   return order.mode;
 }
 
-function isOrderingBlocked(){
-  return currentUser.role === '依頼者' && isLocked;
-}
-
 // =============================================
-// 個人依頼品カード（納入日を表示。同じ品目でも納入日ごとに別カードになる）
+// 個人依頼品：一覧テーブル（発注/日付/品目(サイズ)/数量/依頼者）
 // =============================================
-function renderIndividualCard(row){
-  const sizeText = [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
-  const dateInfo = row.request_item_date_id ? dateInfoCache[row.request_item_date_id] : null;
-  const dateText = dateInfo ? `納入日：${dateInfo.delivery_date}` : '';
-  const activeOrders = ordersCache[row.id] || [];
-  const order = activeOrders[0];
-
-  const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
-  const isSelfItem = currentUser.name && row.requester_name === currentUser.name;
-  const blocked = isOrderingBlocked();
-  const showOrderBtn = canOperate && !order && (isSelfItem || currentUser.role === '管理者') && !blocked;
-
-  let statusHtml = '';
-  if(order){
-    const proxyTag = order.is_proxy ? '<span class="tag">代理</span>' : '';
-    const canCancel = (order.operated_by_email === currentUser.email) || currentUser.role === '管理者';
-    statusHtml = `
-      <div class="order-status${order.is_proxy ? ' proxy' : ''}">
-        <span>${escapeHtml(orderModeLabel(order))}　${escapeHtml(order.operated_by_name)}さん${proxyTag}</span>
-        ${canCancel ? `<button class="btn-cancel-order" onclick="cancelOrder('${order.id}')">取消</button>` : ''}
-      </div>`;
-  }
-
-  const orderBtnHtml = showOrderBtn
-    ? `<button class="btn-order" onclick="openOrderForm('${row.id}', 'individual', this)">${isSelfItem ? '発注する' : '代理で発注する'}</button>`
-    : '';
-
-  return `
-    <div class="stock-card" data-stock-item-id="${row.id}">
-      <div class="top-row">
-        <div class="main">
-          <div class="item-name">${escapeHtml(row.item_name)}</div>
-          <div class="sub-line">${escapeHtml(sizeText)}　依頼者：${escapeHtml(row.requester_name || '（不明）')}</div>
-          ${dateText ? `<div class="sub-line">${escapeHtml(dateText)}</div>` : ''}
-        </div>
-        <div class="qty-box">
-          <div class="qty-num">${row.stock_qty ?? 0}</div>
-          <div class="qty-label">在庫</div>
-        </div>
-      </div>
-      ${statusHtml}
-      ${orderBtnHtml}
-      <div class="order-form-slot"></div>
-    </div>`;
-}
-
-// =============================================
-// 共通品カード（変更なし）
-// =============================================
-function renderCommonCard(row){
-  const activeOrders = ordersCache[row.id] || [];
-  const order = activeOrders[0];
-  const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
-  const blocked = isOrderingBlocked();
-  const canReplenish = currentUser.role === '作業者' || currentUser.role === '管理者';
-  const isLow = (row.min_line ?? 0) > 0 && (row.stock_qty ?? 0) <= row.min_line;
-
-  let statusHtml = '';
-  if(order){
-    const proxyTag = order.is_proxy ? '<span class="tag">代理</span>' : '';
-    const destText = order.destination ? `（${escapeHtml(order.destination)}）` : '';
-    const canCancel = (order.operated_by_email === currentUser.email) || currentUser.role === '管理者';
-    statusHtml = `
-      <div class="order-status${order.is_proxy ? ' proxy' : ''}">
-        <span>${escapeHtml(orderModeLabel(order))}${destText}　${escapeHtml(order.operated_by_name)}さん${proxyTag}</span>
-        ${canCancel ? `<button class="btn-cancel-order" onclick="cancelOrder('${order.id}')">取消</button>` : ''}
-      </div>`;
-  }
-
-  const orderBtnHtml = (canOperate && !blocked)
-    ? `<button class="btn-order" onclick="openOrderForm('${row.id}', 'common', this)">${order ? '追加で発注する' : '発注する'}</button>`
-    : '';
-
-  const qtyBoxAttrs = canReplenish ? `onclick="openReplenishForm('${row.id}', this)"` : '';
-
-  return `
-    <div class="stock-card" data-stock-item-id="${row.id}">
-      <div class="top-row">
-        <div class="main">
-          <div class="item-name">${escapeHtml(row.item_name)}</div>
-        </div>
-        <div class="qty-box${canReplenish ? ' replenishable' : ''}" ${qtyBoxAttrs}>
-          <div class="qty-num${isLow ? ' low' : ''}">${row.stock_qty ?? 0}</div>
-          <div class="qty-label">在庫</div>
-        </div>
-      </div>
-      ${statusHtml}
-      ${orderBtnHtml}
-      <div class="order-form-slot"></div>
-      <div class="replenish-form-slot"></div>
-    </div>`;
-}
-
-function openReplenishForm(stockItemId, boxEl){
-  const card = boxEl.closest('.stock-card');
-  const slot = card.querySelector('.replenish-form-slot');
-  if(slot.innerHTML){ slot.innerHTML = ''; return; }
-
-  const stockRow = stockItemsCache.find(r => r.id === stockItemId);
-  const currentQty = stockRow ? (stockRow.stock_qty ?? 0) : 0;
-
-  slot.innerHTML = `
-    <div class="replenish-sheet">
-      <div class="rs-current">現在の在庫 <b>${currentQty}</b>　↓ この数だけ追加します</div>
-      <div class="rs-stepper">
-        <button type="button" onclick="adjustReplenishQty('${stockItemId}', -1)">−</button>
-        <div class="rs-val" id="replenish-qty-${stockItemId}">1</div>
-        <button type="button" onclick="adjustReplenishQty('${stockItemId}', 1)">＋</button>
-      </div>
-      <div class="rs-btns">
-        <button class="btn-replenish-submit" onclick="submitReplenish('${stockItemId}')">この数を補充する</button>
-        <button class="btn-replenish-cancel" onclick="closeReplenishForm('${stockItemId}')">やめる</button>
-      </div>
-      <div class="replenish-msg" id="replenish-msg-${stockItemId}"></div>
-    </div>`;
-}
-
-function closeReplenishForm(stockItemId){
-  const input = document.getElementById(`replenish-qty-${stockItemId}`);
-  if(!input) return;
-  input.closest('.replenish-form-slot').innerHTML = '';
-}
-
-function adjustReplenishQty(stockItemId, delta){
-  const el = document.getElementById(`replenish-qty-${stockItemId}`);
-  if(!el) return;
-  const next = Math.max(1, parseInt(el.textContent, 10) + delta);
-  el.textContent = next;
-}
-
-async function submitReplenish(stockItemId){
-  const qtyEl = document.getElementById(`replenish-qty-${stockItemId}`);
-  const msgEl = document.getElementById(`replenish-msg-${stockItemId}`);
-  const addQty = parseInt(qtyEl.textContent, 10);
-
-  const stockRow = stockItemsCache.find(r => r.id === stockItemId);
-  if(!stockRow){ msgEl.textContent = '在庫データが見つかりません。'; return; }
-
-  const newQty = (stockRow.stock_qty ?? 0) + addQty;
-
-  const { error } = await sbClient
-    .from('stock_items')
-    .update({ stock_qty: newQty })
-    .eq('id', stockItemId);
-
-  if(error){
-    msgEl.textContent = '補充に失敗しました：' + error.message;
+function renderIndividualTable(rows){
+  const wrap = document.getElementById('individual-table-wrap');
+  if(!rows.length){
+    wrap.innerHTML = '<div class="empty-msg">現在、個人依頼品はありません</div>';
     return;
   }
 
-  await loadStockItems();
-}
-
-function openOrderForm(stockItemId, itemType, btnEl){
-  const card = btnEl.closest('.stock-card');
-  const slot = card.querySelector('.order-form-slot');
-  btnEl.style.display = 'none';
-
-  const destFieldHtml = itemType === 'common' ? `
-    <div class="field-group">
-      <label class="field-label">配送先</label>
-      <select id="order-dest-${stockItemId}">
-        <option value="FA">FA</option>
-        <option value="新工場">新工場</option>
-      </select>
-    </div>` : '';
-
-  slot.innerHTML = `
-    <div class="order-form">
-      <div class="mode-row" id="order-mode-row-${stockItemId}">
-        <label class="selected" id="mode-lbl-circle-${stockItemId}"><input type="radio" name="order-mode-${stockItemId}" value="○" checked onchange="onOrderModeChange('${stockItemId}')"> ○</label>
-        <label id="mode-lbl-qty-${stockItemId}"><input type="radio" name="order-mode-${stockItemId}" value="数量" onchange="onOrderModeChange('${stockItemId}')"> 数量</label>
-        <label id="mode-lbl-date-${stockItemId}"><input type="radio" name="order-mode-${stockItemId}" value="日付" onchange="onOrderModeChange('${stockItemId}')"> 日付</label>
-      </div>
-      <div class="field-group" id="order-qty-group-${stockItemId}" style="display:none">
-        <label class="field-label">数量</label>
-        <input type="number" id="order-qty-${stockItemId}" min="1">
-      </div>
-      <div class="field-group" id="order-date-group-${stockItemId}" style="display:none">
-        <label class="field-label">希望日</label>
-        <input type="date" id="order-date-${stockItemId}">
-      </div>
-      ${destFieldHtml}
-      <div class="order-form-btns">
-        <button class="btn-order-submit" onclick="submitOrder('${stockItemId}', '${itemType}')">この内容で発注する</button>
-        <button class="btn-order-cancel" onclick="closeOrderForm('${stockItemId}', this)">やめる</button>
-      </div>
-      <div class="order-form-msg" id="order-form-msg-${stockItemId}"></div>
-    </div>`;
-}
-
-function closeOrderForm(stockItemId, btnEl){
-  const card = btnEl.closest('.stock-card');
-  card.querySelector('.order-form-slot').innerHTML = '';
-  const orderBtn = card.querySelector('.btn-order');
-  if(orderBtn) orderBtn.style.display = '';
-}
-
-function onOrderModeChange(stockItemId){
-  const mode = document.querySelector(`input[name="order-mode-${stockItemId}"]:checked`).value;
-  ['circle','qty','date'].forEach(k=>{
-    document.getElementById(`mode-lbl-${k}-${stockItemId}`).classList.remove('selected');
+  const sorted = [...rows].sort((a,b) => {
+    const da = a.request_item_date_id ? (dateInfoCache[a.request_item_date_id]?.delivery_date || '') : '';
+    const db = b.request_item_date_id ? (dateInfoCache[b.request_item_date_id]?.delivery_date || '') : '';
+    return da.localeCompare(db);
   });
-  const map = {'○':'circle','数量':'qty','日付':'date'};
-  document.getElementById(`mode-lbl-${map[mode]}-${stockItemId}`).classList.add('selected');
-  document.getElementById(`order-qty-group-${stockItemId}`).style.display = (mode==='数量') ? '' : 'none';
-  document.getElementById(`order-date-group-${stockItemId}`).style.display = (mode==='日付') ? '' : 'none';
+
+  const rowsHtml = sorted.map(row => {
+    const sizeText = [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
+    const dateInfo = row.request_item_date_id ? dateInfoCache[row.request_item_date_id] : null;
+    const dateText = dateInfo ? dateInfo.delivery_date : '';
+    const activeOrders = ordersCache[row.id] || [];
+    const order = activeOrders[0];
+
+    const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
+    const isSelfItem = currentUser.name && row.requester_name === currentUser.name;
+    const blocked = isOrderingBlocked();
+    const clickable = canOperate && (isSelfItem || currentUser.role === '管理者') && !blocked;
+
+    const fieldClass = order ? '' : 'empty';
+    const fieldLabel = order ? (order.mode === '数量' ? order.qty : (order.mode === '日付' ? '日' : '○')) : 'ー';
+    const disabledClass = clickable ? '' : 'disabled';
+    const onclickAttr = clickable ? `onclick="openOrderSheet('${row.id}','individual')"` : '';
+
+    return `
+      <div class="indiv-row" data-stock-item-id="${row.id}">
+        <div class="ir-cell"><button class="order-field ${fieldClass} ${disabledClass}" ${onclickAttr}>${escapeHtml(String(fieldLabel))}</button></div>
+        <div class="ir-date">${escapeHtml(dateText)}</div>
+        <div class="ir-main">
+          <div class="ir-name">${escapeHtml(row.item_name)}</div>
+          <div class="ir-size">${escapeHtml(sizeText)}</div>
+        </div>
+        <div class="ir-qty">${row.stock_qty ?? 0}</div>
+        <div class="ir-requester">${escapeHtml(row.requester_name || '')}</div>
+      </div>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="ledger-table">
+      <div class="ledger-head indiv-head"><span>発注</span><span>日付</span><span>品目</span><span>在庫</span><span>依頼者</span></div>
+      ${rowsHtml}
+    </div>`;
+
+  bindIndividualLongPress();
 }
 
-async function submitOrder(stockItemId, itemType){
-  if(isOrderingBlocked()){
-    const msgEl = document.getElementById(`order-form-msg-${stockItemId}`);
-    if(msgEl) msgEl.textContent = 'ただいま発注欄はロック中のため、発注できません。';
+// =============================================
+// 共通品：品目/在庫/班ごとの発注欄（v8形式の台帳、班数は可変）
+// =============================================
+function renderCommonTable(rows){
+  const wrap = document.getElementById('common-table-wrap');
+  if(!rows.length){
+    wrap.innerHTML = '<div class="empty-msg">現在、共通品はありません</div>';
+    return;
+  }
+  if(!teams.length){
+    wrap.innerHTML = '<div class="empty-msg">班マスタが未登録です</div>';
     return;
   }
 
-  const mode = document.querySelector(`input[name="order-mode-${stockItemId}"]:checked`).value;
-  const msgEl = document.getElementById(`order-form-msg-${stockItemId}`);
+  const gridCols = `1fr 46px ${teams.map(()=>'52px').join(' ')}`;
+  const canReplenish = currentUser.role === '作業者' || currentUser.role === '管理者';
+
+  const headHtml = `
+    <div class="ledger-head" style="grid-template-columns:${gridCols}">
+      <span>品目</span><span>在庫</span>${teams.map(t => `<span>${escapeHtml(t.team_name)}</span>`).join('')}
+    </div>`;
+
+  const rowsHtml = rows.map(row => {
+    const isLow = (row.min_line ?? 0) > 0 && (row.stock_qty ?? 0) <= row.min_line;
+    const stockClass = isLow ? 'low' : '';
+    const stockClickable = canReplenish ? 'clickable' : '';
+    const stockOnclick = canReplenish ? `onclick="openReplenishSheet('${row.id}')"` : '';
+
+    const teamCellsHtml = teams.map(team => {
+      const activeOrders = ordersCache[row.id] || [];
+      const order = activeOrders.find(o => o.team_id === team.id);
+      const blocked = isOrderingBlocked();
+      const canOperate = (currentUser.role === '依頼者' || currentUser.role === '管理者') && !blocked;
+      const fieldClass = order ? '' : 'empty';
+      const fieldLabel = order ? (order.mode === '数量' ? order.qty : (order.mode === '日付' ? '日' : '○')) : 'ー';
+      const disabledClass = canOperate ? '' : 'disabled';
+      const onclickAttr = canOperate ? `onclick="openOrderSheet('${row.id}','common','${team.id}')"` : '';
+      return `<div class="cm-cell"><button class="order-field ${fieldClass} ${disabledClass}" ${onclickAttr}>${escapeHtml(String(fieldLabel))}</button></div>`;
+    }).join('');
+
+    return `
+      <div class="ledger-row common" style="grid-template-columns:${gridCols}" data-stock-item-id="${row.id}">
+        <div class="cm-name">${escapeHtml(row.item_name)}</div>
+        <div class="cm-stock ${stockClass} ${stockClickable}" ${stockOnclick}>${row.stock_qty ?? 0}</div>
+        ${teamCellsHtml}
+      </div>`;
+  }).join('');
+
+  wrap.innerHTML = `<div class="ledger-table">${headHtml}${rowsHtml}</div>`;
+}
+
+// =============================================
+// 発注設定シート（個人依頼品・共通品 共用）
+// =============================================
+let orderSheetState = { stockItemId: null, itemType: null, teamId: null, existingOrderId: null };
+
+function openOrderSheet(stockItemId, itemType, teamId){
+  const row = stockItemsCache.find(r => r.id === stockItemId);
+  if(!row) return;
+
+  orderSheetState = { stockItemId, itemType, teamId: teamId || null, existingOrderId: null };
+
+  const isViewOnly = currentUser.role === '作業者';
+  const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
+
+  let title = row.item_name;
+  let sub = '';
+  if(itemType === 'individual'){
+    const sizeText = [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
+    const dateInfo = row.request_item_date_id ? dateInfoCache[row.request_item_date_id] : null;
+    sub = `${sizeText}${dateInfo ? '　納入日：' + dateInfo.delivery_date : ''}　依頼者：${row.requester_name || ''}`;
+  } else {
+    const team = teams.find(t => t.id === teamId);
+    sub = team ? team.team_name : '';
+  }
+  document.getElementById('order-sheet-title').textContent = title;
+  document.getElementById('order-sheet-sub').textContent = sub;
+
+  const activeOrders = ordersCache[stockItemId] || [];
+  const existing = itemType === 'common' ? activeOrders.find(o => o.team_id === teamId) : activeOrders[0];
+  if(existing) orderSheetState.existingOrderId = existing.id;
+
+  let statusHtml = '';
+  if(existing){
+    const proxyTag = existing.is_proxy ? '（代理）' : '';
+    statusHtml = `<div class="order-status-note${existing.is_proxy?' proxy':''}">現在：${escapeHtml(orderModeLabel(existing))}　${escapeHtml(existing.operated_by_name)}さん${proxyTag}</div>`;
+  }
+  document.getElementById('order-sheet-status').innerHTML = statusHtml;
+
+  document.getElementById('order-sheet-msg').textContent = '';
+
+  const blocked = isOrderingBlocked();
+  const isSelfItem = itemType === 'individual' && currentUser.name && row.requester_name === currentUser.name;
+  const canEdit = canOperate && !blocked && (itemType === 'common' || isSelfItem || currentUser.role === '管理者');
+
+  if(canEdit){
+    document.getElementById('order-sheet-form').innerHTML = `
+      <div class="mode-row" id="order-mode-row">
+        <label class="selected" id="mode-lbl-circle"><input type="radio" name="order-mode" value="○" checked onchange="onOrderModeChange()"> ○</label>
+        <label id="mode-lbl-qty"><input type="radio" name="order-mode" value="数量" onchange="onOrderModeChange()"> 数量</label>
+        <label id="mode-lbl-date"><input type="radio" name="order-mode" value="日付" onchange="onOrderModeChange()"> 日付</label>
+      </div>
+      <div class="field-group" id="order-qty-group" style="display:none">
+        <label class="field-label">数量</label>
+        <input type="number" id="order-qty-input" min="1">
+      </div>
+      <div class="field-group" id="order-date-group" style="display:none">
+        <label class="field-label">希望日</label>
+        <input type="date" id="order-date-input">
+      </div>
+      <div class="sheet-btns">
+        <button class="btn-sheet-submit" onclick="submitOrder()">この内容で発注する</button>
+        <button class="btn-sheet-cancel" onclick="closeOrderSheet()">やめる</button>
+      </div>
+      ${existing ? `<button class="btn-cancel-order-link" onclick="cancelOrder()">この発注を取消す</button>` : ''}
+    `;
+    document.getElementById('order-sheet-viewonly').innerHTML = '';
+  } else {
+    document.getElementById('order-sheet-form').innerHTML = '';
+    document.getElementById('order-sheet-viewonly').innerHTML = isViewOnly
+      ? `<div class="view-only-note">閲覧のみです（発注操作はできません）</div>`
+      : (blocked ? `<div class="view-only-note">ただいまロック中のため操作できません</div>` : '');
+  }
+
+  document.getElementById('order-sheet-overlay').classList.add('show');
+}
+
+function closeOrderSheet(e){
+  if(e && e.target !== e.currentTarget) return;
+  document.getElementById('order-sheet-overlay').classList.remove('show');
+}
+
+function onOrderModeChange(){
+  const mode = document.querySelector('input[name="order-mode"]:checked').value;
+  ['circle','qty','date'].forEach(k => document.getElementById(`mode-lbl-${k}`).classList.remove('selected'));
+  const map = {'○':'circle','数量':'qty','日付':'date'};
+  document.getElementById(`mode-lbl-${map[mode]}`).classList.add('selected');
+  document.getElementById('order-qty-group').style.display = (mode==='数量') ? '' : 'none';
+  document.getElementById('order-date-group').style.display = (mode==='日付') ? '' : 'none';
+}
+
+async function submitOrder(){
+  if(isOrderingBlocked()){
+    document.getElementById('order-sheet-msg').textContent = 'ただいま発注欄はロック中のため、発注できません。';
+    return;
+  }
+
+  const mode = document.querySelector('input[name="order-mode"]:checked').value;
+  const msgEl = document.getElementById('order-sheet-msg');
   msgEl.textContent = '';
 
   let qty = null, desiredDate = null;
   if(mode === '数量'){
-    qty = parseInt(document.getElementById(`order-qty-${stockItemId}`).value, 10);
+    qty = parseInt(document.getElementById('order-qty-input').value, 10);
     if(!qty || qty < 1){ msgEl.textContent = '数量を入力してください。'; return; }
   }
   if(mode === '日付'){
-    desiredDate = document.getElementById(`order-date-${stockItemId}`).value;
+    desiredDate = document.getElementById('order-date-input').value;
     if(!desiredDate){ msgEl.textContent = '希望日を入力してください。'; return; }
   }
 
-  let destination = null;
-  if(itemType === 'common'){
-    destination = document.getElementById(`order-dest-${stockItemId}`).value;
-  }
-
+  const { stockItemId, itemType, teamId, existingOrderId } = orderSheetState;
   const stockRow = stockItemsCache.find(r => r.id === stockItemId);
   const isSelfItem = itemType === 'individual' && stockRow && stockRow.requester_name === currentUser.name;
   const isProxy = itemType === 'individual' ? !isSelfItem : false;
 
-  const existing = ordersCache[stockItemId] || [];
-  if(itemType === 'common' && existing.length > 0){
-    const other = existing[0];
-    const who = other.is_proxy ? `管理者が代理で` : `${other.operated_by_name}さんが`;
-    const ok = confirm(`既に${who}発注済みです。それでも発注しますか？`);
-    if(!ok) return;
+  // 既存の発注があれば取消してから新規登録（同一欄の書き換え）
+  if(existingOrderId){
+    await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId);
   }
 
   const payload = {
     stock_item_id: stockItemId,
     operated_by_email: currentUser.email,
     operated_by_name: currentUser.name,
-    destination: destination,
+    destination: null,
+    team_id: itemType === 'common' ? teamId : null,
     mode: mode,
     qty: qty,
     desired_date: desiredDate,
@@ -483,25 +478,83 @@ async function submitOrder(stockItemId, itemType){
     return;
   }
 
+  closeOrderSheet();
   await loadStockItems();
 }
 
-async function cancelOrder(orderId){
+async function cancelOrder(){
+  const { existingOrderId } = orderSheetState;
+  if(!existingOrderId) return;
   if(!confirm('この発注を取消しますか？')) return;
-  const { error } = await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', orderId);
+
+  const { error } = await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId);
   if(error){
-    alert('取消に失敗しました：' + error.message);
+    document.getElementById('order-sheet-msg').textContent = '取消に失敗しました：' + error.message;
     return;
   }
+
+  closeOrderSheet();
+  await loadStockItems();
+}
+
+// =============================================
+// 補充シート（共通品・作業者/管理者のみ）
+// =============================================
+let replenishState = { stockItemId: null, qty: 1 };
+
+function openReplenishSheet(stockItemId){
+  const row = stockItemsCache.find(r => r.id === stockItemId);
+  if(!row) return;
+  replenishState = { stockItemId, qty: 1 };
+
+  document.getElementById('replenish-title').textContent = row.item_name;
+  document.getElementById('replenish-current').innerHTML = `現在の在庫 <b>${row.stock_qty ?? 0}</b>　↓ この数だけ追加します`;
+  document.getElementById('replenish-qty-val').textContent = '1';
+  document.getElementById('replenish-msg').textContent = '';
+  document.getElementById('replenish-overlay').classList.add('show');
+}
+
+function closeReplenishSheet(e){
+  if(e && e.target !== e.currentTarget) return;
+  document.getElementById('replenish-overlay').classList.remove('show');
+}
+
+function adjustReplenishQty(delta){
+  replenishState.qty = Math.max(1, replenishState.qty + delta);
+  document.getElementById('replenish-qty-val').textContent = replenishState.qty;
+}
+
+async function submitReplenish(){
+  const { stockItemId, qty } = replenishState;
+  const stockRow = stockItemsCache.find(r => r.id === stockItemId);
+  if(!stockRow) return;
+
+  const newQty = (stockRow.stock_qty ?? 0) + qty;
+  const { error } = await sbClient.from('stock_items').update({ stock_qty: newQty }).eq('id', stockItemId);
+  if(error){
+    document.getElementById('replenish-msg').textContent = '補充に失敗しました：' + error.message;
+    return;
+  }
+
+  closeReplenishSheet();
   await loadStockItems();
 }
 
 // =============================================
 // データ読み込み・再描画
 // =============================================
+async function loadTeams(){
+  const { data, error } = await sbClient
+    .from('team_master')
+    .select('id, team_name, sort_order')
+    .order('sort_order', { ascending: true });
+  teams = error ? [] : (data || []);
+}
+
 async function loadStockItems(){
   await loadLockSettings();
   updateLockBanner();
+  await loadTeams();
 
   const { data: items, error: itemsErr } = await sbClient
     .from('stock_items')
@@ -516,7 +569,6 @@ async function loadStockItems(){
   document.getElementById('load-error').style.display = 'none';
   stockItemsCache = items || [];
 
-  // 個人依頼品の納入日を取得
   const dateIds = stockItemsCache
     .filter(r => r.item_type === 'individual' && r.request_item_date_id)
     .map(r => r.request_item_date_id);
@@ -532,7 +584,7 @@ async function loadStockItems(){
 
   const { data: orders, error: ordersErr } = await sbClient
     .from('stock_orders')
-    .select('id, stock_item_id, operated_by_email, operated_by_name, destination, mode, qty, desired_date, is_proxy')
+    .select('id, stock_item_id, team_id, operated_by_email, operated_by_name, destination, mode, qty, desired_date, is_proxy')
     .eq('is_canceled', false)
     .order('created_at', { ascending: true });
 
@@ -547,24 +599,12 @@ async function loadStockItems(){
   const individualRows = stockItemsCache.filter(r => r.item_type === 'individual');
   const commonRows = stockItemsCache.filter(r => r.item_type === 'common');
 
-  const indEl = document.getElementById('individual-list');
-  const comEl = document.getElementById('common-list');
-
-  indEl.innerHTML = individualRows.length
-    ? individualRows.map(renderIndividualCard).join('')
-    : '<div class="empty-msg">現在、個人依頼品はありません</div>';
-
-  comEl.innerHTML = commonRows.length
-    ? commonRows.map(renderCommonCard).join('')
-    : '<div class="empty-msg">現在、共通品はありません</div>';
-
-  bindIndividualLongPress();
+  renderIndividualTable(individualRows);
+  renderCommonTable(commonRows);
 }
 
 // =============================================
-// 個人依頼品カードの長押し（管理者のみ）→ 在庫データ削除確認シート
-// 誤って「完成」にしてしまった依頼を取り消すための管理者専用機能。
-// 通常タップの操作（発注欄など）とは別に、カード全体への長押しで発火する。
+// 個人依頼品：長押し（管理者のみ）→ 在庫データ削除確認シート
 // =============================================
 let deleteTargetStockItemId = null;
 let indPressTimer = null;
@@ -572,28 +612,29 @@ let indLongPressFired = false;
 let indPressStartXY = null;
 
 function bindIndividualLongPress(){
-  const root = document.getElementById('individual-list');
+  const root = document.getElementById('individual-table-wrap');
   if(!root) return;
-  if(currentUser.role !== '管理者') return; // 管理者以外には長押し自体を仕込まない
+  if(currentUser.role !== '管理者') return;
 
   root.onpointerdown = (e) => {
-    const card = e.target.closest ? e.target.closest('.stock-card') : null;
-    if(!card) return;
+    const row = e.target.closest ? e.target.closest('.indiv-row') : null;
+    if(!row) return;
+    if(e.target.closest('.order-field')) return; // 発注欄自体のタップは通常操作を優先
     indLongPressFired = false;
     indPressStartXY = { x:e.clientX, y:e.clientY };
     clearTimeout(indPressTimer);
-    card.classList.add('pressing');
+    row.classList.add('pressing');
     indPressTimer = setTimeout(() => {
       indLongPressFired = true;
-      card.classList.remove('pressing');
-      openDeleteSheet(card.dataset.stockItemId);
+      row.classList.remove('pressing');
+      openDeleteSheet(row.dataset.stockItemId);
     }, 600);
   };
   ['pointerup','pointerleave','pointercancel'].forEach(evt => {
     root.addEventListener(evt, (e) => {
       clearTimeout(indPressTimer);
-      const card = e.target.closest ? e.target.closest('.stock-card') : null;
-      if(card) card.classList.remove('pressing');
+      const row = e.target.closest ? e.target.closest('.indiv-row') : null;
+      if(row) row.classList.remove('pressing');
     });
   });
   root.addEventListener('pointermove', (e) => {
@@ -633,7 +674,6 @@ async function confirmDeleteStockItem(){
 
   const msgEl = document.getElementById('delete-sheet-msg');
 
-  // 発注（有効なもの）が入っている場合は削除自体をブロックする
   const { data: activeOrders, error: checkErr } = await sbClient
     .from('stock_orders')
     .select('id')
@@ -649,11 +689,7 @@ async function confirmDeleteStockItem(){
     return;
   }
 
-  const { error: delErr } = await sbClient
-    .from('stock_items')
-    .delete()
-    .eq('id', deleteTargetStockItemId);
-
+  const { error: delErr } = await sbClient.from('stock_items').delete().eq('id', deleteTargetStockItemId);
   if(delErr){
     msgEl.textContent = '削除に失敗しました：' + delErr.message;
     return;
@@ -664,7 +700,6 @@ async function confirmDeleteStockItem(){
       .from('request_item_dates')
       .update({ completed: false, reflected_to_stock: false })
       .eq('id', row.request_item_date_id);
-
     if(updErr){
       msgEl.textContent = '在庫データは削除しましたが、依頼側の状態を戻す処理に失敗しました：' + updErr.message;
       return;
@@ -676,6 +711,9 @@ async function confirmDeleteStockItem(){
   await loadStockItems();
 }
 
+// =============================================
+// 認証
+// =============================================
 async function loginWithGoogle(){
   const { error } = await sbClient.auth.signInWithOAuth({
     provider: 'google',
@@ -721,31 +759,27 @@ async function initAuth(){
 
 let realtimeReloadPending = false;
 
-function isAnyOrderFormOpen(){
-  const deleteSheetOpen = document.getElementById('delete-sheet-overlay')?.classList.contains('show');
-  return document.querySelector('.order-form') !== null || document.querySelector('.replenish-sheet') !== null || deleteSheetOpen;
+function isAnySheetOpen(){
+  return document.getElementById('order-sheet-overlay').classList.contains('show')
+      || document.getElementById('replenish-overlay').classList.contains('show')
+      || document.getElementById('delete-sheet-overlay').classList.contains('show');
 }
 
 function requestStockReload(){
-  if(isAnyOrderFormOpen()){
-    realtimeReloadPending = true;
-    return;
-  }
+  if(isAnySheetOpen()){ realtimeReloadPending = true; return; }
   loadStockItems();
 }
 
 function subscribeRealtime(){
   sbClient
     .channel('stock_view_changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_items' }, (payload) => { console.log('[realtime] stock_items changed', payload); requestStockReload(); })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_orders' }, (payload) => { console.log('[realtime] stock_orders changed', payload); requestStockReload(); })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_deliveries' }, (payload) => { console.log('[realtime] stock_deliveries changed', payload); requestStockReload(); })
-    .subscribe((status, err) => {
-      console.log('[realtime] channel status:', status, err || '');
-    });
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_items' }, requestStockReload)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_orders' }, requestStockReload)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_deliveries' }, requestStockReload)
+    .subscribe();
 
   setInterval(() => {
-    if(realtimeReloadPending && !isAnyOrderFormOpen()){
+    if(realtimeReloadPending && !isAnySheetOpen()){
       realtimeReloadPending = false;
       loadStockItems();
     }
