@@ -17,25 +17,44 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 #auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
 .login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:6px;margin-bottom:14px}
 
-.section-title{font-size:14px;font-weight:bold;color:#1a3a5c;margin:20px 0 10px}
-.section-title:first-of-type{margin-top:0}
-.section-count{font-size:12px;color:#888;font-weight:normal;margin-left:4px}
+/* 完成品バナー */
+.action-banner{display:none;align-items:center;gap:10px;background:linear-gradient(135deg,#1a3a5c 0%,#2c5282 100%);color:#fff;border-radius:12px;padding:12px 14px;margin-bottom:16px;box-shadow:0 4px 10px rgba(26,58,92,.25)}
+.action-banner.show{display:flex}
+.action-banner .ab-icon{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
+.action-banner .ab-title{font-size:13px;font-weight:bold}
+.action-banner .ab-sub{font-size:10.5px;opacity:.85;margin-top:1px}
 
-.item-card{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);padding:14px 16px;margin-bottom:8px;cursor:pointer}
-.item-card .top-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.item-card .cat-name{font-size:14px;font-weight:bold;color:#1a3a5c}
-.item-card .size-line{font-size:12px;color:#666;margin-top:3px}
-.status-badge{font-size:11px;font-weight:bold;padding:3px 9px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.section-label{font-size:13px;font-weight:bold;color:#1a3a5c;margin:18px 0 8px;display:flex;align-items:baseline;gap:6px}
+.section-label:first-of-type{margin-top:0}
+.section-count{font-size:11px;color:#888;font-weight:normal}
+
+/* 完成品カード */
+.ready-card{background:#eef3f8;border:1.5px solid #1a3a5c;border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;margin-bottom:8px}
+.ready-card:active{background:#e2ebf5}
+.ready-main .rc-date{font-size:10px;color:#1a3a5c;font-weight:bold}
+.ready-main .rc-name{font-size:13.5px;font-weight:bold;color:#1a3a5c;margin-top:1px}
+.ready-main .rc-detail{font-size:11px;color:#666;margin-top:1px}
+.ready-arrow{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#1a3a5c;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px}
+
+/* 依頼一覧(確認専用) */
+.plain-list{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.plain-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid #eef0f3;cursor:pointer}
+.plain-row:first-child{border-top:none}
+.plain-row:active{background:#f7f9fc}
+.plain-row.is-cancelled{cursor:default}
+.plain-row .pr-date{font-size:10px;color:#999;width:38px;flex-shrink:0}
+.plain-row .pr-main{flex:1;min-width:0}
+.plain-row .pr-name{font-size:13px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1a3a5c}
+.plain-row.is-cancelled .pr-name{text-decoration:line-through;color:#999}
+.plain-row .pr-detail{font-size:10.5px;color:#999;margin-top:1px}
+
+.status-badge{flex-shrink:0;font-size:10px;font-weight:bold;padding:3px 9px;border-radius:10px;white-space:nowrap}
 .status-badge.受付済み{background:#eef3f8;color:#1a3a5c}
 .status-badge.作業中{background:#fff3cd;color:#856404}
-.status-badge.発注可能{background:#d4edda;color:#276749}
 .status-badge.発注済み{background:#e6ecf7;color:#1a3a5c}
 .status-badge.取消済み{background:#f1e9e7;color:#9c7a72}
 
-.item-card.is-cancelled{cursor:default;opacity:.8}
-.item-card.is-cancelled .cat-name{text-decoration:line-through;color:#999}
-
-.empty-msg{text-align:center;color:#999;font-size:13px;padding:24px 0}
+.empty-msg{text-align:center;color:#999;font-size:13px;padding:20px 0}
 #load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
 
 /* 詳細ボトムシート */
@@ -75,18 +94,26 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
   <h1>📋 マイページ</h1>
   <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
 
-  <div class="section-title">発注が必要<span class="section-count" id="count-order"></span></div>
-  <div id="list-order"></div>
+  <div class="action-banner" id="action-banner">
+    <div class="ab-icon">✓</div>
+    <div>
+      <div class="ab-title" id="ab-title"></div>
+      <div class="ab-sub">タップして発注してください</div>
+    </div>
+  </div>
 
-  <div class="section-title">受付済み（進行中含む）<span class="section-count" id="count-progress"></span></div>
-  <div id="list-progress"></div>
+  <div class="section-label">完成品<span class="section-count" id="count-ready"></span></div>
+  <div id="list-ready"></div>
+
+  <div class="section-label">依頼一覧<span class="section-count" id="count-all"></span></div>
+  <div id="list-all"></div>
 
   <div id="load-error" style="display:none"></div>
 </div>
 
 </div>
 
-<!-- 詳細ボトムシート -->
+<!-- 詳細ボトムシート(依頼一覧タップ時) -->
 <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet(event)">
   <div class="sheet" onclick="event.stopPropagation()">
     <h2 id="sheet-title"></h2>
@@ -98,7 +125,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
   </div>
 </div>
 
-<!-- 発注設定ボトムシート（完成品タップ時） -->
+<!-- 発注設定ボトムシート(完成品タップ時) -->
 <div class="sheet-overlay" id="order-sheet-overlay" onclick="closeOrderSheet(event)">
   <div class="sheet" onclick="event.stopPropagation()">
     <h2 id="order-sheet-title"></h2>
@@ -158,45 +185,73 @@ function isTodayJST(isoString){
   return fmt.format(new Date(isoString)) === fmt.format(new Date());
 }
 
-function renderCard(row){
+function shortDate(ymd){
+  const m = String(ymd).match(/^\d{4}-(\d{1,2})-(\d{1,2})/);
+  return m ? `${parseInt(m[1],10)}/${parseInt(m[2],10)}` : ymd;
+}
+
+// =============================================
+// 完成品カード(発注可能・未取消)
+// =============================================
+function renderReadyCard(row){
+  return `
+    <div class="ready-card" onclick="openOrderSheet('${row.id}')">
+      <div class="ready-main">
+        <div class="rc-date">希望日 ${escapeHtml(shortDate(row.delivery_date))}</div>
+        <div class="rc-name">${escapeHtml(row.category)}</div>
+        <div class="rc-detail">${escapeHtml(sizeText(row))}　${escapeHtml(String(row.qty))}c/s</div>
+      </div>
+      <div class="ready-arrow">→</div>
+    </div>`;
+}
+
+// =============================================
+// 依頼一覧行(確認専用)
+// =============================================
+function renderListRow(row){
   const cancelled = !!row.canceled_at;
-  const dateText = `${row.delivery_date}（${row.qty}c/s）`;
-  const clickFn = (row.status === '発注可能' && !cancelled) ? `openOrderSheet('${row.id}')` : `openSheet('${row.id}')`;
   const isOrdered = row.status === '発注済み・受取待ち';
   const badgeClass = cancelled ? '取消済み' : (isOrdered ? '発注済み' : escapeHtml(row.status));
   const badgeLabel = cancelled ? '取消済み' : (isOrdered ? '発注済み' : row.status);
   return `
-    <div class="item-card${cancelled ? ' is-cancelled' : ''}" onclick="${clickFn}">
-      <div class="top-row">
-        <div>
-          <div class="cat-name">${escapeHtml(row.category)}</div>
-          <div class="size-line">${escapeHtml(sizeText(row))}　納入日：${escapeHtml(dateText)}</div>
-        </div>
-        <span class="status-badge ${badgeClass}">${escapeHtml(badgeLabel)}</span>
+    <div class="plain-row${cancelled ? ' is-cancelled' : ''}" onclick="openSheet('${row.id}')">
+      <div class="pr-date">${escapeHtml(shortDate(row.delivery_date))}</div>
+      <div class="pr-main">
+        <div class="pr-name">${escapeHtml(row.category)}</div>
+        <div class="pr-detail">${escapeHtml(sizeText(row))}　${escapeHtml(String(row.qty))}c/s</div>
       </div>
+      <span class="status-badge ${badgeClass}">${escapeHtml(badgeLabel)}</span>
     </div>`;
 }
 
 function renderList(){
-  const orderRows = myItems.filter(r => r.status === '発注可能' && !r.canceled_at);
-  const progressRows = myItems.filter(r => (r.status === '受付済み' || r.status === '作業中' || r.status === '発注済み・受取待ち') && !r.canceled_at);
-  const cancelledTodayRows = myItems.filter(r => r.canceled_at);
-  const progressListAll = [...progressRows, ...cancelledTodayRows];
+  const readyRows = myItems.filter(r => r.status === '発注可能' && !r.canceled_at);
+  const listRows = myItems
+    .filter(r => (r.status === '受付済み' || r.status === '作業中' || r.status === '発注済み・受取待ち' || r.canceled_at))
+    .sort((a,b) => a.delivery_date.localeCompare(b.delivery_date));
 
-  document.getElementById('count-order').textContent = orderRows.length ? `（${orderRows.length}件）` : '';
-  document.getElementById('count-progress').textContent = progressListAll.length ? `（${progressListAll.length}件）` : '';
+  const banner = document.getElementById('action-banner');
+  if(readyRows.length){
+    banner.classList.add('show');
+    document.getElementById('ab-title').textContent = `${readyRows.length}件の完成品があります`;
+  } else {
+    banner.classList.remove('show');
+  }
 
-  document.getElementById('list-order').innerHTML = orderRows.length
-    ? orderRows.map(renderCard).join('')
-    : '<div class="empty-msg">現在、発注が必要な依頼はありません</div>';
+  document.getElementById('count-ready').textContent = readyRows.length ? `(${readyRows.length}件)` : '';
+  document.getElementById('count-all').textContent = listRows.length ? `(${listRows.length}件)` : '';
 
-  document.getElementById('list-progress').innerHTML = progressListAll.length
-    ? progressListAll.map(renderCard).join('')
-    : '<div class="empty-msg">現在、受付済みの依頼はありません</div>';
+  document.getElementById('list-ready').innerHTML = readyRows.length
+    ? readyRows.map(renderReadyCard).join('')
+    : '<div class="empty-msg">現在、完成品はありません</div>';
+
+  document.getElementById('list-all').innerHTML = listRows.length
+    ? `<div class="plain-list">${listRows.map(renderListRow).join('')}</div>`
+    : '<div class="plain-list"><div class="empty-msg">依頼中のものはありません</div></div>';
 }
 
 // =============================================
-// 日程・数量変更欄（受付済み：日程＋数量／作業中：日程のみ、数量は管理者連絡案内）
+// 日程・数量変更欄(受付済み：日程＋数量／作業中：日程のみ、数量は管理者連絡案内)
 // 中3日ルールはこの変更には適用しない
 // =============================================
 function renderEditArea(row){
