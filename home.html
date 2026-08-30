@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>依頼管理システム</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.container{max-width:480px;margin:24px auto;padding:0 12px 90px}
+.container.admin{max-width:800px}
+h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
+
+.login-box{max-width:360px;margin:80px auto;text-align:center}
+.login-box h1{border:none;margin-bottom:20px}
+.btn-google{padding:13px 24px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-google:hover{background:#2c5282}
+#auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
+.login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:6px;margin-bottom:16px}
+
+/* 直近の依頼カード */
+.recent-card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:14px 16px;margin-bottom:14px}
+.recent-card .rc-title{font-size:11px;font-weight:bold;color:#888;margin-bottom:6px}
+.recent-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #eef0f3}
+.recent-row:first-of-type{border-top:none}
+.recent-row .rr-date{font-size:10px;color:#999}
+.recent-row .rr-name{font-size:13px;font-weight:bold;color:#1a3a5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status-pill{flex-shrink:0;font-size:10px;font-weight:bold;padding:3px 9px;border-radius:10px;white-space:nowrap}
+.status-pill.受付済み{background:#eef3f8;color:#1a3a5c}
+.status-pill.作業中{background:#fff3cd;color:#856404}
+.status-pill.発注可能{background:#d4edda;color:#276749}
+.status-pill.発注済み{background:#e6ecf7;color:#1a3a5c}
+.empty-note{text-align:center;color:#999;font-size:12px;padding:10px 0}
+
+/* CTA */
+.cta-card{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#1a3a5c;color:#fff;border-radius:12px;padding:16px 18px;margin-bottom:16px;cursor:pointer;box-shadow:0 6px 14px rgba(26,58,92,.28)}
+.cta-card .ct-title{font-size:14px;font-weight:bold}
+.cta-card .ct-sub{font-size:10.5px;opacity:.85;margin-top:2px}
+.cta-card .ct-arrow{font-size:18px}
+
+/* 作業者ランチャー */
+.launcher-card{background:linear-gradient(135deg,#1a3a5c 0%,#2c5282 100%);color:#fff;border-radius:16px;padding:20px 18px;margin-bottom:16px;cursor:pointer;box-shadow:0 8px 18px rgba(26,58,92,.3)}
+.launcher-card .lc-title{font-size:17px;font-weight:bold}
+.launcher-card .lc-sub{font-size:11px;opacity:.85;margin-top:3px}
+.launcher-card .lc-cta{margin-top:12px;display:inline-block;background:rgba(255,255,255,.2);border-radius:999px;padding:7px 16px;font-size:12px;font-weight:bold}
+
+/* ショートカット */
+.shortcuts{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:16px}
+.shortcut{background:#fff;border-radius:12px;padding:14px 8px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.08);cursor:pointer}
+.shortcut .sc-label{font-size:12px;font-weight:bold;color:#1a3a5c;margin-top:4px}
+.shortcut .sc-desc{font-size:10px;color:#999;margin-top:2px}
+.shortcut.disabled{opacity:.55}
+
+/* タブバー */
+.tabbar{position:fixed;left:0;right:0;bottom:0;display:flex;background:rgba(255,255,255,.96);border-top:1px solid #e2e6ec;padding:8px 4px 14px;max-width:480px;margin:0 auto}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;color:#999;font-size:9.5px;font-weight:bold;cursor:pointer}
+.tab.active{color:#1a3a5c}
+
+/* 管理者PCグリッド */
+.pc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.pc-stat{background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.pc-stat .num{font-size:20px;font-weight:bold;color:#1a3a5c}
+.pc-stat .lbl{font-size:11px;color:#888;margin-top:2px}
+.pc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pc-tile{background:#fff;border:1px solid #e2e6ec;border-radius:12px;padding:16px 14px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.pc-tile.disabled{opacity:.55}
+.pc-tile .name{font-size:13.5px;font-weight:bold;color:#1a3a5c}
+.pc-tile .desc{font-size:11px;color:#888;margin-top:5px;line-height:1.5}
+@media (max-width:600px){.pc-grid{grid-template-columns:repeat(2,1fr)}.pc-stats{grid-template-columns:repeat(1,1fr)}}
+</style>
+</head>
+<body>
+
+<div id="auth-loading" class="container"><div style="text-align:center;padding:60px 0;color:#666;font-size:14px">読み込み中...</div></div>
+
+<div id="auth-login" class="login-box" style="display:none">
+  <h1>🪵 依頼管理システム</h1>
+  <button class="btn-google" onclick="loginWithGoogle()">Googleでログイン</button>
+  <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#c53030"></div>
+</div>
+
+<div id="auth-denied" class="login-box" style="display:none">
+  <h1>🪵 依頼管理システム</h1>
+  <p style="font-size:14px;color:#c53030">このアカウントはまだ利用登録されていません。管理者に連絡してください。</p>
+</div>
+
+<!-- 依頼者・作業者向け -->
+<div id="app-content" class="container" style="display:none">
+  <h1>🪵 依頼管理システム</h1>
+  <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
+  <div id="role-body"></div>
+</div>
+
+<!-- 管理者向け -->
+<div id="admin-content" class="container admin" style="display:none">
+  <h1>🪵 依頼管理システム（管理者）</h1>
+  <div class="login-name-bar">ログイン中：<span id="login-name-display-admin"></span> さん</div>
+  <div id="admin-body"></div>
+</div>
+
+<div id="tabbar" class="tabbar" style="display:none"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ★同じ場所（GitHub Pages）に置く前提のURL構成
+const URLS = {
+  home: 'home.html',
+  form: 'formB_size.html',
+  mypage: 'mypage.html',
+  stock: 'stock_view.html',
+  workCalendar: 'work_calendar.html',
+  delivery: 'delivery_view.html',
+  settings: 'business_days_admin.html'
+};
+
+let currentUser = { email: '', name: '', role: '' };
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function shortDate(ymd){
+  const m = String(ymd).match(/^\d{4}-(\d{1,2})-(\d{1,2})/);
+  return m ? `${parseInt(m[1],10)}/${parseInt(m[2],10)}` : ymd;
+}
+function goto(url){ location.href = url; }
+function comingSoon(){ alert('準備中の機能です。'); }
+
+// =============================================
+// 依頼者ホーム
+// =============================================
+async function renderRequesterHome(){
+  const body = document.getElementById('role-body');
+  body.innerHTML = `
+    <div class="recent-card">
+      <div class="rc-title">直近の依頼 — 反映状況</div>
+      <div id="recent-list"><div class="empty-note">読み込み中...</div></div>
+    </div>
+    <div class="cta-card" onclick="goto(URLS.form)">
+      <div><div class="ct-title">新しい依頼を送る</div><div class="ct-sub">依頼フォームを開く</div></div>
+      <div class="ct-arrow">→</div>
+    </div>
+    <div class="shortcuts">
+      <div class="shortcut" onclick="goto(URLS.stock)"><div class="sc-label">在庫表</div><div class="sc-desc">在庫を見る</div></div>
+      <div class="shortcut disabled" onclick="comingSoon()"><div class="sc-label">依頼カレンダー</div><div class="sc-desc">準備中</div></div>
+    </div>`;
+
+  document.getElementById('tabbar').style.display = 'flex';
+  document.getElementById('tabbar').innerHTML = `
+    <div class="tab active"><span>🏠</span>ホーム</div>
+    <div class="tab" onclick="goto(URLS.form)"><span>📝</span>依頼</div>
+    <div class="tab" onclick="comingSoon()"><span>📅</span>カレンダー</div>
+    <div class="tab" onclick="goto(URLS.stock)"><span>📦</span>在庫</div>
+    <div class="tab" onclick="goto(URLS.mypage)"><span>👤</span>マイページ</div>`;
+
+  await loadRecentForRequester();
+}
+
+async function loadRecentForRequester(){
+  const { data: reqRows } = await sbClient.from('requests').select('id').eq('requester_email', currentUser.email);
+  const requestIds = (reqRows || []).map(r => r.id);
+  if(!requestIds.length){
+    document.getElementById('recent-list').innerHTML = '<div class="empty-note">まだ依頼がありません</div>';
+    return;
+  }
+  const { data: itemRows } = await sbClient.from('request_items').select('id, category').in('request_id', requestIds);
+  const itemIds = (itemRows || []).map(r => r.id);
+  const itemById = {};
+  (itemRows || []).forEach(it => { itemById[it.id] = it; });
+  if(!itemIds.length){
+    document.getElementById('recent-list').innerHTML = '<div class="empty-note">まだ依頼がありません</div>';
+    return;
+  }
+  const { data: dateRows } = await sbClient
+    .from('request_item_dates')
+    .select('id, request_item_id, delivery_date, status, canceled_at, created_at')
+    .in('request_item_id', itemIds)
+    .order('created_at', { ascending: false })
+    .limit(3);
+
+  if(!dateRows || !dateRows.length){
+    document.getElementById('recent-list').innerHTML = '<div class="empty-note">まだ依頼がありません</div>';
+    return;
+  }
+
+  document.getElementById('recent-list').innerHTML = dateRows.map(d => {
+    const parent = itemById[d.request_item_id] || {};
+    const isOrdered = d.status === '発注済み・受取待ち';
+    const label = d.canceled_at ? '取消済み' : (isOrdered ? '発注済み' : d.status);
+    const cls = d.canceled_at ? '' : (isOrdered ? '発注済み' : escapeHtml(d.status));
+    return `
+      <div class="recent-row">
+        <div>
+          <div class="rr-date">${escapeHtml(shortDate(d.delivery_date))} 送信</div>
+          <div class="rr-name">${escapeHtml(parent.category || '')}</div>
+        </div>
+        <span class="status-pill ${cls}">${escapeHtml(label)}</span>
+      </div>`;
+  }).join('');
+}
+
+// =============================================
+// 作業者ホーム
+// =============================================
+function renderWorkerHome(){
+  const body = document.getElementById('role-body');
+  body.innerHTML = `
+    <div class="launcher-card" onclick="goto(URLS.workCalendar)">
+      <div class="lc-title">🗓️ 作業カレンダー</div>
+      <div class="lc-sub">未完了の依頼を確認・進捗を更新</div>
+      <div class="lc-cta">開く →</div>
+    </div>
+    <div class="shortcuts">
+      <div class="shortcut disabled" onclick="comingSoon()"><div class="sc-label">手順書</div><div class="sc-desc">準備中</div></div>
+      <div class="shortcut" onclick="goto(URLS.stock)"><div class="sc-label">在庫表</div><div class="sc-desc">在庫を操作</div></div>
+      <div class="shortcut" onclick="goto(URLS.delivery)"><div class="sc-label">配送予定</div><div class="sc-desc">便の割り当て</div></div>
+    </div>`;
+
+  document.getElementById('tabbar').style.display = 'flex';
+  document.getElementById('tabbar').innerHTML = `
+    <div class="tab active"><span>🏠</span>ホーム</div>
+    <div class="tab" onclick="comingSoon()"><span>🔧</span>作業工程</div>
+    <div class="tab" onclick="goto(URLS.workCalendar)"><span>📅</span>カレンダー</div>
+    <div class="tab" onclick="comingSoon()"><span>📄</span>手順書</div>
+    <div class="tab" onclick="goto(URLS.stock)"><span>📦</span>在庫</div>`;
+}
+
+// =============================================
+// 管理者ホーム(PC)
+// =============================================
+function renderAdminHome(){
+  const body = document.getElementById('admin-body');
+  body.innerHTML = `
+    <div class="pc-grid">
+      <div class="pc-tile disabled" onclick="comingSoon()"><div class="name">依頼カレンダー</div><div class="desc">全依頼の一覧を確認する（準備中）</div></div>
+      <div class="pc-tile disabled" onclick="comingSoon()"><div class="name">作業工程</div><div class="desc">全依頼明細の進捗を一覧管理（準備中）</div></div>
+      <div class="pc-tile" onclick="goto(URLS.workCalendar)"><div class="name">作業カレンダー</div><div class="desc">未完成の依頼を管理する</div></div>
+      <div class="pc-tile" onclick="goto(URLS.delivery)"><div class="name">配送予定</div><div class="desc">便の割り当て・配送済み操作</div></div>
+      <div class="pc-tile disabled" onclick="comingSoon()"><div class="name">手順書</div><div class="desc">登録・修正・自動生成（準備中）</div></div>
+      <div class="pc-tile" onclick="goto(URLS.stock)"><div class="name">在庫表</div><div class="desc">最低数ライン変更を含む全操作</div></div>
+      <div class="pc-tile" onclick="goto(URLS.settings)"><div class="name">設定</div><div class="desc">営業日の例外設定</div></div>
+    </div>`;
+}
+
+async function loginWithGoogle(){
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if(error){
+    document.getElementById('auth-msg').textContent = 'ログインに失敗しました：' + error.message;
+  }
+}
+
+async function initAuth(){
+  const { data: { user } } = await sbClient.auth.getUser();
+
+  if(!user){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-login').style.display='block';
+    return;
+  }
+
+  const { data: allowRow, error: allowErr } = await sbClient
+    .from('users_allowlist')
+    .select('name, role')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  if(allowErr || !allowRow || !allowRow.name){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-denied').style.display='block';
+    return;
+  }
+
+  currentUser.email = user.email;
+  currentUser.name = allowRow.name;
+  currentUser.role = allowRow.role;
+
+  document.getElementById('auth-loading').style.display='none';
+
+  if(currentUser.role === '管理者'){
+    document.getElementById('login-name-display-admin').textContent = currentUser.name;
+    document.getElementById('admin-content').style.display = 'block';
+    renderAdminHome();
+  } else if(currentUser.role === '作業者'){
+    document.getElementById('login-name-display').textContent = currentUser.name;
+    document.getElementById('app-content').style.display = 'block';
+    renderWorkerHome();
+  } else {
+    document.getElementById('login-name-display').textContent = currentUser.name;
+    document.getElementById('app-content').style.display = 'block';
+    await renderRequesterHome();
+  }
+}
+
+initAuth();
+</script>
+</body>
+</html>
