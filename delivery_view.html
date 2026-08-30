@@ -238,16 +238,18 @@ async function markDelivered(){
 }
 
 // =============================================
-// データ取得（stock_orders + stock_items + stock_deliveries）
+// データ取得（stock_orders + stock_items + stock_deliveries + team_master）
 // 対象：mode in ('○','数量') かつ is_canceled=false
+// 共通品はteam_idに応じて班名をメタ情報に表示する
 // =============================================
 async function loadDeliveries(){
   const { data, error } = await sbClient
     .from('stock_orders')
     .select(`
-      id, mode, qty, destination, operated_by_name, is_proxy,
+      id, mode, qty, destination, operated_by_name, is_proxy, team_id,
       stock_items ( item_name, item_type, size_l, size_w, size_h, requester_name ),
-      stock_deliveries ( id, delivery_round, is_delivered )
+      stock_deliveries ( id, delivery_round, is_delivered ),
+      team_master ( team_name )
     `)
     .in('mode', ['○', '数量'])
     .eq('is_canceled', false);
@@ -264,10 +266,13 @@ async function loadDeliveries(){
     const delivery = (row.stock_deliveries && row.stock_deliveries[0]) || null;
     const sizeText = [item.size_l, item.size_w, item.size_h].filter(v=>v!=null).join('×');
     const modeText = row.mode === '数量' ? `数量${row.qty}` : '○';
+    const teamName = row.team_master ? row.team_master.team_name : null;
 
     let metaText = modeText;
     if(item.item_type === 'individual'){
       metaText += sizeText ? `　${sizeText}` : '';
+    } else if(teamName){
+      metaText += `　${teamName}`;
     }
 
     return {
@@ -278,6 +283,7 @@ async function loadDeliveries(){
       operated_by_name: row.operated_by_name,
       is_proxy: row.is_proxy,
       destination: row.destination,
+      team_name: teamName,
       delivery_id: delivery ? delivery.id : null,
       delivery_round: delivery ? delivery.delivery_round : null,
       is_delivered: delivery ? delivery.is_delivered : false
