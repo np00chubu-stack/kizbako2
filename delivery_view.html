@@ -104,6 +104,52 @@ let currentUser = { email: '', name: '', role: '' };
 let deliveryRows = [];   // 整形済みの配送予定データ
 let currentFilter = 'all';
 let currentSheetRow = null;
+let lockSettings = { end: null };
+
+async function loadLockEndTime(){
+  const { data } = await sbClient
+    .from('business_settings')
+    .select('lock_end_time')
+    .limit(1)
+    .maybeSingle();
+  lockSettings.end = data ? data.lock_end_time : null;
+}
+
+// =============================================
+// 15時解除時の一括処理：配送済み・未確定の発注を確定させる
+// 共通品は在庫を正式に減算、個人依頼品は発注時点で既に在庫反映済みのため
+// フラグのみ更新する。カラム単位の更新のみ行う。
+// =============================================
+async function performFinalization(){
+  if(!lockSettings.end) return false;
+  const now = new Date();
+  const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
+  if(nowStr < lockSettings.end) return false;
+
+  const { data: candidates, error } = await sbClient
+    .from('stock_orders')
+    .select('id, mode, qty, stock_item_id, stock_items ( item_type, stock_qty ), stock_deliveries ( is_delivered )')
+    .eq('is_canceled', false)
+    .eq('is_finalized', false);
+
+  if(error || !candidates || !candidates.length) return false;
+
+  const targets = candidates.filter(o => (o.stock_deliveries || []).some(d => d.is_delivered));
+  if(!targets.length) return false;
+
+  for(const o of targets){
+    const item = o.stock_items;
+    if(item && item.item_type === 'common'){
+      const currentStock = item.stock_qty ?? 0;
+      const deduct = o.mode === '数量' ? (o.qty || 0) : currentStock;
+      const newStock = Math.max(0, currentStock - deduct);
+      await sbClient.from('stock_items').update({ stock_qty: newStock }).eq('id', o.stock_item_id);
+    }
+    await sbClient.from('stock_orders').update({ is_finalized: true, finalized_at: new Date().toISOString() }).eq('id', o.id);
+  }
+
+  return true;
+}
 
 function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -332,6 +378,8 @@ async function initAuth(){
   document.getElementById('auth-loading').style.display='none';
   document.getElementById('app-content').style.display='block';
 
+  await loadLockEndTime();
+  await performFinalization();
   await loadDeliveries();
   subscribeRealtime();
 }
@@ -371,6 +419,12 @@ function subscribeRealtime(){
       loadDeliveries();
     }
   }, 1500);
+
+  setInterval(async () => {
+    if(isSheetOpen()) return;
+    const changed = await performFinalization();
+    if(changed) loadDeliveries();
+  }, 60000);
 }
 
 initAuth();
