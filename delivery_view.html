@@ -298,7 +298,8 @@ async function loadDeliveries(){
       team_master ( team_name )
     `)
     .in('mode', ['○', '数量'])
-    .eq('is_canceled', false);
+    .eq('is_canceled', false)
+    .eq('is_finalized', false);
 
   if(error){
     document.getElementById('load-error').style.display = 'block';
