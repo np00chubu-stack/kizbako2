@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>依頼カレンダー</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.container{max-width:1100px;margin:24px auto;padding:0 12px 80px}
+h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
+
+.login-box{max-width:360px;margin:80px auto;text-align:center}
+.login-box h1{border:none;margin-bottom:20px}
+.btn-google{padding:13px 24px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-google:hover{background:#2c5282}
+#auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
+.login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:6px;margin-bottom:14px}
+
+#load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
+.empty-note{text-align:center;color:#999;font-size:13px;padding:30px 0}
+
+/* 週ブロック */
+.week-block{margin-bottom:22px}
+.week-label{font-size:12px;font-weight:bold;color:#1a3a5c;margin-bottom:6px}
+.week-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:8px;overflow-x:auto}
+@media (max-width:760px){
+  .week-grid{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:78%}
+}
+
+.day-col{display:flex;flex-direction:column;background:#fff;border:1px solid #e2e6ec;border-radius:10px;overflow:hidden;min-height:120px}
+.day-head{display:flex;align-items:baseline;justify-content:space-between;padding:8px 9px 6px;border-bottom:1px solid #e2e6ec;background:#f7f9fc}
+.day-head .dh-date{font-size:14px;font-weight:bold;color:#1a3a5c}
+.day-head .dh-dow{font-size:10px;color:#888;margin-left:3px}
+.day-head .dh-total{font-size:10px;font-weight:bold;color:#1a3a5c;background:#e6ecf7;padding:2px 7px;border-radius:999px;white-space:nowrap}
+.day-head .dh-total.zero{background:#f0f0f0;color:#aaa}
+.day-body{padding:7px;display:flex;flex-direction:column;gap:5px;max-height:280px;overflow-y:auto}
+.day-empty{font-size:10px;color:#bbb;text-align:center;padding:10px 4px}
+
+.req-card{background:#fff;border:1px solid #e2e6ec;border-radius:8px;padding:6px 8px 5px}
+.req-card.is-cancelled{opacity:.55}
+.req-card.is-cancelled .rq-name,.req-card.is-cancelled .rq-size{text-decoration:line-through}
+
+.rq-line{display:flex;align-items:baseline;gap:5px;overflow:hidden}
+.rq-name{font-size:11px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.rq-size{font-size:9.5px;color:#888;white-space:nowrap;flex-shrink:0}
+.rq-row{display:flex;align-items:center;justify-content:space-between;margin-top:3px}
+.rq-qty{font-weight:bold;font-size:10.5px;color:#1a3a5c;background:#e6ecf7;padding:1px 7px;border-radius:999px}
+.rq-requester{font-size:9px;color:#999}
+
+/* 土曜帯 */
+.sat-strip{margin-top:6px}
+.sat-day{max-width:220px;background:#e6ecf7;border:1.4px dashed #1a3a5c;border-radius:10px;overflow:hidden}
+.sat-day .day-head{background:#1a3a5c;color:#fff}
+.sat-day .day-head .dh-dow{color:rgba(255,255,255,.75)}
+.sat-day .day-head .dh-total{background:rgba(255,255,255,.25);color:#fff}
+.sat-flag{font-size:9.5px;font-weight:bold;color:#1a3a5c;padding:5px 9px 0}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div id="auth-loading">読み込み中...</div>
+
+<div id="auth-login" class="login-box" style="display:none">
+  <h1>📅 依頼カレンダー</h1>
+  <button class="btn-google" onclick="loginWithGoogle()">Googleでログイン</button>
+  <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#c53030"></div>
+</div>
+
+<div id="auth-denied" class="login-box" style="display:none">
+  <h1>📅 依頼カレンダー</h1>
+  <p style="font-size:14px;color:#c53030">このアカウントはまだ利用登録されていません。管理者に連絡してください。</p>
+</div>
+
+<div id="app-content" style="display:none">
+  <h1>📅 依頼カレンダー</h1>
+  <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
+
+  <div id="calendar-content"></div>
+  <div id="load-error" style="display:none"></div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = { email: '', name: '', role: '' };
+let weeks = [];
+let rawItems = [];
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// =============================================
+// JST基準の日付ユーティリティ
+// =============================================
+function getJSTDateStr(d){
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit' });
+  return fmt.format(d);
+}
+function ymdToDate(ymd){
+  const [y,m,d] = ymd.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+function dateToYmd(d){
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function addDays(d, n){
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()+n);
+}
+function dowLabel(d){
+  return ['日','月','火','水','木','金','土'][d.getDay()];
+}
+function formatMD(d){
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+function getThisMondayJST(){
+  const todayStr = getJSTDateStr(new Date());
+  const today = ymdToDate(todayStr);
+  const dow = today.getDay();
+  const diff = (dow === 0) ? -6 : (1 - dow);
+  return addDays(today, diff);
+}
+function endOfMonth(d){
+  return new Date(d.getFullYear(), d.getMonth()+1, 0);
+}
+
+// =============================================
+// 1年より前の依頼日データをアーカイブへ移動（開くたびに実行。対象が無ければ何もしない）
+// =============================================
+async function runArchive(){
+  try{
+    await sbClient.rpc('archive_old_request_item_dates');
+  } catch(e){
+    console.log('archive rpc error', e);
+  }
+}
+
+// =============================================
+// データ読み込み（全ロール閲覧可・取消含めすべて表示）
+// =============================================
+async function loadCalendarItems(){
+  const monday = getThisMondayJST();
+  const mondayStr = dateToYmd(monday);
+
+  const { data, error } = await sbClient
+    .from('request_item_dates')
+    .select(`
+      id, delivery_date, qty, status, canceled_at,
+      request_items ( id, client_name, category, size_l, size_w, size_h, requests ( requester_name ) )
+    `)
+    .gte('delivery_date', mondayStr)
+    .order('delivery_date', { ascending: true });
+
+  if(error){
+    document.getElementById('load-error').style.display = 'block';
+    document.getElementById('load-error').textContent = '依頼データの取得に失敗しました：' + error.message;
+    return;
+  }
+  document.getElementById('load-error').style.display = 'none';
+
+  rawItems = (data || []).map(row => {
+    const item = row.request_items || {};
+    const req = item.requests || {};
+    return {
+      id: row.id,
+      delivery_date: row.delivery_date,
+      qty: row.qty,
+      status: row.status,
+      canceled_at: row.canceled_at,
+      client_name: item.client_name || '',
+      category: item.category || '',
+      sizeText: [item.size_l, item.size_w, item.size_h].filter(v=>v!=null).join('×'),
+      requester_name: req.requester_name || ''
+    };
+  });
+
+  let finalEnd = endOfMonth(addDays(endOfMonth(monday), 1));
+  rawItems.forEach(it => {
+    const d = ymdToDate(it.delivery_date);
+    if(d > finalEnd) finalEnd = d;
+  });
+  const finalEndStr = dateToYmd(finalEnd);
+
+  const { data: exRows } = await sbClient
+    .from('business_day_exceptions')
+    .select('exception_date, is_business_day')
+    .gte('exception_date', mondayStr)
+    .lte('exception_date', finalEndStr)
+    .eq('is_business_day', true);
+
+  const satExceptionSet = new Set((exRows || [])
+    .filter(r => ymdToDate(r.exception_date).getDay() === 6)
+    .map(r => r.exception_date));
+
+  buildWeeks(monday, finalEnd, satExceptionSet);
+  render();
+}
+
+// =============================================
+// 週データの構築
+// =============================================
+function buildWeeks(monday, finalEnd, satExceptionSet){
+  weeks = [];
+  let cur = monday;
+  while(cur <= finalEnd){
+    const days = [];
+    for(let i=0;i<5;i++){
+      const d = addDays(cur, i);
+      const ymd = dateToYmd(d);
+      days.push({
+        dateStr: formatMD(d),
+        dow: dowLabel(d),
+        ymd,
+        items: rawItems.filter(it => it.delivery_date === ymd)
+      });
+    }
+    const satDate = addDays(cur, 5);
+    const satYmd = dateToYmd(satDate);
+    let saturday = null;
+    if(satExceptionSet.has(satYmd)){
+      saturday = {
+        dateStr: formatMD(satDate),
+        dow: '土',
+        ymd: satYmd,
+        items: rawItems.filter(it => it.delivery_date === satYmd)
+      };
+    }
+    weeks.push({ weekLabel: `${formatMD(cur)}週`, days, saturday });
+    cur = addDays(cur, 7);
+  }
+}
+
+function totalOf(items){
+  return items.filter(it => !it.canceled_at).reduce((sum, it) => sum + (it.qty || 0), 0);
+}
+
+function reqCardHtml(it){
+  const cancelledClass = it.canceled_at ? 'is-cancelled' : '';
+  const nameLine = it.client_name ? `${it.client_name}　${it.category}` : it.category;
+  return `
+    <div class="req-card ${cancelledClass}">
+      <div class="rq-line"><span class="rq-name">${escapeHtml(nameLine)}</span><span class="rq-size">${escapeHtml(it.sizeText)}</span></div>
+      <div class="rq-row">
+        <span class="rq-qty">${it.qty}</span>
+        <span class="rq-requester">${escapeHtml(it.requester_name)}</span>
+      </div>
+    </div>`;
+}
+
+function dayColHtml(day){
+  const total = totalOf(day.items);
+  const body = day.items.length ? day.items.map(reqCardHtml).join('') : `<div class="day-empty">依頼なし</div>`;
+  return `
+    <div class="day-col">
+      <div class="day-head">
+        <div><span class="dh-date">${day.dateStr}</span><span class="dh-dow">${day.dow}</span></div>
+        <span class="dh-total ${total===0?'zero':''}">計 ${total}</span>
+      </div>
+      <div class="day-body">${body}</div>
+    </div>`;
+}
+
+function satStripHtml(saturday){
+  if(!saturday) return '';
+  const total = totalOf(saturday.items);
+  const body = saturday.items.length ? saturday.items.map(reqCardHtml).join('') : `<div class="day-empty">依頼なし</div>`;
+  return `
+    <div class="sat-strip">
+      <div class="sat-day">
+        <div class="sat-flag">臨時出勤日</div>
+        <div class="day-head">
+          <div><span class="dh-date">${saturday.dateStr}</span><span class="dh-dow">${saturday.dow}</span></div>
+          <span class="dh-total">計 ${total}</span>
+        </div>
+        <div class="day-body">${body}</div>
+      </div>
+    </div>`;
+}
+
+function render(){
+  const el = document.getElementById('calendar-content');
+  if(!weeks.length){
+    el.innerHTML = '<div class="empty-note">表示できる依頼がありません</div>';
+    return;
+  }
+  el.innerHTML = weeks.map(w => `
+    <div class="week-block">
+      <div class="week-label">${w.weekLabel}</div>
+      <div class="week-grid">${w.days.map(dayColHtml).join('')}</div>
+      ${satStripHtml(w.saturday)}
+    </div>
+  `).join('');
+}
+
+// =============================================
+// 認証（全ロール閲覧可）
+// =============================================
+async function loginWithGoogle(){
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if(error){
+    document.getElementById('auth-msg').textContent = 'ログインに失敗しました：' + error.message;
+  }
+}
+
+async function initAuth(){
+  const { data: { user } } = await sbClient.auth.getUser();
+
+  if(!user){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-login').style.display='block';
+    return;
+  }
+
+  const { data: allowRow, error: allowErr } = await sbClient
+    .from('users_allowlist')
+    .select('name, role')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  if(allowErr || !allowRow || !allowRow.name){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-denied').style.display='block';
+    return;
+  }
+
+  currentUser.email = user.email;
+  currentUser.name = allowRow.name;
+  currentUser.role = allowRow.role;
+
+  document.getElementById('login-name-display').textContent = currentUser.name;
+  document.getElementById('auth-loading').style.display='none';
+  document.getElementById('app-content').style.display='block';
+
+  await runArchive();
+  await loadCalendarItems();
+  subscribeRealtime();
+}
+
+// =============================================
+// Realtime購読
+// =============================================
+function subscribeRealtime(){
+  sbClient
+    .channel('request_calendar_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'request_item_dates' }, loadCalendarItems)
+    .subscribe();
+}
+
+initAuth();
+</script>
+</body>
+</html>
