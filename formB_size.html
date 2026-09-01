@@ -185,6 +185,31 @@ const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '' }; // ログイン中のユーザー情報
 
+// 中3日ルール：JST基準で「今日+3日」を返す（急ぎでない場合の最短納入日）
+function minAllowedDateStr(){
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit' });
+  const parts = fmt.formatToParts(new Date());
+  const y = parseInt(parts.find(p=>p.type==='year').value,10);
+  const m = parseInt(parts.find(p=>p.type==='month').value,10);
+  const d = parseInt(parts.find(p=>p.type==='day').value,10);
+  const dt = new Date(y, m-1, d);
+  dt.setDate(dt.getDate()+3);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth()+1).padStart(2,'0');
+  const dd = String(dt.getDate()).padStart(2,'0');
+  return `${yy}-${mm}-${dd}`;
+}
+
+// 急ぎチェックボックスの状態に応じて、その品目の日付欄すべてのmin属性を更新する
+function applyDateMinForItem(id){
+  const urgentEl = document.getElementById(`urgent-${id}`);
+  const urgent = urgentEl ? urgentEl.checked : false;
+  const min = urgent ? '' : minAllowedDateStr();
+  const container = document.getElementById(`dates-${id}`);
+  if(!container) return;
+  container.querySelectorAll('.date-input').forEach(inp=>{ inp.min = min; });
+}
+
 let CLIENTS = []; // 客先名一覧（起動時にSupabaseの最新データで上書きされる。読み込み完了までは空扱い）
 
 // ★工機カテゴリのサブカテゴリ・サイズは今回からSupabase（size_master）から取得する
@@ -355,7 +380,7 @@ function addItem(data){
     </div>
     <div class="form-group">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-        <input type="checkbox" id="urgent-${id}" style="width:auto">急ぎ（当日納入も可）
+        <input type="checkbox" id="urgent-${id}" style="width:auto" onchange="applyDateMinForItem(${id})">急ぎ（当日納入も可）
       </label>
     </div>
     <div class="form-group">
@@ -373,6 +398,7 @@ function addItem(data){
   document.getElementById('items-container').appendChild(div);
   updateDaimokuStyle(id);
   refreshBikoTargetOptions();
+  applyDateMinForItem(id);
 }
 
 function removeItem(id){ const el=document.getElementById(`item-${id}`); if(el)el.remove(); delete pendingSizeCarry[id]; refreshBikoTargetOptions(); }
@@ -399,6 +425,7 @@ function addDateRow(id){
     <div style="padding-bottom:2px"><button onclick="this.closest('.date-row').remove()" style="background:none;border:none;color:#999;font-size:18px;cursor:pointer;padding:4px">×</button></div>
   `;
   container.appendChild(row);
+  applyDateMinForItem(id);
 }
 
 // 候補なし検索から来た場合、サイズ一覧プルダウンを出さずに自由入力欄（引き継ぎ済み）を直接表示する
@@ -773,7 +800,6 @@ function parseSizeLWH(str){
 
 async function submitForm(){
   const btn=document.getElementById('btn-send');
-  btn.disabled=true; btn.textContent='送信中...';
 
   const requester=document.getElementById('c-requester').value;
   const note=document.getElementById('c-note').value;
@@ -795,6 +821,20 @@ async function submitForm(){
     const isNew = (window._confirmItems && window._confirmItems[i]) ? window._confirmItems[i].isNew : false;
     items.push({client, cat, size, daimoku, urgent, dates, isNew});
   }
+
+  const minDate = minAllowedDateStr();
+  for(const it of items){
+    if(it.urgent) continue;
+    for(const d of it.dates){
+      if(d.date && d.date < minDate){
+        document.getElementById('msg2').className='err';
+        document.getElementById('msg2').textContent=`❌ 納入日は中3日ルールにより${minDate}以降を指定してください（急ぎの場合は急ぎフラグをONにしてください）`;
+        return;
+      }
+    }
+  }
+
+  btn.disabled=true; btn.textContent='送信中...';
 
   try{
     const { data: reqRow, error: reqErr } = await sbClient
