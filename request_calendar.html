@@ -136,6 +136,17 @@ function formatMD(d){
 }
 
 // =============================================
+// 1年より前の依頼日データをアーカイブへ移動（ログイン時に1回だけ実行。対象が無ければ何もしない）
+// =============================================
+async function runArchive(){
+  try{
+    await sbClient.rpc('archive_old_request_item_dates');
+  } catch(e){
+    console.log('archive rpc error', e);
+  }
+}
+
+// =============================================
 // 月移動
 // =============================================
 function changeMonth(delta){
@@ -361,6 +372,7 @@ async function initAuth(){
   viewYear = today.getFullYear();
   viewMonth = today.getMonth() + 1;
 
+  await runArchive();
   await loadCalendarItems();
   subscribeRealtime();
 }
