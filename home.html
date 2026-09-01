@@ -113,6 +113,7 @@ const URLS = {
   mypage: 'mypage.html',
   stock: 'stock_view.html',
   workCalendar: 'work_calendar.html',
+  requestCalendar: 'request_calendar.html',
   delivery: 'delivery_view.html',
   settings: 'business_days_admin.html'
 };
@@ -145,14 +146,14 @@ async function renderRequesterHome(){
     </div>
     <div class="shortcuts">
       <div class="shortcut" onclick="goto(URLS.stock)"><div class="sc-label">在庫表</div><div class="sc-desc">在庫を見る</div></div>
-      <div class="shortcut disabled" onclick="comingSoon()"><div class="sc-label">依頼カレンダー</div><div class="sc-desc">準備中</div></div>
+      <div class="shortcut" onclick="goto(URLS.requestCalendar)"><div class="sc-label">依頼カレンダー</div><div class="sc-desc">依頼を一覧で確認</div></div>
     </div>`;
 
   document.getElementById('tabbar').style.display = 'flex';
   document.getElementById('tabbar').innerHTML = `
     <div class="tab active"><span>🏠</span>ホーム</div>
     <div class="tab" onclick="goto(URLS.form)"><span>📝</span>依頼</div>
-    <div class="tab" onclick="comingSoon()"><span>📅</span>カレンダー</div>
+    <div class="tab" onclick="goto(URLS.requestCalendar)"><span>📅</span>カレンダー</div>
     <div class="tab" onclick="goto(URLS.stock)"><span>📦</span>在庫</div>
     <div class="tab" onclick="goto(URLS.mypage)"><span>👤</span>マイページ</div>`;
 
@@ -235,7 +236,7 @@ function renderAdminHome(){
   const body = document.getElementById('admin-body');
   body.innerHTML = `
     <div class="pc-grid">
-      <div class="pc-tile disabled" onclick="comingSoon()"><div class="name">依頼カレンダー</div><div class="desc">全依頼の一覧を確認する（準備中）</div></div>
+      <div class="pc-tile" onclick="goto(URLS.requestCalendar)"><div class="name">依頼カレンダー</div><div class="desc">全依頼の一覧を確認する</div></div>
       <div class="pc-tile disabled" onclick="comingSoon()"><div class="name">作業工程</div><div class="desc">全依頼明細の進捗を一覧管理（準備中）</div></div>
       <div class="pc-tile" onclick="goto(URLS.workCalendar)"><div class="name">作業カレンダー</div><div class="desc">未完成の依頼を管理する</div></div>
       <div class="pc-tile" onclick="goto(URLS.delivery)"><div class="name">配送予定</div><div class="desc">便の割り当て・配送済み操作</div></div>
