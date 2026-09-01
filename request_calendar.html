@@ -20,15 +20,21 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 #load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
 .empty-note{text-align:center;color:#999;font-size:13px;padding:30px 0}
 
-/* 週ブロック */
-.week-block{margin-bottom:22px}
-.week-label{font-size:12px;font-weight:bold;color:#1a3a5c;margin-bottom:6px}
+/* 月切替バー */
+.month-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px}
+.month-nav button{appearance:none;border:1px solid #1a3a5c;background:#fff;color:#1a3a5c;border-radius:8px;width:44px;height:44px;font-size:18px;font-weight:bold;cursor:pointer;flex-shrink:0}
+.month-nav button:active{background:#eef3f8}
+.month-nav .month-label{font-size:16px;font-weight:bold;color:#1a3a5c;min-width:120px;text-align:center}
+
+/* 週ブロック（ラベルなし・区切り余白のみ） */
+.week-block{margin-bottom:14px}
 .week-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:8px;overflow-x:auto}
 @media (max-width:760px){
   .week-grid{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:78%}
 }
 
 .day-col{display:flex;flex-direction:column;background:#fff;border:1px solid #e2e6ec;border-radius:10px;overflow:hidden;min-height:120px}
+.day-col.out-of-month{background:#f7f7f8;opacity:.55}
 .day-head{display:flex;align-items:baseline;justify-content:space-between;padding:8px 9px 6px;border-bottom:1px solid #e2e6ec;background:#f7f9fc}
 .day-head .dh-date{font-size:14px;font-weight:bold;color:#1a3a5c}
 .day-head .dh-dow{font-size:10px;color:#888;margin-left:3px}
@@ -77,6 +83,12 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
   <h1>📅 依頼カレンダー</h1>
   <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
 
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">◀</button>
+    <span class="month-label" id="month-label"></span>
+    <button onclick="changeMonth(1)">▶</button>
+  </div>
+
   <div id="calendar-content"></div>
   <div id="load-error" style="display:none"></div>
 </div>
@@ -92,6 +104,7 @@ const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = { email: '', name: '', role: '' };
 let weeks = [];
 let rawItems = [];
+let viewYear, viewMonth; // viewMonth: 1-12
 
 function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -121,34 +134,42 @@ function dowLabel(d){
 function formatMD(d){
   return `${d.getMonth()+1}/${d.getDate()}`;
 }
-function getThisMondayJST(){
-  const todayStr = getJSTDateStr(new Date());
-  const today = ymdToDate(todayStr);
-  const dow = today.getDay();
-  const diff = (dow === 0) ? -6 : (1 - dow);
-  return addDays(today, diff);
-}
-function endOfMonth(d){
-  return new Date(d.getFullYear(), d.getMonth()+1, 0);
-}
 
 // =============================================
-// 1年より前の依頼日データをアーカイブへ移動（開くたびに実行。対象が無ければ何もしない）
+// 月移動
 // =============================================
-async function runArchive(){
-  try{
-    await sbClient.rpc('archive_old_request_item_dates');
-  } catch(e){
-    console.log('archive rpc error', e);
-  }
+function changeMonth(delta){
+  viewMonth += delta;
+  if(viewMonth > 12){ viewMonth = 1; viewYear++; }
+  if(viewMonth < 1){ viewMonth = 12; viewYear--; }
+  loadCalendarItems();
+}
+
+// 指定月の1日を含む週の月曜、末日を含む週の金曜を返す
+function getMonthDisplayRange(year, month){
+  const firstDay = new Date(year, month-1, 1);
+  const lastDay = new Date(year, month, 0);
+
+  const firstDow = firstDay.getDay();
+  const startDiff = (firstDow === 0) ? -6 : (1 - firstDow);
+  const rangeStart = addDays(firstDay, startDiff);
+
+  const lastDow = lastDay.getDay();
+  const endDiff = (lastDow === 0) ? -2 : (5 - lastDow); // 直近の金曜まで進める（土日なら金曜側に寄せる）
+  const rangeEnd = addDays(lastDay, endDiff >= 0 ? endDiff : endDiff);
+
+  return { rangeStart, rangeEnd, firstDay, lastDay };
 }
 
 // =============================================
 // データ読み込み（全ロール閲覧可・取消含めすべて表示）
 // =============================================
 async function loadCalendarItems(){
-  const monday = getThisMondayJST();
-  const mondayStr = dateToYmd(monday);
+  document.getElementById('month-label').textContent = `${viewYear}年${viewMonth}月`;
+
+  const { rangeStart, rangeEnd } = getMonthDisplayRange(viewYear, viewMonth);
+  const rangeStartStr = dateToYmd(rangeStart);
+  const rangeEndStr = dateToYmd(rangeEnd);
 
   const { data, error } = await sbClient
     .from('request_item_dates')
@@ -156,7 +177,8 @@ async function loadCalendarItems(){
       id, delivery_date, qty, status, canceled_at,
       request_items ( id, client_name, category, size_l, size_w, size_h, requests ( requester_name ) )
     `)
-    .gte('delivery_date', mondayStr)
+    .gte('delivery_date', rangeStartStr)
+    .lte('delivery_date', rangeEndStr)
     .order('delivery_date', { ascending: true });
 
   if(error){
@@ -182,35 +204,28 @@ async function loadCalendarItems(){
     };
   });
 
-  let finalEnd = endOfMonth(addDays(endOfMonth(monday), 1));
-  rawItems.forEach(it => {
-    const d = ymdToDate(it.delivery_date);
-    if(d > finalEnd) finalEnd = d;
-  });
-  const finalEndStr = dateToYmd(finalEnd);
-
   const { data: exRows } = await sbClient
     .from('business_day_exceptions')
     .select('exception_date, is_business_day')
-    .gte('exception_date', mondayStr)
-    .lte('exception_date', finalEndStr)
+    .gte('exception_date', rangeStartStr)
+    .lte('exception_date', rangeEndStr)
     .eq('is_business_day', true);
 
   const satExceptionSet = new Set((exRows || [])
     .filter(r => ymdToDate(r.exception_date).getDay() === 6)
     .map(r => r.exception_date));
 
-  buildWeeks(monday, finalEnd, satExceptionSet);
+  buildWeeks(rangeStart, rangeEnd, satExceptionSet);
   render();
 }
 
 // =============================================
-// 週データの構築
+// 週データの構築（月外の日はout_of_monthフラグを付けて薄く表示）
 // =============================================
-function buildWeeks(monday, finalEnd, satExceptionSet){
+function buildWeeks(rangeStart, rangeEnd, satExceptionSet){
   weeks = [];
-  let cur = monday;
-  while(cur <= finalEnd){
+  let cur = rangeStart;
+  while(cur <= rangeEnd){
     const days = [];
     for(let i=0;i<5;i++){
       const d = addDays(cur, i);
@@ -219,6 +234,7 @@ function buildWeeks(monday, finalEnd, satExceptionSet){
         dateStr: formatMD(d),
         dow: dowLabel(d),
         ymd,
+        outOfMonth: (d.getMonth()+1) !== viewMonth,
         items: rawItems.filter(it => it.delivery_date === ymd)
       });
     }
@@ -233,7 +249,7 @@ function buildWeeks(monday, finalEnd, satExceptionSet){
         items: rawItems.filter(it => it.delivery_date === satYmd)
       };
     }
-    weeks.push({ weekLabel: `${formatMD(cur)}週`, days, saturday });
+    weeks.push({ days, saturday });
     cur = addDays(cur, 7);
   }
 }
@@ -259,7 +275,7 @@ function dayColHtml(day){
   const total = totalOf(day.items);
   const body = day.items.length ? day.items.map(reqCardHtml).join('') : `<div class="day-empty">依頼なし</div>`;
   return `
-    <div class="day-col">
+    <div class="day-col ${day.outOfMonth ? 'out-of-month' : ''}">
       <div class="day-head">
         <div><span class="dh-date">${day.dateStr}</span><span class="dh-dow">${day.dow}</span></div>
         <span class="dh-total ${total===0?'zero':''}">計 ${total}</span>
@@ -293,7 +309,6 @@ function render(){
   }
   el.innerHTML = weeks.map(w => `
     <div class="week-block">
-      <div class="week-label">${w.weekLabel}</div>
       <div class="week-grid">${w.days.map(dayColHtml).join('')}</div>
       ${satStripHtml(w.saturday)}
     </div>
@@ -342,7 +357,10 @@ async function initAuth(){
   document.getElementById('auth-loading').style.display='none';
   document.getElementById('app-content').style.display='block';
 
-  await runArchive();
+  const today = new Date();
+  viewYear = today.getFullYear();
+  viewMonth = today.getMonth() + 1;
+
   await loadCalendarItems();
   subscribeRealtime();
 }
