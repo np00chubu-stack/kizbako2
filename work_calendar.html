@@ -34,7 +34,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .week-block{margin-bottom:22px}
 .week-label{font-size:12px;font-weight:bold;color:#1a3a5c;margin-bottom:6px}
 .week-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:8px;overflow-x:auto}
-@media (max-width:760px){
+@media (max-width:900px){
   .week-grid{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:78%}
 }
 
@@ -56,10 +56,10 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .req-card.is-cancelled{opacity:.55}
 .req-card.is-cancelled .rq-name,.req-card.is-cancelled .rq-size{text-decoration:line-through}
 
-.rq-line{display:flex;align-items:baseline;gap:5px;overflow:hidden}
-.rq-name{font-size:11px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.rq-line{display:flex;align-items:flex-start;gap:5px}
+.rq-name{font-size:11px;font-weight:bold;white-space:normal;word-break:break-word;min-width:0}
 .urgent-tag{font-size:8px;font-weight:bold;color:#fff;background:#c4531f;padding:1.5px 5.5px;border-radius:999px;margin-left:4px}
-.rq-size{font-size:9.5px;color:#888;white-space:nowrap;flex-shrink:0}
+.rq-size{font-size:9.5px;color:#888;white-space:nowrap;flex-shrink:0;margin-top:1px}
 .rq-row{display:flex;align-items:center;justify-content:space-between;margin-top:3px}
 .rq-qty{font-weight:bold;font-size:10.5px;color:#1a3a5c;background:#e6ecf7;padding:1px 7px;border-radius:999px}
 .rq-requester{font-size:9px;color:#999}
