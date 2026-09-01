@@ -50,6 +50,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .rq-row{display:flex;align-items:center;justify-content:space-between;margin-top:3px}
 .rq-qty{font-weight:bold;font-size:10.5px;color:#1a3a5c;background:#e6ecf7;padding:1px 7px;border-radius:999px}
 .rq-requester{font-size:9px;color:#999}
+.urgent-tag{font-size:8px;font-weight:bold;color:#fff;background:#c4531f;padding:1.5px 5.5px;border-radius:999px;margin-left:4px}
 
 /* 土曜帯 */
 .sat-strip{margin-top:6px}
@@ -183,7 +184,7 @@ async function loadCalendarItems(){
     .from('request_item_dates')
     .select(`
       id, delivery_date, qty, status, canceled_at,
-      request_items ( id, client_name, category, size_l, size_w, size_h, requests ( requester_name ) )
+      request_items ( id, client_name, category, size_l, size_w, size_h, is_urgent, requests ( requester_name ) )
     `)
     .gte('delivery_date', rangeStartStr)
     .lte('delivery_date', rangeEndStr)
@@ -207,6 +208,7 @@ async function loadCalendarItems(){
       canceled_at: row.canceled_at,
       client_name: item.client_name || '',
       category: item.category || '',
+      is_urgent: !!item.is_urgent,
       sizeText: [item.size_l, item.size_w, item.size_h].filter(v=>v!=null).join('×'),
       requester_name: req.requester_name || ''
     };
@@ -269,9 +271,10 @@ function totalOf(items){
 function reqCardHtml(it){
   const cancelledClass = it.canceled_at ? 'is-cancelled' : '';
   const nameLine = it.client_name ? `${it.client_name}　${it.category}` : it.category;
+  const urgentTag = it.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
   return `
     <div class="req-card ${cancelledClass}">
-      <div class="rq-line"><span class="rq-name">${escapeHtml(nameLine)}</span><span class="rq-size">${escapeHtml(it.sizeText)}</span></div>
+      <div class="rq-line"><span class="rq-name">${escapeHtml(nameLine)}${urgentTag}</span><span class="rq-size">${escapeHtml(it.sizeText)}</span></div>
       <div class="rq-row">
         <span class="rq-qty">${it.qty}</span>
         <span class="rq-requester">${escapeHtml(it.requester_name)}</span>
