@@ -46,6 +46,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .plain-row .pr-main{flex:1;min-width:0}
 .plain-row .pr-name{font-size:13px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1a3a5c}
 .plain-row.is-cancelled .pr-name{text-decoration:line-through;color:#999}
+.urgent-tag{font-size:8px;font-weight:bold;color:#fff;background:#c4531f;padding:1.5px 5.5px;border-radius:999px;margin-left:4px}
 .plain-row .pr-detail{font-size:10.5px;color:#999;margin-top:1px}
 
 .status-badge{flex-shrink:0;font-size:10px;font-weight:bold;padding:3px 9px;border-radius:10px;white-space:nowrap}
@@ -194,11 +195,12 @@ function shortDate(ymd){
 // 完成品カード(発注可能・未取消)
 // =============================================
 function renderReadyCard(row){
+  const urgentTag = row.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
   return `
     <div class="ready-card" onclick="openOrderSheet('${row.id}')">
       <div class="ready-main">
         <div class="rc-date">希望日 ${escapeHtml(shortDate(row.delivery_date))}</div>
-        <div class="rc-name">${escapeHtml(row.category)}</div>
+        <div class="rc-name">${escapeHtml(row.category)}${urgentTag}</div>
         <div class="rc-detail">${escapeHtml(sizeText(row))}　${escapeHtml(String(row.qty))}c/s</div>
       </div>
       <div class="ready-arrow">→</div>
@@ -213,11 +215,12 @@ function renderListRow(row){
   const isOrdered = row.status === '発注済み・受取待ち';
   const badgeClass = cancelled ? '取消済み' : (isOrdered ? '発注済み' : escapeHtml(row.status));
   const badgeLabel = cancelled ? '取消済み' : (isOrdered ? '発注済み' : row.status);
+  const urgentTag = row.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
   return `
     <div class="plain-row${cancelled ? ' is-cancelled' : ''}" onclick="openSheet('${row.id}')">
       <div class="pr-date">${escapeHtml(shortDate(row.delivery_date))}</div>
       <div class="pr-main">
-        <div class="pr-name">${escapeHtml(row.category)}</div>
+        <div class="pr-name">${escapeHtml(row.category)}${urgentTag}</div>
         <div class="pr-detail">${escapeHtml(sizeText(row))}　${escapeHtml(String(row.qty))}c/s</div>
       </div>
       <span class="status-badge ${badgeClass}">${escapeHtml(badgeLabel)}</span>
@@ -523,7 +526,7 @@ async function loadMyItems(){
 
   const { data: dateRows, error: dateErr } = await sbClient
     .from('request_item_dates')
-    .select('id, request_item_id, delivery_date, qty, status, canceled_at')
+    .select('id, request_item_id, delivery_date, qty, status, canceled_at, is_urgent')
     .in('request_item_id', itemIds)
     .order('delivery_date', { ascending: true });
 
@@ -552,6 +555,7 @@ async function loadMyItems(){
         qty: d.qty,
         status: d.status,
         canceled_at: d.canceled_at,
+        is_urgent: d.is_urgent,
         client_name: parent.client_name,
         category: parent.category,
         size_l: parent.size_l,
