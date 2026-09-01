@@ -58,6 +58,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 
 .rq-line{display:flex;align-items:baseline;gap:5px;overflow:hidden}
 .rq-name{font-size:11px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.urgent-tag{font-size:8px;font-weight:bold;color:#fff;background:#c4531f;padding:1.5px 5.5px;border-radius:999px;margin-left:4px}
 .rq-size{font-size:9.5px;color:#888;white-space:nowrap;flex-shrink:0}
 .rq-row{display:flex;align-items:center;justify-content:space-between;margin-top:3px}
 .rq-qty{font-weight:bold;font-size:10.5px;color:#1a3a5c;background:#e6ecf7;padding:1px 7px;border-radius:999px}
@@ -251,7 +252,7 @@ async function loadCalendarItems(){
       stage2_done, stage2_done_by, stage2_done_at,
       completed, completed_by, completed_at,
       reflected_to_stock, grace_ends_at,
-      request_items ( id, category, size_l, size_w, size_h, request_id, requests ( requester_name ) )
+      request_items ( id, category, size_l, size_w, size_h, is_urgent, request_id, requests ( requester_name ) )
     `)
     .gte('delivery_date', mondayStr)
     .order('delivery_date', { ascending: true });
@@ -279,6 +280,7 @@ async function loadCalendarItems(){
       reflected_to_stock: row.reflected_to_stock,
       grace_ends_at: row.grace_ends_at,
       category: item.category || '',
+      is_urgent: !!item.is_urgent,
       sizeText: [item.size_l, item.size_w, item.size_h].filter(v=>v!=null).join('×'),
       requester_name: req.requester_name || ''
     };
@@ -391,9 +393,10 @@ function totalOf(items){
 function reqCardHtml(it){
   const stageClass = computeStageClass(it);
   const cancelledClass = it.canceled_at ? 'is-cancelled' : '';
+  const urgentTag = it.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
   return `
     <div class="req-card ${stageClass} ${cancelledClass}" data-item="${it.id}">
-      <div class="rq-line"><span class="rq-name">${escapeHtml(it.category)}</span><span class="rq-size">${escapeHtml(it.sizeText)}</span></div>
+      <div class="rq-line"><span class="rq-name">${escapeHtml(it.category)}${urgentTag}</span><span class="rq-size">${escapeHtml(it.sizeText)}</span></div>
       <div class="rq-row">
         <span class="rq-qty">${it.qty}</span>
         <span class="rq-requester">${escapeHtml(it.requester_name)}</span>
