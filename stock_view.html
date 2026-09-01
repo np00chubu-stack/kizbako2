@@ -46,7 +46,9 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .common-table-wrap{overflow-x:auto}
 .ledger-row.common{display:grid;align-items:center;gap:4px;padding:9px 10px;border-top:1px solid #eef0f3}
 .ledger-row.common:first-of-type{border-top:none}
-.cm-name{font-size:12px;font-weight:bold;color:#1a3a5c}
+.cm-name{font-size:12px;font-weight:bold;color:#1a3a5c;display:flex;align-items:center;gap:5px}
+.min-line-edit-btn{appearance:none;border:1px solid #ccc;background:#fff;color:#888;border-radius:5px;width:18px;height:18px;font-size:10px;line-height:1;cursor:pointer;flex-shrink:0;padding:0}
+.min-line-edit-btn:active{background:#eef3f8}
 .cm-stock{font-size:12px;text-align:center;color:#555}
 .cm-stock.low{color:#c53030;font-weight:bold}
 .cm-stock.clickable{cursor:pointer;text-decoration:underline dotted}
@@ -160,6 +162,21 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
     <button class="btn-sheet-submit" style="width:100%" onclick="submitReplenish()">この数を補充する</button>
     <div class="sheet-msg" id="replenish-msg"></div>
     <button class="btn-close-sheet" onclick="closeReplenishSheet()">閉じる</button>
+  </div>
+</div>
+
+<!-- 最低数ライン編集シート（共通品・管理者のみ） -->
+<div class="sheet-overlay" id="min-line-overlay" onclick="closeMinLineSheet(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <h2 id="min-line-title"></h2>
+    <div class="sheet-sub">この数以下になったら赤字太字で表示します</div>
+    <div class="field-group">
+      <label class="field-label">最低数ライン</label>
+      <input type="number" id="min-line-input" min="0">
+    </div>
+    <button class="btn-sheet-submit" style="width:100%" onclick="submitMinLine()">この内容で保存する</button>
+    <div class="sheet-msg" id="min-line-msg"></div>
+    <button class="btn-close-sheet" onclick="closeMinLineSheet()">閉じる</button>
   </div>
 </div>
 
@@ -328,9 +345,13 @@ function renderCommonTable(rows){
       return `<div class="cm-cell"><button class="order-field ${fieldClass} ${disabledClass}" ${onclickAttr}>${escapeHtml(String(fieldLabel))}</button></div>`;
     }).join('');
 
+    const minLineEditBtn = currentUser.role === '管理者'
+      ? `<button class="min-line-edit-btn" onclick="openMinLineSheet('${row.id}')" title="最低数ラインを編集">✎</button>`
+      : '';
+
     return `
       <div class="ledger-row common" style="grid-template-columns:${gridCols}" data-stock-item-id="${row.id}">
-        <div class="cm-name">${escapeHtml(row.item_name)}</div>
+        <div class="cm-name">${escapeHtml(row.item_name)}${minLineEditBtn}</div>
         <div class="cm-stock ${stockClass} ${stockClickable}" ${stockOnclick}>${row.stock_qty ?? 0}</div>
         ${teamCellsHtml}
       </div>`;
@@ -537,6 +558,48 @@ async function submitReplenish(){
   }
 
   closeReplenishSheet();
+  await loadStockItems();
+}
+
+// =============================================
+// 最低数ライン編集シート（共通品・管理者のみ）
+// =============================================
+let minLineState = { stockItemId: null };
+
+function openMinLineSheet(stockItemId){
+  const row = stockItemsCache.find(r => r.id === stockItemId);
+  if(!row) return;
+  minLineState = { stockItemId };
+
+  document.getElementById('min-line-title').textContent = row.item_name;
+  document.getElementById('min-line-input').value = row.min_line ?? 0;
+  document.getElementById('min-line-msg').textContent = '';
+  document.getElementById('min-line-overlay').classList.add('show');
+}
+
+function closeMinLineSheet(e){
+  if(e && e.target !== e.currentTarget) return;
+  document.getElementById('min-line-overlay').classList.remove('show');
+}
+
+async function submitMinLine(){
+  const { stockItemId } = minLineState;
+  const input = document.getElementById('min-line-input');
+  const newMinLine = parseInt(input.value, 10);
+  const msgEl = document.getElementById('min-line-msg');
+
+  if(isNaN(newMinLine) || newMinLine < 0){
+    msgEl.textContent = '0以上の数値を入力してください。';
+    return;
+  }
+
+  const { error } = await sbClient.from('stock_items').update({ min_line: newMinLine }).eq('id', stockItemId);
+  if(error){
+    msgEl.textContent = '保存に失敗しました：' + error.message;
+    return;
+  }
+
+  closeMinLineSheet();
   await loadStockItems();
 }
 
@@ -800,7 +863,8 @@ let realtimeReloadPending = false;
 function isAnySheetOpen(){
   return document.getElementById('order-sheet-overlay').classList.contains('show')
       || document.getElementById('replenish-overlay').classList.contains('show')
-      || document.getElementById('delete-sheet-overlay').classList.contains('show');
+      || document.getElementById('delete-sheet-overlay').classList.contains('show')
+      || document.getElementById('min-line-overlay').classList.contains('show');
 }
 
 function requestStockReload(){
