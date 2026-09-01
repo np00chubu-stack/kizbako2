@@ -354,6 +354,11 @@ function addItem(data){
       </div>
     </div>
     <div class="form-group">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="urgent-${id}" style="width:auto">急ぎ（当日納入も可）
+      </label>
+    </div>
+    <div class="form-group">
       <label>納入日・数量<span class="req">*</span></label>
       <div class="date-rows" id="dates-${id}">
         <div class="date-row">
@@ -640,6 +645,11 @@ function getDaimoku(id){
   return r?r.value:'なし';
 }
 
+function getUrgent(id){
+  const el=document.getElementById(`urgent-${id}`);
+  return el ? el.checked : false;
+}
+
 function collectItems(){
   const blocks=document.querySelectorAll('.item-block');
   const items=[];
@@ -657,13 +667,14 @@ function collectItems(){
     }
     const sizeVal=getSizeVal(id);
     const daimoku=getDaimoku(id);
+    const urgent=getUrgent(id);
     const client=getClientVal(id);
     const isNew = document.getElementById(`item-lwh-${id}`).style.display !== 'none';
     const dates=[];
     const dateInputs=block.querySelectorAll('.date-input');
     const qtyInputs=block.querySelectorAll('.qty-input');
     dateInputs.forEach((d,i)=>{ if(d.value||qtyInputs[i].value) dates.push({date:d.value,qty:qtyInputs[i].value}); });
-    items.push({cat:catDisplay,size:sizeVal,daimoku,client,dates,isNew});
+    items.push({cat:catDisplay,size:sizeVal,daimoku,urgent,client,dates,isNew});
   });
   return items;
 }
@@ -718,6 +729,7 @@ function goConfirm(){
           <tr><th>カテゴリ</th><td><input type="text" id="c-cat-${i}" value="${it.cat}"></td></tr>
           <tr><th>サイズ</th><td><input type="text" id="c-size-${i}" value="${it.size}"></td></tr>
           <tr><th>台木リフト</th><td><input type="text" id="c-daimoku-${i}" value="${it.daimoku}"></td></tr>
+          <tr><th>急ぎ</th><td><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="c-urgent-${i}" ${it.urgent ? 'checked' : ''} style="width:auto">急ぎ（当日納入も可）</label></td></tr>
           ${dateRows}
         </table>
       </div>`;
@@ -774,12 +786,14 @@ async function submitForm(){
     const cat = document.getElementById(`c-cat-${i}`).value;
     const size = document.getElementById(`c-size-${i}`).value;
     const daimoku = document.getElementById(`c-daimoku-${i}`).value;
+    const urgentEl = document.getElementById(`c-urgent-${i}`);
+    const urgent = urgentEl ? urgentEl.checked : false;
     const dates=[];
     const dateEls=document.querySelectorAll(`.c-date-${i}`);
     const qtyEls=document.querySelectorAll(`.c-qty-${i}`);
     dateEls.forEach((d,j)=>{ dates.push({date:d.value, qty: parseInt(qtyEls[j].value,10)}); });
     const isNew = (window._confirmItems && window._confirmItems[i]) ? window._confirmItems[i].isNew : false;
-    items.push({client, cat, size, daimoku, dates, isNew});
+    items.push({client, cat, size, daimoku, urgent, dates, isNew});
   }
 
   try{
@@ -803,6 +817,7 @@ async function submitForm(){
         category: it.cat,
         size_l: l, size_w: w, size_h: h,
         daimoku_lift: it.daimoku === 'あり',
+        is_urgent: it.urgent,
         note_item: (bikoTarget === 'all' || parseInt(bikoTarget,10) === i+1) ? (note || null) : null,
         is_new_size: it.isNew,
         status: '受付済み'
