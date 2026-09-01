@@ -837,7 +837,7 @@ async function submitForm(){
           request_item_id: insertedItems[i].id,
           delivery_date: d.date,
           qty: d.qty,
-          is_urgent: false
+          is_urgent: it.urgent
         });
       });
     });
