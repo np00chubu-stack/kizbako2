@@ -37,6 +37,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .ir-date{font-size:10px;color:#777;text-align:center}
 .ir-main{min-width:0}
 .ir-name{font-size:12px;font-weight:bold;color:#1a3a5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.urgent-tag{font-size:8px;font-weight:bold;color:#fff;background:#c4531f;padding:1.5px 5.5px;border-radius:999px;margin-left:4px}
 .ir-size{font-size:9.5px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ir-qty{font-size:11px;text-align:center;color:#555}
 .ir-requester{font-size:10px;color:#666;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -270,6 +271,7 @@ function renderIndividualTable(rows){
     const sizeText = [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
     const dateInfo = row.request_item_date_id ? dateInfoCache[row.request_item_date_id] : null;
     const dateText = dateInfo ? dateInfo.delivery_date : '';
+    const urgentTag = dateInfo && dateInfo.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
     const activeOrders = ordersCache[row.id] || [];
     const order = activeOrders[0];
 
@@ -288,7 +290,7 @@ function renderIndividualTable(rows){
         <div class="ir-cell"><button class="order-field ${fieldClass} ${disabledClass}" ${onclickAttr}>${escapeHtml(String(fieldLabel))}</button></div>
         <div class="ir-date">${escapeHtml(dateText)}</div>
         <div class="ir-main">
-          <div class="ir-name">${escapeHtml(row.item_name)}</div>
+          <div class="ir-name">${escapeHtml(row.item_name)}${urgentTag}</div>
           <div class="ir-size">${escapeHtml(sizeText)}</div>
         </div>
         <div class="ir-qty">${row.stock_qty ?? 0}</div>
@@ -677,9 +679,14 @@ async function loadStockItems(){
   if(dateIds.length){
     const { data: dateRows } = await sbClient
       .from('request_item_dates')
-      .select('id, delivery_date')
+      .select('id, delivery_date, request_items ( is_urgent )')
       .in('id', dateIds);
-    (dateRows || []).forEach(d => { dateInfoCache[d.id] = { delivery_date: d.delivery_date }; });
+    (dateRows || []).forEach(d => {
+      dateInfoCache[d.id] = {
+        delivery_date: d.delivery_date,
+        is_urgent: !!(d.request_items && d.request_items.is_urgent)
+      };
+    });
   }
 
   const { data: orders, error: ordersErr } = await sbClient
