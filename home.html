@@ -233,7 +233,6 @@ const URLS = {
   stock: 'stock_view.html',
   workCalendar: 'work_calendar.html',
   requestCalendar: 'request_calendar.html',
-  delivery: 'delivery_view.html',
   settings: 'business_days_admin.html'
 };
 
@@ -388,7 +387,6 @@ function renderWorkerHome(){
     <div class="shortcuts">
       <div class="shortcut disabled" onclick="comingSoon()"><div class="icon">${icon('doc','stroke-width="1.8"')}</div><div class="label">手順書</div><div class="desc">準備中</div></div>
       <div class="shortcut" onclick="goto(URLS.stock)"><div class="icon">${icon('stock','stroke-width="1.8"')}</div><div class="label">在庫表</div><div class="desc">在庫を操作</div></div>
-      <div class="shortcut" onclick="goto(URLS.delivery)"><div class="icon">${icon('truck','stroke-width="1.8"')}</div><div class="label">配送予定</div><div class="desc">便の割り当て</div></div>
     </div>
     <div class="spacer"></div>`;
 
@@ -409,9 +407,8 @@ function renderAdminHome(){
     <div class="pc-tile" onclick="goto(URLS.requestCalendar)"><div class="icon">${icon('calendar','stroke-width="1.8"')}</div><div class="name">依頼カレンダー</div><div class="desc">全依頼の一覧を確認する</div></div>
     <div class="pc-tile disabled" onclick="comingSoon()"><div class="icon">${icon('wrench','stroke-width="1.8"')}</div><div class="name">作業工程</div><div class="desc">全依頼明細の進捗を一覧管理（準備中）</div></div>
     <div class="pc-tile" onclick="goto(URLS.workCalendar)"><div class="icon">${icon('calendar','stroke-width="1.8"')}</div><div class="name">作業カレンダー</div><div class="desc">未完成の依頼を管理する</div></div>
-    <div class="pc-tile" onclick="goto(URLS.delivery)"><div class="icon">${icon('truck','stroke-width="1.8"')}</div><div class="name">配送予定</div><div class="desc">便の割り当て・配送済み操作</div></div>
     <div class="pc-tile disabled" onclick="comingSoon()"><div class="icon">${icon('doc','stroke-width="1.8"')}</div><div class="name">手順書</div><div class="desc">登録・修正・自動生成（準備中）</div></div>
-    <div class="pc-tile" onclick="goto(URLS.stock)"><div class="icon">${icon('stock','stroke-width="1.8"')}</div><div class="name">在庫表</div><div class="desc">最低数ライン変更を含む全操作</div></div>
+    <div class="pc-tile" onclick="goto(URLS.stock)"><div class="icon">${icon('stock','stroke-width="1.8"')}</div><div class="name">在庫表</div><div class="desc">最低数ライン変更を含む全操作（配送済み操作も含む）</div></div>
     <div class="pc-tile" onclick="goto(URLS.settings)"><div class="icon">${icon('gear','stroke-width="1.8"')}</div><div class="name">設定</div><div class="desc">営業日の例外設定</div></div>`;
 }
 
