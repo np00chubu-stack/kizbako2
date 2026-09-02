@@ -236,6 +236,18 @@ const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '' };
+
+async function logChange(tableName, recordId, fieldName, oldValue, newValue){
+  await sbClient.from('change_history').insert({
+    table_name: tableName,
+    record_id: recordId,
+    field_name: fieldName,
+    old_value: oldValue === null || oldValue === undefined ? null : String(oldValue),
+    new_value: newValue === null || newValue === undefined ? null : String(newValue),
+    changed_by_name: currentUser.name,
+    changed_by_email: currentUser.email
+  });
+}
 // myItems の1件 = 「納入日1件」のカード。親の request_items 情報(カテゴリ・サイズ等)を合成して持つ。
 let myItems = [];
 
@@ -441,6 +453,8 @@ async function cancelFromDetailSheet(){
     return;
   }
 
+  await logChange('request_item_dates', dateRowId, 'canceled_at', null, '取消');
+
   document.getElementById('sheet-overlay').classList.remove('show');
   await loadMyItems();
 }
@@ -556,6 +570,8 @@ async function submitOrderFromMypage(){
     return;
   }
 
+  await logChange('request_item_dates', orderSheetState.dateRowId, 'status', null, '発注済み・受取待ち');
+
   document.getElementById('order-sheet-overlay').classList.remove('show');
   await loadMyItems();
 }
@@ -572,6 +588,8 @@ async function cancelRequestItem(){
     document.getElementById('order-sheet-msg').textContent = '取消に失敗しました：' + error.message;
     return;
   }
+
+  await logChange('request_item_dates', orderSheetState.dateRowId, 'canceled_at', null, '取消');
 
   document.getElementById('order-sheet-overlay').classList.remove('show');
   await loadMyItems();
