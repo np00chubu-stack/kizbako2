@@ -863,6 +863,7 @@ async function initAuth(){
 
   await loadStockItems();
   subscribeRealtime();
+  renderFooterNav(currentUser.role, 'stock');
 }
 
 let realtimeReloadPending = false;
@@ -899,6 +900,73 @@ function subscribeRealtime(){
     const changed = await performFinalization();
     if(changed) loadStockItems();
   }, 60000);
+}
+
+// =============================================
+// 共通フッターナビ（依頼者・作業者はタブバー／管理者はホームへ戻るリンク）
+// =============================================
+(function(){
+  const style = document.createElement('style');
+  style.textContent = `
+.footer-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;background:rgba(255,255,255,0.96);backdrop-filter:blur(6px);border-top:1px solid #E4E7EC;padding:7px 4px calc(13px + env(safe-area-inset-bottom));font-family:'M PLUS Rounded 1c',sans-serif;}
+.footer-tabbar .ftab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;color:#A2A8B3;text-decoration:none;font-size:9px;font-weight:700;cursor:pointer;background:none;border:none;font-family:inherit;}
+.footer-tabbar .ftab svg{width:20px;height:20px;}
+.footer-tabbar .ftab.active{color:#1E3766;}
+.footer-back-link{position:fixed;top:14px;left:14px;z-index:40;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #E4E7EC;border-radius:999px;padding:7px 14px 7px 10px;font-size:12px;font-weight:700;color:#1E3766;text-decoration:none;box-shadow:0 6px 14px rgba(20,22,26,0.08);font-family:'M PLUS Rounded 1c',sans-serif;}
+`;
+  document.head.appendChild(style);
+})();
+
+const FNAV_ICONS = {
+  home: '<path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 001 1h10a1 1 0 001-1v-9"/>',
+  form: '<path d="M4 3h13l4 4v14a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M8 9h8M8 13h8M8 17h5"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  stock: '<path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v8l9 4 9-4V8M12 12v8"/>',
+  user: '<circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4.2-6 7-6s5.8 2 7 6"/>',
+  wrench: '<path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2.6-.6-.6-2.6z"/>',
+  doc: '<path d="M6 3h9l4 4v14a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M14 3v5h5M8 13h3M8 16h6M8 10h2"/>',
+  back: '<path d="M19 12H5M11 18l-6-6 6-6"/>'
+};
+function fIcon(name){
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${FNAV_ICONS[name]}</svg>`;
+}
+
+function renderFooterNav(role, activeKey){
+  const NAV_URLS = {
+    home: 'home.html', form: 'formB_size.html', mypage: 'mypage.html',
+    stock: 'stock_view.html', workCalendar: 'work_calendar.html', requestCalendar: 'request_calendar.html'
+  };
+
+  if(role === '管理者'){
+    const back = document.createElement('a');
+    back.href = NAV_URLS.home;
+    back.className = 'footer-back-link';
+    back.innerHTML = fIcon('back') + '<span>ホームへ</span>';
+    document.body.appendChild(back);
+    return;
+  }
+
+  const bar = document.createElement('div');
+  bar.className = 'footer-tabbar';
+
+  if(role === '作業者'){
+    bar.innerHTML = `
+      <a class="ftab ${activeKey==='home'?'active':''}" href="${NAV_URLS.home}">${fIcon('home')}<span>ホーム</span></a>
+      <button class="ftab" onclick="alert('準備中の機能です。')">${fIcon('wrench')}<span>作業工程</span></button>
+      <a class="ftab ${activeKey==='workCalendar'?'active':''}" href="${NAV_URLS.workCalendar}">${fIcon('calendar')}<span>カレンダー</span></a>
+      <button class="ftab" onclick="alert('準備中の機能です。')">${fIcon('doc')}<span>手順書</span></button>
+      <a class="ftab ${activeKey==='stock'?'active':''}" href="${NAV_URLS.stock}">${fIcon('stock')}<span>在庫</span></a>`;
+  } else {
+    bar.innerHTML = `
+      <a class="ftab ${activeKey==='home'?'active':''}" href="${NAV_URLS.home}">${fIcon('home')}<span>ホーム</span></a>
+      <a class="ftab ${activeKey==='form'?'active':''}" href="${NAV_URLS.form}">${fIcon('form')}<span>依頼</span></a>
+      <a class="ftab ${activeKey==='requestCalendar'?'active':''}" href="${NAV_URLS.requestCalendar}">${fIcon('calendar')}<span>カレンダー</span></a>
+      <a class="ftab ${activeKey==='stock'?'active':''}" href="${NAV_URLS.stock}">${fIcon('stock')}<span>在庫</span></a>
+      <a class="ftab ${activeKey==='mypage'?'active':''}" href="${NAV_URLS.mypage}">${fIcon('user')}<span>マイページ</span></a>`;
+  }
+
+  document.body.appendChild(bar);
+  document.body.style.paddingBottom = '68px';
 }
 
 initAuth();
