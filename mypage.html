@@ -213,7 +213,7 @@ body{
         <div class="sheet-sub" id="order-sheet-detail"></div>
 
         <div class="mode-tabs" id="orderModeTabs">
-          <button type="button" class="mode-tab" data-mode="circle"><div class="mt-emoji">○</div><div class="mt-label">在庫確保次第</div></button>
+          <button type="button" class="mode-tab" data-mode="circle"><div class="mt-emoji">○</div><div class="mt-label">完成次第</div></button>
           <button type="button" class="mode-tab" data-mode="qty"><div class="mt-emoji">#</div><div class="mt-label">数量指定</div></button>
           <button type="button" class="mode-tab" data-mode="date"><div class="mt-emoji">📅</div><div class="mt-label">日付指定</div></button>
         </div>
@@ -493,7 +493,7 @@ function renderOrderModeTabs(){
 function renderOrderModeBody(){
   const body = document.getElementById('orderModeBody');
   if(orderSheetState.mode === 'circle'){
-    body.innerHTML = `<div class="mb-desc">在庫が確保でき次第、すぐ受け取りたい場合はこちらを選びます。</div>`;
+    body.innerHTML = `<div class="mb-desc">完成次第、すぐ受け取りたい場合はこちらを選びます。</div>`;
   } else if(orderSheetState.mode === 'qty'){
     body.innerHTML = `
       <div class="mb-desc">今回はこの数だけ欲しい場合に指定します(部分発注)。</div>
