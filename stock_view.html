@@ -206,6 +206,18 @@ const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '', role: '' };
+
+async function logChange(tableName, recordId, fieldName, oldValue, newValue, byName, byEmail){
+  await sbClient.from('change_history').insert({
+    table_name: tableName,
+    record_id: recordId,
+    field_name: fieldName,
+    old_value: oldValue === null || oldValue === undefined ? null : String(oldValue),
+    new_value: newValue === null || newValue === undefined ? null : String(newValue),
+    changed_by_name: byName !== undefined ? byName : currentUser.name,
+    changed_by_email: byEmail !== undefined ? byEmail : currentUser.email
+  });
+}
 let stockItemsCache = [];   // stock_items 全件
 let ordersCache = {};       // stock_item_id -> 有効な注文の配列（共通品は班ごとに複数件持ちうる）
 let dateInfoCache = {};     // request_item_date_id -> { delivery_date }
@@ -490,6 +502,7 @@ async function submitOrder(){
   // 既存の発注があれば取消してから新規登録（同一欄の書き換え）
   if(existingOrderId){
     await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId);
+    await logChange('stock_orders', existingOrderId, 'is_canceled', false, true);
   }
 
   const payload = {
@@ -505,10 +518,14 @@ async function submitOrder(){
     is_canceled: false
   };
 
-  const { error } = await sbClient.from('stock_orders').insert(payload);
+  const { data: insertedOrder, error } = await sbClient.from('stock_orders').insert(payload).select('id').single();
   if(error){
     msgEl.textContent = '発注に失敗しました：' + error.message;
     return;
+  }
+
+  if(insertedOrder){
+    await logChange('stock_orders', insertedOrder.id, 'order', null, `${mode}${qty ? '（' + qty + '）' : ''}${desiredDate ? '（' + desiredDate + '）' : ''}`);
   }
 
   closeOrderSheet();
@@ -525,6 +542,8 @@ async function cancelOrder(){
     document.getElementById('order-sheet-msg').textContent = '取消に失敗しました：' + error.message;
     return;
   }
+
+  await logChange('stock_orders', existingOrderId, 'is_canceled', false, true);
 
   closeOrderSheet();
   await loadStockItems();
@@ -657,6 +676,7 @@ async function performFinalization(){
       await sbClient.from('stock_items').update({ stock_qty: newStock }).eq('id', o.stock_item_id);
     }
     await sbClient.from('stock_orders').update({ is_finalized: true, finalized_at: new Date().toISOString() }).eq('id', o.id);
+    await logChange('stock_orders', o.id, 'is_finalized', false, true, 'システム（自動確定）', null);
   }
 
   return true;
@@ -852,7 +872,9 @@ async function cycleDeliveryMark(stockItemId, markKey){
   const { error } = await sbClient.from('stock_items').update({ delivery_marks: marks }).eq('id', stockItemId);
   if(error){
     console.error('[delivery_marks] 更新失敗:', error.message);
+    return;
   }
+  await logChange('stock_items', stockItemId, `delivery_marks.${markKey}`, current, next);
 }
 
 function openDeleteSheet(stockItemId){
@@ -915,6 +937,8 @@ async function confirmDeleteStockItem(){
       msgEl.textContent = '在庫データは削除しましたが、依頼側の状態を戻す処理に失敗しました：' + updErr.message;
       return;
     }
+    await logChange('request_item_dates', row.request_item_date_id, 'completed', true, false);
+    await logChange('request_item_dates', row.request_item_date_id, 'reflected_to_stock', true, false);
   }
 
   document.getElementById('delete-sheet-overlay').classList.remove('show');
