@@ -338,7 +338,7 @@ function renderIndividualTable(rows){
 }
 
 // =============================================
-// 共通品：品目/在庫/班ごとの発注欄（発注幅を100pxに変更）
+// 共通品：品目/在庫/班ごとの発注欄（発注幅を140pxに変更）
 // =============================================
 function renderCommonTable(rows){
   const wrap = document.getElementById('common-table-wrap');
@@ -351,8 +351,8 @@ function renderCommonTable(rows){
     return;
   }
 
-  // 発注欄の幅を 52px から 100px （約2倍）へ拡大
-  const gridCols = `1fr 46px ${teams.map(()=>'100px').join(' ')}`;
+  // 発注欄の幅を 140px に拡大
+  const gridCols = `1fr 46px ${teams.map(()=>'140px').join(' ')}`;
   const canReplenish = currentUser.role === '作業者' || currentUser.role === '管理者';
 
   const headHtml = `
