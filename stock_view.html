@@ -207,7 +207,7 @@ const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '', role: '' };
 
-async function logChange(tableName, recordId, fieldName, oldValue, newValue, itemLabel, byName, byEmail){
+async function logChange(tableName, recordId, fieldName, oldValue, newValue, itemLabel, byName, byEmail, requesterName, deliveryDate, sizeTxt){
   await sbClient.from('change_history').insert({
     table_name: tableName,
     record_id: recordId,
@@ -215,9 +215,26 @@ async function logChange(tableName, recordId, fieldName, oldValue, newValue, ite
     old_value: oldValue === null || oldValue === undefined ? null : String(oldValue),
     new_value: newValue === null || newValue === undefined ? null : String(newValue),
     item_label: itemLabel || null,
+    requester_name: requesterName || null,
+    delivery_date: deliveryDate || null,
+    size_text: sizeTxt || null,
     changed_by_name: byName !== undefined ? byName : currentUser.name,
     changed_by_email: byEmail !== undefined ? byEmail : currentUser.email
   });
+}
+
+// 個人品の在庫行から「依頼者名・納入日・サイズ」を取り出す（共通品には存在しないためnull）
+function historyExtras(stockRow){
+  if(!stockRow || stockRow.item_type !== 'individual'){
+    return { requesterName: null, deliveryDate: null, sizeTxt: null };
+  }
+  const dateInfo = stockRow.request_item_date_id ? dateInfoCache[stockRow.request_item_date_id] : null;
+  const sizeTxt = [stockRow.size_l, stockRow.size_w, stockRow.size_h].filter(v=>v!=null).join('×');
+  return {
+    requesterName: stockRow.requester_name || null,
+    deliveryDate: dateInfo ? dateInfo.delivery_date : null,
+    sizeTxt: sizeTxt || null
+  };
 }
 let stockItemsCache = [];   // stock_items 全件
 let ordersCache = {};       // stock_item_id -> 有効な注文の配列（共通品は班ごとに複数件持ちうる）
@@ -510,7 +527,8 @@ async function submitOrder(){
   // 既存の発注があれば取消してから新規登録（同一欄の書き換え）
   if(existingOrderId){
     await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId);
-    await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockRow?.item_name);
+    const exExisting = historyExtras(stockRow);
+    await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockRow?.item_name, undefined, undefined, exExisting.requesterName, exExisting.deliveryDate, exExisting.sizeTxt);
   }
 
   const payload = {
@@ -533,7 +551,8 @@ async function submitOrder(){
   }
 
   if(insertedOrder){
-    await logChange('stock_orders', insertedOrder.id, 'order', null, `${mode}${qty ? '（' + qty + '）' : ''}${desiredDate ? '（' + desiredDate + '）' : ''}`, stockRow?.item_name);
+    const exNew = historyExtras(stockRow);
+    await logChange('stock_orders', insertedOrder.id, 'order', null, `${mode}${qty ? '（' + qty + '）' : ''}${desiredDate ? '（' + desiredDate + '）' : ''}`, stockRow?.item_name, undefined, undefined, exNew.requesterName, exNew.deliveryDate, exNew.sizeTxt);
   }
 
   closeOrderSheet();
@@ -560,7 +579,8 @@ async function cancelOrder(){
     return;
   }
 
-  await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockItemsCache.find(r => r.id === orderSheetState.stockItemId)?.item_name);
+  const exCancel = historyExtras(stockRowCheck);
+  await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockItemsCache.find(r => r.id === orderSheetState.stockItemId)?.item_name, undefined, undefined, exCancel.requesterName, exCancel.deliveryDate, exCancel.sizeTxt);
 
   closeOrderSheet();
   await loadStockItems();
@@ -891,7 +911,8 @@ async function cycleDeliveryMark(stockItemId, markKey){
     console.error('[delivery_marks] 更新失敗:', error.message);
     return;
   }
-  await logChange('stock_items', stockItemId, `delivery_marks.${markKey}`, current, next, row.item_name);
+  const exMark = historyExtras(row);
+  await logChange('stock_items', stockItemId, `delivery_marks.${markKey}`, current, next, row.item_name, undefined, undefined, exMark.requesterName, exMark.deliveryDate, exMark.sizeTxt);
 }
 
 function openDeleteSheet(stockItemId){
@@ -954,8 +975,9 @@ async function confirmDeleteStockItem(){
       msgEl.textContent = '在庫データは削除しましたが、依頼側の状態を戻す処理に失敗しました：' + updErr.message;
       return;
     }
-    await logChange('request_item_dates', row.request_item_date_id, 'completed', true, false, row.item_name);
-    await logChange('request_item_dates', row.request_item_date_id, 'reflected_to_stock', true, false, row.item_name);
+    const exDel = historyExtras(row);
+    await logChange('request_item_dates', row.request_item_date_id, 'completed', true, false, row.item_name, undefined, undefined, exDel.requesterName, exDel.deliveryDate, exDel.sizeTxt);
+    await logChange('request_item_dates', row.request_item_date_id, 'reflected_to_stock', true, false, row.item_name, undefined, undefined, exDel.requesterName, exDel.deliveryDate, exDel.sizeTxt);
   }
 
   document.getElementById('delete-sheet-overlay').classList.remove('show');
