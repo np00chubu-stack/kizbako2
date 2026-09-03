@@ -207,13 +207,14 @@ const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '', role: '' };
 
-async function logChange(tableName, recordId, fieldName, oldValue, newValue, byName, byEmail){
+async function logChange(tableName, recordId, fieldName, oldValue, newValue, itemLabel, byName, byEmail){
   await sbClient.from('change_history').insert({
     table_name: tableName,
     record_id: recordId,
     field_name: fieldName,
     old_value: oldValue === null || oldValue === undefined ? null : String(oldValue),
     new_value: newValue === null || newValue === undefined ? null : String(newValue),
+    item_label: itemLabel || null,
     changed_by_name: byName !== undefined ? byName : currentUser.name,
     changed_by_email: byEmail !== undefined ? byEmail : currentUser.email
   });
@@ -502,7 +503,7 @@ async function submitOrder(){
   // 既存の発注があれば取消してから新規登録（同一欄の書き換え）
   if(existingOrderId){
     await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId);
-    await logChange('stock_orders', existingOrderId, 'is_canceled', false, true);
+    await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockRow?.item_name);
   }
 
   const payload = {
@@ -525,7 +526,7 @@ async function submitOrder(){
   }
 
   if(insertedOrder){
-    await logChange('stock_orders', insertedOrder.id, 'order', null, `${mode}${qty ? '（' + qty + '）' : ''}${desiredDate ? '（' + desiredDate + '）' : ''}`);
+    await logChange('stock_orders', insertedOrder.id, 'order', null, `${mode}${qty ? '（' + qty + '）' : ''}${desiredDate ? '（' + desiredDate + '）' : ''}`, stockRow?.item_name);
   }
 
   closeOrderSheet();
@@ -543,7 +544,7 @@ async function cancelOrder(){
     return;
   }
 
-  await logChange('stock_orders', existingOrderId, 'is_canceled', false, true);
+  await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockItemsCache.find(r => r.id === orderSheetState.stockItemId)?.item_name);
 
   closeOrderSheet();
   await loadStockItems();
@@ -676,7 +677,7 @@ async function performFinalization(){
       await sbClient.from('stock_items').update({ stock_qty: newStock }).eq('id', o.stock_item_id);
     }
     await sbClient.from('stock_orders').update({ is_finalized: true, finalized_at: new Date().toISOString() }).eq('id', o.id);
-    await logChange('stock_orders', o.id, 'is_finalized', false, true, 'システム（自動確定）', null);
+    await logChange('stock_orders', o.id, 'is_finalized', false, true, null, 'システム（自動確定）', null);
   }
 
   return true;
@@ -874,7 +875,7 @@ async function cycleDeliveryMark(stockItemId, markKey){
     console.error('[delivery_marks] 更新失敗:', error.message);
     return;
   }
-  await logChange('stock_items', stockItemId, `delivery_marks.${markKey}`, current, next);
+  await logChange('stock_items', stockItemId, `delivery_marks.${markKey}`, current, next, row.item_name);
 }
 
 function openDeleteSheet(stockItemId){
@@ -937,8 +938,8 @@ async function confirmDeleteStockItem(){
       msgEl.textContent = '在庫データは削除しましたが、依頼側の状態を戻す処理に失敗しました：' + updErr.message;
       return;
     }
-    await logChange('request_item_dates', row.request_item_date_id, 'completed', true, false);
-    await logChange('request_item_dates', row.request_item_date_id, 'reflected_to_stock', true, false);
+    await logChange('request_item_dates', row.request_item_date_id, 'completed', true, false, row.item_name);
+    await logChange('request_item_dates', row.request_item_date_id, 'reflected_to_stock', true, false, row.item_name);
   }
 
   document.getElementById('delete-sheet-overlay').classList.remove('show');
