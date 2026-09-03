@@ -582,6 +582,18 @@ async function cancelOrder(){
   const exCancel = historyExtras(stockRowCheck);
   await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockItemsCache.find(r => r.id === orderSheetState.stockItemId)?.item_name, undefined, undefined, exCancel.requesterName, exCancel.deliveryDate, exCancel.sizeTxt);
 
+  // 個人品の場合、依頼側のステータスを「発注可能」に戻す（マイページに反映させるため）
+  if(itemType === 'individual' && stockRowCheck && stockRowCheck.request_item_date_id){
+    const { error: revertErr } = await sbClient
+      .from('request_item_dates')
+      .update({ status: '発注可能' })
+      .eq('id', stockRowCheck.request_item_date_id)
+      .eq('status', '発注済み・受取待ち');
+    if(!revertErr){
+      await logChange('request_item_dates', stockRowCheck.request_item_date_id, 'status', '発注済み・受取待ち', '発注可能', stockRowCheck.item_name, undefined, undefined, exCancel.requesterName, exCancel.deliveryDate, exCancel.sizeTxt);
+    }
+  }
+
   closeOrderSheet();
   await loadStockItems();
 }
