@@ -18,7 +18,7 @@ h1{font-size:18px;font-weight:bold;color:#1e293b;border-bottom:2px solid #0284c7
 .login-name-bar{font-size:12px;color:#475569;background:#fff;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,0.03)}
 
 /* 凡例 */
-.legend-row{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px;font-size:12px;color:#475569;background:#fff;padding:10px 14px;border-radius:6px;border:1px solid #e2e8f0}
+.legend-row{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px;font-size:12px;color:#475569;background:#fff;padding:10px 14px;border-radius:6px;border:1px solid #cbd5e1}
 .legend-item{display:flex;align-items:center;gap:6px}
 .legend-dot{width:12px;height:12px;border-radius:3px;border:1px solid #cbd5e1;flex-shrink:0}
 .legend-dot.st-none{background:#f8fafc}
@@ -32,27 +32,27 @@ h1{font-size:18px;font-weight:bold;color:#1e293b;border-bottom:2px solid #0284c7
 
 /* 週ブロック */
 .week-block{margin-bottom:20px}
-.week-label{font-size:13px;font-weight:bold;color:#0369a1;margin-bottom:6px;padding-left:2px}
+.week-label{font-size:13px;font-weight:bold;color:#0284c7;margin-bottom:6px;padding-left:2px}
 .week-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:8px;overflow-x:auto}
 @media (max-width:900px){
   .week-grid{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:78%}
 }
 
-/* カレンダー枠（背景より少し濃い目のグレーで区切りを強調） */
-.day-col{display:flex;flex-direction:column;background:#ffffff;border:1.5px solid #94a3b8;border-radius:6px;overflow:hidden;min-height:120px;box-shadow:0 1px 2px rgba(0,0,0,0.03)}
+/* カレンダー枠（ダークネイビーの太め枠で一気にメリハリUP） */
+.day-col{display:flex;flex-direction:column;background:#ffffff;border:2px solid #334155;border-radius:6px;overflow:hidden;min-height:120px;box-shadow:0 2px 4px rgba(0,0,0,0.06)}
 
-/* 日付ヘッダー */
-.day-head{display:flex;align-items:baseline;justify-content:space-between;padding:8px 10px 6px;border-bottom:2px solid #cbd5e1;background:#e2e8f0}
+/* 日付ヘッダー（青みのあるグレーでパキッと分離） */
+.day-head{display:flex;align-items:baseline;justify-content:space-between;padding:8px 10px 6px;border-bottom:2px solid #334155;background:#cbd5e1}
 .day-head .dh-date{font-size:15px;font-weight:bold;color:#0f172a}
-.day-head .dh-dow{font-size:11px;font-weight:bold;color:#475569;margin-left:3px}
-.day-head .dh-total{font-size:11px;font-weight:bold;color:#0369a1;background:#ffffff;padding:2px 8px;border-radius:10px;white-space:nowrap;border:1px solid #cbd5e1}
-.day-head .dh-total.zero{background:#f1f5f9;color:#94a3b8;border-color:#e2e8f0}
+.day-head .dh-dow{font-size:11px;font-weight:bold;color:#334155;margin-left:3px}
+.day-head .dh-total{font-size:11px;font-weight:bold;color:#0f172a;background:#ffffff;padding:2px 8px;border-radius:10px;white-space:nowrap;border:1px solid #475569}
+.day-head .dh-total.zero{background:#f1f5f9;color:#64748b;border-color:#cbd5e1}
 .day-body{padding:6px;display:flex;flex-direction:column;gap:6px;background:#ffffff}
 .day-empty{font-size:11px;color:#94a3b8;text-align:center;padding:12px 4px}
 
 /* カード */
-.req-card{position:relative;background:#fff;border:1px solid #cbd5e1;border-radius:5px;padding:7px 9px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:transform .1s ease,box-shadow .15s ease}
-.req-card:hover{border-color:#64748b}
+.req-card{position:relative;background:#fff;border:1.5px solid #cbd5e1;border-radius:5px;padding:7px 9px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:transform .1s ease,box-shadow .15s ease}
+.req-card:hover{border-color:#0284c7}
 .req-card.st-pink{background:#fff1f2;border-color:#fda4af;color:#881337}
 .req-card.st-blue{background:#eff6ff;border-color:#93c5fd;color:#1e3a8a}
 .req-card.st-ready{background:linear-gradient(135deg,#fff1f2 0%,#fff1f2 48%,#eff6ff 52%,#eff6ff 100%);border-color:#38bdf8;color:#0f172a}
@@ -66,7 +66,7 @@ h1{font-size:18px;font-weight:bold;color:#1e293b;border-bottom:2px solid #0284c7
 .urgent-tag{font-size:9px;font-weight:bold;color:#fff;background:#ef4444;padding:1px 4px;border-radius:3px;margin-left:4px;flex-shrink:0}
 
 /* サイズ表記 */
-.rq-size{font-size:11px;font-weight:bold;color:#334155;white-space:nowrap;flex-shrink:0;margin-top:1px;background:rgba(255,255,255,0.8);padding:0 3px;border-radius:2px}
+.rq-size{font-size:11px;font-weight:bold;color:#0f172a;white-space:nowrap;flex-shrink:0;margin-top:1px;background:rgba(255,255,255,0.8);padding:0 3px;border-radius:2px}
 
 .rq-row{display:flex;align-items:center;justify-content:space-between;margin-top:5px}
 .rq-qty{font-weight:bold;font-size:11.5px;color:#0284c7;background:#ffffff;padding:1px 6px;border-radius:4px;border:1px solid #bae6fd}
@@ -74,8 +74,8 @@ h1{font-size:18px;font-weight:bold;color:#1e293b;border-bottom:2px solid #0284c7
 
 /* 土曜帯 */
 .sat-strip{margin-top:8px}
-.sat-day{max-width:220px;background:#fff;border:1px dashed #0284c7;border-radius:6px;overflow:hidden}
-.sat-day .day-head{background:#bae6fd;color:#0369a1;border-bottom:1px solid #7dd3fc}
+.sat-day{max-width:220px;background:#fff;border:2px dashed #0284c7;border-radius:6px;overflow:hidden}
+.sat-day .day-head{background:#bae6fd;color:#0369a1;border-bottom:2px solid #0284c7}
 .sat-day .day-head .dh-dow{color:#0284c7}
 .sat-day .day-head .dh-total{background:#fff;color:#0284c7}
 .sat-flag{font-size:10px;font-weight:bold;color:#0284c7;padding:5px 9px 0}
