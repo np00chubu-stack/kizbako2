@@ -338,7 +338,7 @@ function renderIndividualTable(rows){
 }
 
 // =============================================
-// 共通品：品目/在庫/班ごとの発注欄（発注幅を140pxに変更）
+// 共通品：品目/在庫/班ごとの発注欄（発注幅を200pxに大幅拡大）
 // =============================================
 function renderCommonTable(rows){
   const wrap = document.getElementById('common-table-wrap');
@@ -351,8 +351,8 @@ function renderCommonTable(rows){
     return;
   }
 
-  // 発注欄の幅を 140px に拡大
-  const gridCols = `1fr 46px ${teams.map(()=>'140px').join(' ')}`;
+  // 元の 52px から 200px へ大幅に拡大
+  const gridCols = `1fr 46px ${teams.map(()=>'200px').join(' ')}`;
   const canReplenish = currentUser.role === '作業者' || currentUser.role === '管理者';
 
   const headHtml = `
@@ -397,7 +397,6 @@ function renderCommonTable(rows){
 
   bindOrderFieldLongPress('common-table-wrap');
 }
-
 let orderSheetState = { stockItemId: null, itemType: null, teamId: null, existingOrderId: null };
 
 function openOrderSheet(stockItemId, itemType, teamId){
