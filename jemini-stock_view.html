@@ -124,6 +124,45 @@ h1{font-size:20px;font-weight:bold;color:#1e3a8a;border-bottom:3px solid #1e3a8a
 .btn-delete-confirm{width:100%;padding:13px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer}
 .btn-close-sheet{width:100%;padding:11px;background:#fff;border:1.5px solid #94a3b8;color:#475569;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;margin-top:10px}
 .indiv-row.pressing,.ledger-row.common.pressing{box-shadow:0 0 0 3px #1e3a8a inset}
+ /* ---- 個人依頼品：発注ボタンの強制拡大 ---- */
+#individual-table-wrap {
+  overflow-x: auto;
+}
+
+.ledger-head.indiv-head {
+  grid-template-columns: 200px 65px 1fr 45px 55px !important;
+  min-width: 500px;
+}
+.indiv-row {
+  display: grid;
+  grid-template-columns: 200px 65px 1fr 45px 55px !important;
+  min-width: 500px;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 8px;
+  border-top: 1px solid #eef0f3;
+}
+
+.ir-cell {
+  display: flex !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.order-field {
+  appearance: none;
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 8px;
+  padding: 12px 0 !important;
+  font-size: 18px !important;
+  width: 100% !important;
+  height: 50px !important; /* ボタンの高さを50pxに固定拡大 */
+  text-align: center;
+  background: #fff;
+  border: 1.4px solid #ccc;
+  color: #333;
+} 
 </style>
 </head>
 <body>
