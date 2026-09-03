@@ -236,12 +236,40 @@ const HIST_TABLE_LABEL = {
   stock_items: '在庫欄'
 };
 
+const HIST_FIELD_LABEL = {
+  status: 'ステータス',
+  canceled_at: '取消',
+  qty: '数量',
+  stage1_done: '工程A',
+  stage2_done: '工程B',
+  completed: '完成',
+  reflected_to_stock: '在庫反映',
+  is_canceled: '発注取消',
+  is_finalized: '発注確定',
+  order: '発注内容'
+};
+
+const HIST_VALUE_LABEL = {
+  'true': 'はい',
+  'false': 'いいえ',
+  'null': '（なし）'
+};
+
+function histFieldName(fieldName){
+  if(fieldName.startsWith('delivery_marks.')) return '発注欄マーク';
+  return HIST_FIELD_LABEL[fieldName] || fieldName;
+}
+
+function histValue(v){
+  if(v === null || v === undefined) return '（なし）';
+  return HIST_VALUE_LABEL[v] !== undefined ? HIST_VALUE_LABEL[v] : v;
+}
+
 function histLabel(row){
   const table = HIST_TABLE_LABEL[row.table_name] || row.table_name;
-  const field = row.field_name.startsWith('delivery_marks.') ? '発注欄マーク' : row.field_name;
-  const oldV = row.old_value ?? '(空)';
-  const newV = row.new_value ?? '(空)';
-  return `${table}｜${field}：${oldV} → ${newV}`;
+  const field = histFieldName(row.field_name);
+  const item = row.item_label ? `「${row.item_label}」の` : '';
+  return `${item}${field}：${histValue(row.old_value)} → ${histValue(row.new_value)}（${table}）`;
 }
 
 async function loadHistory(){
