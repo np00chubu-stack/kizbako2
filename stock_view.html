@@ -295,13 +295,14 @@ function renderIndividualTable(rows){
     const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
     const isSelfItem = currentUser.name && row.requester_name === currentUser.name;
     const blocked = isOrderingBlocked();
-    const clickable = canOperate && (isSelfItem || currentUser.role === '管理者') && !blocked;
+    const mark = (row.delivery_marks || {}).individual || '';
+    const deliveredLocked = mark === 'delivered' && currentUser.role !== '管理者';
+    const clickable = canOperate && (isSelfItem || currentUser.role === '管理者') && !blocked && !deliveredLocked;
 
     const fieldClass = order ? '' : 'empty';
     const fieldLabel = order ? (order.mode === '数量' ? order.qty : (order.mode === '日付' ? '日' : '○')) : 'ー';
     const disabledClass = clickable ? '' : 'disabled';
     const onclickAttr = clickable ? `onclick="openOrderSheet('${row.id}','individual')"` : '';
-    const mark = (row.delivery_marks || {}).individual || '';
     const markClass = mark ? `mark-${mark}` : '';
 
     return `
@@ -358,12 +359,13 @@ function renderCommonTable(rows){
       const activeOrders = ordersCache[row.id] || [];
       const order = activeOrders.find(o => o.team_id === team.id);
       const blocked = isOrderingBlocked();
-      const canOperate = (currentUser.role === '依頼者' || currentUser.role === '管理者') && !blocked;
+      const mark = (row.delivery_marks || {})[team.id] || '';
+      const deliveredLocked = mark === 'delivered' && currentUser.role !== '管理者';
+      const canOperate = (currentUser.role === '依頼者' || currentUser.role === '管理者') && !blocked && !deliveredLocked;
       const fieldClass = order ? '' : 'empty';
       const fieldLabel = order ? (order.mode === '数量' ? order.qty : (order.mode === '日付' ? '日' : '○')) : 'ー';
       const disabledClass = canOperate ? '' : 'disabled';
       const onclickAttr = canOperate ? `onclick="openOrderSheet('${row.id}','common','${team.id}')"` : '';
-      const mark = (row.delivery_marks || {})[team.id] || '';
       const markClass = mark ? `mark-${mark}` : '';
       return `<div class="cm-cell"><button class="order-field ${fieldClass} ${disabledClass} ${markClass}" data-mark-key="${team.id}" ${onclickAttr}>${escapeHtml(String(fieldLabel))}</button></div>`;
     }).join('');
@@ -427,7 +429,10 @@ function openOrderSheet(stockItemId, itemType, teamId){
 
   const blocked = isOrderingBlocked();
   const isSelfItem = itemType === 'individual' && currentUser.name && row.requester_name === currentUser.name;
-  const canEdit = canOperate && !blocked && (itemType === 'common' || isSelfItem || currentUser.role === '管理者');
+  const markKey = itemType === 'individual' ? 'individual' : teamId;
+  const mark = (row.delivery_marks || {})[markKey] || '';
+  const deliveredLocked = mark === 'delivered' && currentUser.role !== '管理者';
+  const canEdit = canOperate && !blocked && !deliveredLocked && (itemType === 'common' || isSelfItem || currentUser.role === '管理者');
 
   if(canEdit){
     document.getElementById('order-sheet-form').innerHTML = `
@@ -455,7 +460,8 @@ function openOrderSheet(stockItemId, itemType, teamId){
     document.getElementById('order-sheet-form').innerHTML = '';
     document.getElementById('order-sheet-viewonly').innerHTML = isViewOnly
       ? `<div class="view-only-note">閲覧のみです（発注操作はできません）</div>`
-      : (blocked ? `<div class="view-only-note">ただいまロック中のため操作できません</div>` : '');
+      : (deliveredLocked ? `<div class="view-only-note">配送済みのため操作できません</div>`
+      : (blocked ? `<div class="view-only-note">ただいまロック中のため操作できません</div>` : ''));
   }
 
   document.getElementById('order-sheet-overlay').classList.add('show');
@@ -534,8 +540,17 @@ async function submitOrder(){
 }
 
 async function cancelOrder(){
-  const { existingOrderId } = orderSheetState;
+  const { existingOrderId, stockItemId, itemType, teamId } = orderSheetState;
   if(!existingOrderId) return;
+
+  const stockRowCheck = stockItemsCache.find(r => r.id === stockItemId);
+  const markKeyCheck = itemType === 'individual' ? 'individual' : teamId;
+  const markCheck = (stockRowCheck && stockRowCheck.delivery_marks || {})[markKeyCheck] || '';
+  if(markCheck === 'delivered' && currentUser.role !== '管理者'){
+    document.getElementById('order-sheet-msg').textContent = '配送済みのため取消できません。';
+    return;
+  }
+
   if(!confirm('この発注を取消しますか？')) return;
 
   const { error } = await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId);
