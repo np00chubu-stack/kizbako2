@@ -287,10 +287,11 @@ function renderIndividualTable(rows){
   const rowsHtml = sorted.map(row => {
     const sizeText = [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
     const dateInfo = row.request_item_date_id ? dateInfoCache[row.request_item_date_id] : null;
-    const dateText = dateInfo ? dateInfo.delivery_date : '';
-    const urgentTag = dateInfo && dateInfo.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
     const activeOrders = ordersCache[row.id] || [];
     const order = activeOrders[0];
+    // 発注時に「日付」モードで希望日が指定されていればそちらを優先表示、なければ元の納入日
+    const dateText = (order && order.mode === '日付' && order.desired_date) ? order.desired_date : (dateInfo ? dateInfo.delivery_date : '');
+    const urgentTag = dateInfo && dateInfo.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
 
     const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
     const isSelfItem = currentUser.name && row.requester_name === currentUser.name;
