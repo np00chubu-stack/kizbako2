@@ -240,7 +240,7 @@ const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '' };
 
-async function logChange(tableName, recordId, fieldName, oldValue, newValue, itemLabel){
+async function logChange(tableName, recordId, fieldName, oldValue, newValue, itemLabel, requesterName, deliveryDate, sizeTxt){
   await sbClient.from('change_history').insert({
     table_name: tableName,
     record_id: recordId,
@@ -248,6 +248,9 @@ async function logChange(tableName, recordId, fieldName, oldValue, newValue, ite
     old_value: oldValue === null || oldValue === undefined ? null : String(oldValue),
     new_value: newValue === null || newValue === undefined ? null : String(newValue),
     item_label: itemLabel || null,
+    requester_name: requesterName || null,
+    delivery_date: deliveryDate || null,
+    size_text: sizeTxt || null,
     changed_by_name: currentUser.name,
     changed_by_email: currentUser.email
   });
@@ -472,7 +475,8 @@ async function cancelFromDetailSheet(){
     return;
   }
 
-  await logChange('request_item_dates', dateRowId, 'canceled_at', null, '取消', myItems.find(r => r.id === dateRowId)?.category);
+  const r_478 = myItems.find(r => r.id === dateRowId);
+  await logChange('request_item_dates', dateRowId, 'canceled_at', null, '取消', r_478?.category, currentUser.name, r_478?.delivery_date, r_478 ? sizeText(r_478) : null);
 
   document.getElementById('sheet-overlay').classList.remove('show');
   await loadMyItems();
@@ -589,7 +593,8 @@ async function submitOrderFromMypage(){
     return;
   }
 
-  await logChange('request_item_dates', orderSheetState.dateRowId, 'status', null, '発注済み・受取待ち', myItems.find(r => r.id === orderSheetState.dateRowId)?.category);
+  const r_595 = myItems.find(r => r.id === orderSheetState.dateRowId);
+  await logChange('request_item_dates', orderSheetState.dateRowId, 'status', null, '発注済み・受取待ち', r_595?.category, currentUser.name, r_595?.delivery_date, r_595 ? sizeText(r_595) : null);
 
   document.getElementById('order-sheet-overlay').classList.remove('show');
   await loadMyItems();
@@ -608,7 +613,8 @@ async function cancelRequestItem(){
     return;
   }
 
-  await logChange('request_item_dates', orderSheetState.dateRowId, 'canceled_at', null, '取消', myItems.find(r => r.id === orderSheetState.dateRowId)?.category);
+  const r_614 = myItems.find(r => r.id === orderSheetState.dateRowId);
+  await logChange('request_item_dates', orderSheetState.dateRowId, 'canceled_at', null, '取消', r_614?.category, currentUser.name, r_614?.delivery_date, r_614 ? sizeText(r_614) : null);
 
   document.getElementById('order-sheet-overlay').classList.remove('show');
   await loadMyItems();
