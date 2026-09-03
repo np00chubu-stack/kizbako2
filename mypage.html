@@ -237,13 +237,14 @@ const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '' };
 
-async function logChange(tableName, recordId, fieldName, oldValue, newValue){
+async function logChange(tableName, recordId, fieldName, oldValue, newValue, itemLabel){
   await sbClient.from('change_history').insert({
     table_name: tableName,
     record_id: recordId,
     field_name: fieldName,
     old_value: oldValue === null || oldValue === undefined ? null : String(oldValue),
     new_value: newValue === null || newValue === undefined ? null : String(newValue),
+    item_label: itemLabel || null,
     changed_by_name: currentUser.name,
     changed_by_email: currentUser.email
   });
@@ -453,7 +454,7 @@ async function cancelFromDetailSheet(){
     return;
   }
 
-  await logChange('request_item_dates', dateRowId, 'canceled_at', null, '取消');
+  await logChange('request_item_dates', dateRowId, 'canceled_at', null, '取消', myItems.find(r => r.id === dateRowId)?.category);
 
   document.getElementById('sheet-overlay').classList.remove('show');
   await loadMyItems();
@@ -570,7 +571,7 @@ async function submitOrderFromMypage(){
     return;
   }
 
-  await logChange('request_item_dates', orderSheetState.dateRowId, 'status', null, '発注済み・受取待ち');
+  await logChange('request_item_dates', orderSheetState.dateRowId, 'status', null, '発注済み・受取待ち', myItems.find(r => r.id === orderSheetState.dateRowId)?.category);
 
   document.getElementById('order-sheet-overlay').classList.remove('show');
   await loadMyItems();
@@ -589,7 +590,7 @@ async function cancelRequestItem(){
     return;
   }
 
-  await logChange('request_item_dates', orderSheetState.dateRowId, 'canceled_at', null, '取消');
+  await logChange('request_item_dates', orderSheetState.dateRowId, 'canceled_at', null, '取消', myItems.find(r => r.id === orderSheetState.dateRowId)?.category);
 
   document.getElementById('order-sheet-overlay').classList.remove('show');
   await loadMyItems();
