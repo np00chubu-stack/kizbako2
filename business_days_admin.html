@@ -57,7 +57,8 @@ input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px rgba(49,130,2
 .hist-row{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:10px 14px;margin-bottom:8px;font-size:12px}
 .hist-row .hist-when{color:#777;margin-bottom:3px}
 .hist-row .hist-what{color:#1a3a5c;font-weight:bold}
-.hist-row .hist-by{color:#555}
+.hist-row .hist-meta{color:#666;margin-top:2px}
+.hist-row .hist-by{color:#555;margin-top:2px}
 </style>
 </head>
 <body>
@@ -293,13 +294,20 @@ async function loadHistory(){
     return;
   }
 
-  listEl.innerHTML = data.map(row => `
+  listEl.innerHTML = data.map(row => {
+    const metaParts = [];
+    if(row.delivery_date) metaParts.push(`納入日：${row.delivery_date}`);
+    if(row.requester_name) metaParts.push(`依頼者：${row.requester_name}`);
+    if(row.size_text) metaParts.push(`サイズ：${row.size_text}`);
+    const metaHtml = metaParts.length ? `<div class="hist-meta">${escapeHtml(metaParts.join('　'))}</div>` : '';
+    return `
     <div class="hist-row">
       <div class="hist-when">${escapeHtml(new Date(row.changed_at).toLocaleString('ja-JP'))}</div>
       <div class="hist-what">${escapeHtml(histLabel(row))}</div>
+      ${metaHtml}
       <div class="hist-by">${escapeHtml(row.changed_by_name || '（不明）')}</div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 async function initAuth(){
