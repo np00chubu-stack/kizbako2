@@ -193,13 +193,14 @@ const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '', role: '' };
 
-async function logChange(tableName, recordId, fieldName, oldValue, newValue, byName, byEmail){
+async function logChange(tableName, recordId, fieldName, oldValue, newValue, itemLabel, byName, byEmail){
   await sbClient.from('change_history').insert({
     table_name: tableName,
     record_id: recordId,
     field_name: fieldName,
     old_value: oldValue === null || oldValue === undefined ? null : String(oldValue),
     new_value: newValue === null || newValue === undefined ? null : String(newValue),
+    item_label: itemLabel || null,
     changed_by_name: byName !== undefined ? byName : currentUser.name,
     changed_by_email: byEmail !== undefined ? byEmail : currentUser.email
   });
@@ -350,7 +351,7 @@ async function reflectExpiredGraceItems(items){
     if(!error){
       it.status = '発注可能';
       it.reflected_to_stock = true;
-      await logChange('request_item_dates', it.id, 'status', prevStatus, '発注可能', 'システム（自動反映）', null);
+      await logChange('request_item_dates', it.id, 'status', prevStatus, '発注可能', it.category, 'システム（自動反映）', null);
     }
   }
 }
@@ -631,7 +632,7 @@ async function saveQtyChange(){
     return;
   }
 
-  await logChange('request_item_dates', item.id, 'qty', item.qty, newQty);
+  await logChange('request_item_dates', item.id, 'qty', item.qty, newQty, item.category);
 
   item.qty = newQty;
   renderProgSheet();
@@ -670,9 +671,9 @@ async function toggleStage(n){
   const { error } = await sbClient.from('request_item_dates').update(payload).eq('id', item.id);
   if(error){ toast('更新に失敗しました：' + error.message, true); return; }
 
-  await logChange('request_item_dates', item.id, field, item[field], newVal);
+  await logChange('request_item_dates', item.id, field, item[field], newVal, item.category);
   if(newStatus !== item.status){
-    await logChange('request_item_dates', item.id, 'status', item.status, newStatus);
+    await logChange('request_item_dates', item.id, 'status', item.status, newStatus, item.category);
   }
 
   item[field] = newVal;
@@ -691,7 +692,7 @@ document.getElementById('prog-complete-btn').addEventListener('click', async () 
       completed: false, completed_by: null, completed_at: null, grace_ends_at: null
     }).eq('id', item.id);
     if(error){ toast('取り消しに失敗しました：' + error.message, true); return; }
-    await logChange('request_item_dates', item.id, 'completed', true, false);
+    await logChange('request_item_dates', item.id, 'completed', true, false, item.category);
     item.completed = false;
     item.grace_ends_at = null;
     toast(`${item.category}：完成前の状態に戻しました`);
@@ -701,7 +702,7 @@ document.getElementById('prog-complete-btn').addEventListener('click', async () 
       completed: true, completed_by: currentUser.name, completed_at: new Date().toISOString(), grace_ends_at: graceEnds
     }).eq('id', item.id);
     if(error){ toast('完成操作に失敗しました：' + error.message, true); return; }
-    await logChange('request_item_dates', item.id, 'completed', false, true);
+    await logChange('request_item_dates', item.id, 'completed', false, true, item.category);
     item.completed = true;
     item.grace_ends_at = graceEnds;
   } else {
@@ -738,7 +739,7 @@ async function revertFromBanner(itemId){
     completed: false, completed_by: null, completed_at: null, grace_ends_at: null
   }).eq('id', item.id);
   if(error){ toast('取り消しに失敗しました：' + error.message, true); return; }
-  await logChange('request_item_dates', item.id, 'completed', true, false);
+  await logChange('request_item_dates', item.id, 'completed', true, false, item.category);
   item.completed = false;
   item.grace_ends_at = null;
   toast(`${item.category}：完成前の状態に戻しました`);
