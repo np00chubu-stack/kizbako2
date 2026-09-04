@@ -93,6 +93,8 @@ body{
 .status-pill.ready{ background:var(--ready-soft); color:var(--ready); }
 .status-pill.done{ background:#E7EEF6; color:#3D5A80; }
 .status-pill.canceled{ background:var(--muted-soft); color:var(--muted); }
+.status-pill.partial{ background:var(--amber-soft); color:var(--amber); }
+.ready-card.partial{ border-color:var(--amber); }
 
 .empty-note{ text-align:center; padding:16px 10px; color:var(--ink-faint); font-size:10.5px; line-height:1.6; }
 #load-error{ text-align:center; color:var(--alert); font-size:11px; padding:10px 0; }
@@ -298,9 +300,12 @@ function statusIcon(cls){
 function renderReadyCard(row){
   const urgentTag = row.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
   const isOrdered = row.status === '発注済み・受取待ち';
-  const cardClass = isOrdered ? 'ready-card ordered' : 'ready-card';
+  const isPartial = !isOrdered && row.ordered_qty && row.ordered_qty > 0 && row.ordered_qty < row.qty;
+  const cardClass = isOrdered ? 'ready-card ordered' : (isPartial ? 'ready-card partial' : 'ready-card');
   const clickHandler = isOrdered ? `openSheet('${row.id}')` : `openOrderSheet('${row.id}')`;
-  const orderedBadge = isOrdered ? '<span class="status-pill done" style="margin-right:5px">発注済み</span>' : '';
+  const orderedBadge = isOrdered
+    ? '<span class="status-pill done" style="margin-right:5px">発注済み</span>'
+    : (isPartial ? `<span class="status-pill partial" style="margin-right:5px">一部発注済み(${row.ordered_qty}/${row.qty})</span>` : '');
   return `
     <div class="${cardClass}" onclick="${clickHandler}">
       <div class="ready-main">
@@ -508,10 +513,29 @@ async function openOrderSheet(dateRowId){
     return;
   }
 
-  orderSheetState = { dateRowId, stockItemId: stockRow.id, mode: 'circle', qty: 1, date: '' };
+  orderSheetState = { dateRowId, stockItemId: stockRow.id, mode: 'circle', qty: 1, date: '', existingOrderId: null, existingMode: null, existingQty: 0, totalQty: row.qty };
+
+  const { data: existingOrder } = await sbClient
+    .from('stock_orders')
+    .select('id, mode, qty')
+    .eq('stock_item_id', stockRow.id)
+    .eq('is_canceled', false)
+    .maybeSingle();
+
+  let progressNote = '';
+  if(existingOrder){
+    orderSheetState.existingOrderId = existingOrder.id;
+    orderSheetState.existingMode = existingOrder.mode;
+    orderSheetState.existingQty = existingOrder.qty || 0;
+    if(existingOrder.mode === '数量' && existingOrder.qty < row.qty){
+      orderSheetState.mode = 'qty';
+      orderSheetState.qty = Math.max(1, row.qty - existingOrder.qty);
+      progressNote = `<div class="mb-desc">これまでに${existingOrder.qty}個発注済み。残り${row.qty - existingOrder.qty}個です。</div>`;
+    }
+  }
 
   document.getElementById('order-sheet-title').textContent = row.category;
-  document.getElementById('order-sheet-detail').textContent = `${sizeText(row)}／納入日：${row.delivery_date}（${row.qty}c/s）`;
+  document.getElementById('order-sheet-detail').innerHTML = `${escapeHtml(sizeText(row))}／納入日：${escapeHtml(row.delivery_date)}（${escapeHtml(String(row.qty))}c/s）${progressNote}`;
   document.getElementById('order-sheet-msg').textContent = '';
 
   renderOrderModeTabs();
@@ -565,27 +589,54 @@ async function submitOrderFromMypage(){
   }
 
   const modeLabel = mode === 'circle' ? '○' : (mode === 'qty' ? '数量' : '日付');
+  const { existingOrderId, existingMode, existingQty, totalQty } = orderSheetState;
+  const r_now = myItems.find(r => r.id === orderSheetState.dateRowId);
 
-  const { error: orderErr } = await sbClient.from('stock_orders').insert({
-    stock_item_id: orderSheetState.stockItemId,
-    operated_by_email: currentUser.email,
-    operated_by_name: currentUser.name,
-    destination: null,
-    mode: modeLabel,
-    qty: qty,
-    desired_date: desiredDate,
-    is_proxy: false,
-    is_canceled: false
-  });
+  let cumulativeQty = qty;
 
-  if(orderErr){
-    msgEl.textContent = '発注に失敗しました：' + orderErr.message;
-    return;
+  if(modeLabel === '数量' && existingOrderId && existingMode === '数量'){
+    // 既存の数量発注に積み増す（部分発注）
+    cumulativeQty = existingQty + qty;
+    const { error: updErr } = await sbClient
+      .from('stock_orders')
+      .update({ qty: cumulativeQty })
+      .eq('id', existingOrderId);
+    if(updErr){
+      msgEl.textContent = '発注に失敗しました：' + updErr.message;
+      return;
+    }
+    await logChange('stock_orders', existingOrderId, 'qty', existingQty, cumulativeQty, r_now?.category, currentUser.name, r_now?.delivery_date, r_now ? sizeText(r_now) : null);
+  } else {
+    // 既存の発注があれば取消してから新規登録（モードが変わった場合、または○／日付の場合）
+    if(existingOrderId){
+      await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId);
+      await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, r_now?.category, currentUser.name, r_now?.delivery_date, r_now ? sizeText(r_now) : null);
+    }
+
+    const { error: orderErr } = await sbClient.from('stock_orders').insert({
+      stock_item_id: orderSheetState.stockItemId,
+      operated_by_email: currentUser.email,
+      operated_by_name: currentUser.name,
+      destination: null,
+      mode: modeLabel,
+      qty: qty,
+      desired_date: desiredDate,
+      is_proxy: false,
+      is_canceled: false
+    });
+
+    if(orderErr){
+      msgEl.textContent = '発注に失敗しました：' + orderErr.message;
+      return;
+    }
   }
+
+  // 数量モードは、合計に達するまで「発注可能」のまま残す（部分発注）。○／日付は即時「発注済み・受取待ち」。
+  const newStatus = (modeLabel === '数量' && totalQty && cumulativeQty < totalQty) ? '発注可能' : '発注済み・受取待ち';
 
   const { error: statusErr } = await sbClient
     .from('request_item_dates')
-    .update({ status: '発注済み・受取待ち' })
+    .update({ status: newStatus })
     .eq('id', orderSheetState.dateRowId);
 
   if(statusErr){
@@ -593,8 +644,7 @@ async function submitOrderFromMypage(){
     return;
   }
 
-  const r_595 = myItems.find(r => r.id === orderSheetState.dateRowId);
-  await logChange('request_item_dates', orderSheetState.dateRowId, 'status', null, '発注済み・受取待ち', r_595?.category, currentUser.name, r_595?.delivery_date, r_595 ? sizeText(r_595) : null);
+  await logChange('request_item_dates', orderSheetState.dateRowId, 'status', null, newStatus, r_now?.category, currentUser.name, r_now?.delivery_date, r_now ? sizeText(r_now) : null);
 
   document.getElementById('order-sheet-overlay').classList.remove('show');
   await loadMyItems();
@@ -713,6 +763,31 @@ async function loadMyItems(){
   if(orderedIds.length){
     const deliveredDateIds = await getDeliveredDateIds(orderedIds);
     myItems = myItems.filter(r => !(r.status === '発注済み・受取待ち' && deliveredDateIds.has(r.id)));
+  }
+
+  // 発注可能なもののうち、部分発注（数量モード）で一部だけ発注済みのものの進捗を取得
+  const readyIds = myItems.filter(r => r.status === '発注可能').map(r => r.id);
+  if(readyIds.length){
+    const { data: stockRows2 } = await sbClient
+      .from('stock_items')
+      .select('id, request_item_date_id')
+      .in('request_item_date_id', readyIds);
+    const stockIdToDateId2 = {};
+    const stockIds2 = (stockRows2 || []).map(s => { stockIdToDateId2[s.id] = s.request_item_date_id; return s.id; });
+    if(stockIds2.length){
+      const { data: orderRows2 } = await sbClient
+        .from('stock_orders')
+        .select('stock_item_id, qty')
+        .in('stock_item_id', stockIds2)
+        .eq('is_canceled', false)
+        .eq('mode', '数量');
+      const orderedByDateId = {};
+      (orderRows2 || []).forEach(o => {
+        const dId = stockIdToDateId2[o.stock_item_id];
+        if(dId) orderedByDateId[dId] = (orderedByDateId[dId] || 0) + (o.qty || 0);
+      });
+      myItems.forEach(r => { if(orderedByDateId[r.id]) r.ordered_qty = orderedByDateId[r.id]; });
+    }
   }
 
   document.getElementById('load-error').style.display = 'none';
