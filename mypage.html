@@ -607,12 +607,7 @@ async function submitOrderFromMypage(){
     }
     await logChange('stock_orders', existingOrderId, 'qty', existingQty, cumulativeQty, r_now?.category, currentUser.name, r_now?.delivery_date, r_now ? sizeText(r_now) : null);
   } else {
-    // 既存の発注があれば取消してから新規登録（モードが変わった場合、または○／日付の場合）
-    if(existingOrderId){
-      await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId);
-      await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, r_now?.category, currentUser.name, r_now?.delivery_date, r_now ? sizeText(r_now) : null);
-    }
-
+    // 新規登録を先に行い、成功を確認してから既存の発注を取消す（モードが変わった場合、または○／日付の場合）
     const { error: orderErr } = await sbClient.from('stock_orders').insert({
       stock_item_id: orderSheetState.stockItemId,
       operated_by_email: currentUser.email,
@@ -628,6 +623,15 @@ async function submitOrderFromMypage(){
     if(orderErr){
       msgEl.textContent = '発注に失敗しました：' + orderErr.message;
       return;
+    }
+
+    if(existingOrderId){
+      const { error: cancelErr } = await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId);
+      if(cancelErr){
+        msgEl.textContent = '発注は完了しましたが、古い発注の取消に失敗しました：' + cancelErr.message;
+        return;
+      }
+      await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, r_now?.category, currentUser.name, r_now?.delivery_date, r_now ? sizeText(r_now) : null);
     }
   }
 
