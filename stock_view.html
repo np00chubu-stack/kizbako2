@@ -318,7 +318,11 @@ function renderIndividualTable(rows){
     const clickable = canOperate && (isSelfItem || currentUser.role === '管理者') && !blocked && !deliveredLocked;
 
     const fieldClass = order ? '' : 'empty';
-    const fieldLabel = order ? (order.mode === '数量' ? order.qty : (order.mode === '日付' ? '日' : '○')) : 'ー';
+    const fieldLabel = order
+      ? (order.mode === '数量'
+          ? (dateInfo && dateInfo.qty && order.qty < dateInfo.qty ? `${order.qty}/${dateInfo.qty}` : order.qty)
+          : (order.mode === '日付' ? '日' : '○'))
+      : 'ー';
     const disabledClass = clickable ? '' : 'disabled';
     const onclickAttr = clickable ? `onclick="openOrderSheet('${row.id}','individual')"` : '';
     const markClass = mark ? `mark-${mark}` : '';
@@ -408,13 +412,14 @@ function renderCommonTable(rows){
 // =============================================
 // 発注設定シート（個人依頼品・共通品 共用）
 // =============================================
-let orderSheetState = { stockItemId: null, itemType: null, teamId: null, existingOrderId: null };
+let orderSheetState = { stockItemId: null, itemType: null, teamId: null, existingOrderId: null, existingMode: null, existingQty: 0, dateRowId: null, totalQty: null };
 
 function openOrderSheet(stockItemId, itemType, teamId){
   const row = stockItemsCache.find(r => r.id === stockItemId);
   if(!row) return;
 
-  orderSheetState = { stockItemId, itemType, teamId: teamId || null, existingOrderId: null };
+  const dateInfo = row.request_item_date_id ? dateInfoCache[row.request_item_date_id] : null;
+  orderSheetState = { stockItemId, itemType, teamId: teamId || null, existingOrderId: null, existingMode: null, existingQty: 0, dateRowId: row.request_item_date_id || null, totalQty: dateInfo ? dateInfo.qty : null };
 
   const isViewOnly = currentUser.role === '作業者';
   const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
@@ -434,12 +439,19 @@ function openOrderSheet(stockItemId, itemType, teamId){
 
   const activeOrders = ordersCache[stockItemId] || [];
   const existing = itemType === 'common' ? activeOrders.find(o => o.team_id === teamId) : activeOrders[0];
-  if(existing) orderSheetState.existingOrderId = existing.id;
+  if(existing){
+    orderSheetState.existingOrderId = existing.id;
+    orderSheetState.existingMode = existing.mode;
+    orderSheetState.existingQty = existing.qty || 0;
+  }
 
   let statusHtml = '';
   if(existing){
     const proxyTag = existing.is_proxy ? '（代理）' : '';
     statusHtml = `<div class="order-status-note${existing.is_proxy?' proxy':''}">現在：${escapeHtml(orderModeLabel(existing))}　${escapeHtml(existing.operated_by_name)}さん${proxyTag}</div>`;
+    if(itemType === 'individual' && existing.mode === '数量' && orderSheetState.totalQty && existing.qty < orderSheetState.totalQty){
+      statusHtml += `<div class="order-status-note">これまでに${existing.qty}個発注済み。残り${orderSheetState.totalQty - existing.qty}個です（部分発注）。</div>`;
+    }
   }
   document.getElementById('order-sheet-status').innerHTML = statusHtml;
 
@@ -519,40 +531,61 @@ async function submitOrder(){
     if(!desiredDate){ msgEl.textContent = '希望日を入力してください。'; return; }
   }
 
-  const { stockItemId, itemType, teamId, existingOrderId } = orderSheetState;
+  const { stockItemId, itemType, teamId, existingOrderId, existingMode, existingQty, dateRowId, totalQty } = orderSheetState;
   const stockRow = stockItemsCache.find(r => r.id === stockItemId);
   const isSelfItem = itemType === 'individual' && stockRow && stockRow.requester_name === currentUser.name;
   const isProxy = itemType === 'individual' ? !isSelfItem : false;
+  const exOrder = historyExtras(stockRow);
 
-  // 既存の発注があれば取消してから新規登録（同一欄の書き換え）
-  if(existingOrderId){
-    await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId);
-    const exExisting = historyExtras(stockRow);
-    await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockRow?.item_name, undefined, undefined, exExisting.requesterName, exExisting.deliveryDate, exExisting.sizeTxt);
+  let cumulativeQty = qty;
+
+  if(mode === '数量' && existingOrderId && existingMode === '数量'){
+    // 既存の数量発注に積み増す（部分発注）
+    cumulativeQty = existingQty + qty;
+    const { error: updErr } = await sbClient.from('stock_orders').update({ qty: cumulativeQty }).eq('id', existingOrderId);
+    if(updErr){
+      msgEl.textContent = '発注に失敗しました：' + updErr.message;
+      return;
+    }
+    await logChange('stock_orders', existingOrderId, 'qty', existingQty, cumulativeQty, stockRow?.item_name, undefined, undefined, exOrder.requesterName, exOrder.deliveryDate, exOrder.sizeTxt);
+  } else {
+    // 既存の発注があれば取消してから新規登録（モードが変わった場合、または○／日付の場合）
+    if(existingOrderId){
+      await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId);
+      await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockRow?.item_name, undefined, undefined, exOrder.requesterName, exOrder.deliveryDate, exOrder.sizeTxt);
+    }
+
+    const payload = {
+      stock_item_id: stockItemId,
+      operated_by_email: currentUser.email,
+      operated_by_name: currentUser.name,
+      destination: null,
+      team_id: itemType === 'common' ? teamId : null,
+      mode: mode,
+      qty: qty,
+      desired_date: desiredDate,
+      is_proxy: isProxy,
+      is_canceled: false
+    };
+
+    const { data: insertedOrder, error } = await sbClient.from('stock_orders').insert(payload).select('id').single();
+    if(error){
+      msgEl.textContent = '発注に失敗しました：' + error.message;
+      return;
+    }
+
+    if(insertedOrder){
+      await logChange('stock_orders', insertedOrder.id, 'order', null, `${mode}${qty ? '（' + qty + '）' : ''}${desiredDate ? '（' + desiredDate + '）' : ''}`, stockRow?.item_name, undefined, undefined, exOrder.requesterName, exOrder.deliveryDate, exOrder.sizeTxt);
+    }
   }
 
-  const payload = {
-    stock_item_id: stockItemId,
-    operated_by_email: currentUser.email,
-    operated_by_name: currentUser.name,
-    destination: null,
-    team_id: itemType === 'common' ? teamId : null,
-    mode: mode,
-    qty: qty,
-    desired_date: desiredDate,
-    is_proxy: isProxy,
-    is_canceled: false
-  };
-
-  const { data: insertedOrder, error } = await sbClient.from('stock_orders').insert(payload).select('id').single();
-  if(error){
-    msgEl.textContent = '発注に失敗しました：' + error.message;
-    return;
-  }
-
-  if(insertedOrder){
-    const exNew = historyExtras(stockRow);
-    await logChange('stock_orders', insertedOrder.id, 'order', null, `${mode}${qty ? '（' + qty + '）' : ''}${desiredDate ? '（' + desiredDate + '）' : ''}`, stockRow?.item_name, undefined, undefined, exNew.requesterName, exNew.deliveryDate, exNew.sizeTxt);
+  // 個人品・数量モードは、依頼の合計数量に達するまで依頼側を「発注可能」のまま残す（部分発注）
+  if(itemType === 'individual' && dateRowId){
+    const newStatus = (mode === '数量' && totalQty && cumulativeQty < totalQty) ? '発注可能' : '発注済み・受取待ち';
+    const { error: stErr } = await sbClient.from('request_item_dates').update({ status: newStatus }).eq('id', dateRowId);
+    if(!stErr){
+      await logChange('request_item_dates', dateRowId, 'status', null, newStatus, stockRow?.item_name, undefined, undefined, exOrder.requesterName, exOrder.deliveryDate, exOrder.sizeTxt);
+    }
   }
 
   closeOrderSheet();
