@@ -265,6 +265,13 @@ function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// 依頼フォームの階層カテゴリ「3000まで」「3001以上」は、サイズで自動振り分けするための
+// 内部区分にすぎず、品目名として意味を持たないため、画面表示からは常に除外する。
+const HIDDEN_CATEGORY_LABELS = ['3000まで', '3001以上'];
+function displayCategory(cat){
+  return HIDDEN_CATEGORY_LABELS.includes(cat) ? '' : (cat || '');
+}
+
 function sizeText(row){
   return [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
 }
@@ -311,7 +318,7 @@ function renderReadyCard(row){
     <div class="${cardClass}" onclick="${clickHandler}">
       <div class="ready-main">
         <div class="rc-date mono">希望日 ${escapeHtml(shortDate(row.delivery_date))}</div>
-        <div class="rc-name">${orderedBadge}${escapeHtml(row.category)}${urgentTag}</div>
+        <div class="rc-name">${orderedBadge}${escapeHtml(displayCategory(row.category))}${urgentTag}</div>
         <div class="rc-detail">${escapeHtml(sizeText(row))}　${escapeHtml(String(row.qty))}c/s</div>
       </div>
       <div class="ready-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
@@ -331,7 +338,7 @@ function renderListRow(row){
     <div class="plain-row${cancelled ? ' is-cancelled' : ''}" onclick="openSheet('${row.id}')">
       <div class="pr-date mono">${escapeHtml(shortDate(row.delivery_date))}</div>
       <div class="pr-main">
-        <div class="pr-name">${escapeHtml(row.category)}${urgentTag}</div>
+        <div class="pr-name">${escapeHtml(displayCategory(row.category))}${urgentTag}</div>
         <div class="pr-detail">${escapeHtml(sizeText(row))}　${escapeHtml(String(row.qty))}c/s</div>
       </div>
       <span class="status-pill ${cls}">${statusIcon(cls)}<span>${escapeHtml(label)}</span></span>
@@ -439,7 +446,7 @@ function openSheet(dateRowId){
   const row = myItems.find(r => r.id === dateRowId);
   if(!row) return;
 
-  document.getElementById('sheet-title').textContent = row.category;
+  document.getElementById('sheet-title').textContent = displayCategory(row.category);
 
   const statusLabel = row.canceled_at ? '取消済み' : (row.status === '発注済み・受取待ち' ? '発注済み' : row.status);
 
@@ -588,7 +595,7 @@ async function openOrderSheet(dateRowId){
     }
   }
 
-  document.getElementById('order-sheet-title').textContent = row.category;
+  document.getElementById('order-sheet-title').textContent = displayCategory(row.category);
   document.getElementById('order-sheet-detail').innerHTML = `${escapeHtml(sizeText(row))}／納入日：${escapeHtml(row.delivery_date)}（${escapeHtml(String(row.qty))}c/s）${progressNote}`;
   document.getElementById('order-sheet-msg').textContent = '';
 
