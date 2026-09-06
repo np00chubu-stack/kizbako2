@@ -241,6 +241,12 @@ let currentUser = { email: '', name: '', role: '' };
 function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+// 依頼フォームの階層カテゴリ「3000まで」「3001以上」は、サイズで自動振り分けするための
+// 内部区分にすぎず、品目名として意味を持たないため、画面表示からは常に除外する。
+const HIDDEN_CATEGORY_LABELS = ['3000まで', '3001以上'];
+function displayCategory(cat){
+  return HIDDEN_CATEGORY_LABELS.includes(cat) ? '' : (cat || '');
+}
 function shortDate(ymd){
   const m = String(ymd).match(/^\d{4}-(\d{1,2})-(\d{1,2})/);
   return m ? `${parseInt(m[1],10)}/${parseInt(m[2],10)}` : ymd;
@@ -358,7 +364,7 @@ async function loadRecentForRequester(){
       <div class="recent-row">
         <div class="rr-main">
           <div class="rr-date mono">${escapeHtml(shortDate(d.delivery_date))} 送信</div>
-          <div class="rr-name">${escapeHtml(parent.category || '')}</div>
+          <div class="rr-name">${escapeHtml(displayCategory(parent.category))}</div>
         </div>
         <div class="status-pill ${cls}">${statusIcon(cls)}<span>${escapeHtml(label)}</span></div>
       </div>`;
