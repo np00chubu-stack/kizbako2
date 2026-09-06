@@ -56,7 +56,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .cm-cell{display:flex;justify-content:center}
 
 /* 発注欄フィールド */
-.order-field{appearance:none;cursor:pointer;font-weight:bold;border-radius:8px;padding:5px 9px;font-size:13px;min-width:34px;text-align:center;background:#fff;border:1.4px solid #ccc;color:#1a3a5c}
+.order-field{appearance:none;cursor:pointer;font-weight:bold;border-radius:8px;padding:5px 9px;font-size:15px;min-width:34px;text-align:center;background:#fff;border:2px solid #b8b8b8;color:#1a3a5c}
 .order-field.empty{color:#bbb;border-style:dashed;font-weight:normal}
 .order-field.disabled{opacity:.5;cursor:not-allowed}
 .order-field.mark-prep{background:#fbdce4;border-color:#e79ab0;color:#8a3a52}
@@ -307,7 +307,8 @@ function renderIndividualTable(rows){
     const activeOrders = ordersCache[row.id] || [];
     const order = activeOrders[0];
     // 発注時に「日付」モードで希望日が指定されていればそちらを優先表示、なければ元の納入日
-    const dateText = (order && order.mode === '日付' && order.desired_date) ? order.desired_date : (dateInfo ? dateInfo.delivery_date : '');
+    const rawDateText = (order && order.mode === '日付' && order.desired_date) ? order.desired_date : (dateInfo ? dateInfo.delivery_date : '');
+    const dateText = rawDateText ? rawDateText.slice(5).replace('-', '/') : '';
     const urgentTag = dateInfo && dateInfo.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
 
     const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
@@ -466,7 +467,17 @@ function openOrderSheet(stockItemId, itemType, teamId){
 
   if(canEdit){
     const qtyBase = (orderSheetState.existingMode === '数量') ? orderSheetState.existingQty : 0;
-    const qtyMax = orderSheetState.totalQty ? (orderSheetState.totalQty - qtyBase) : '';
+    const stockQty = row.stock_qty ?? 0;
+    let qtyMax = orderSheetState.totalQty ? (orderSheetState.totalQty - qtyBase) : Infinity;
+    if(itemType === 'common'){
+      const othersQty = (ordersCache[stockItemId] || [])
+        .filter(o => o.team_id !== teamId && o.mode === '数量')
+        .reduce((sum, o) => sum + (o.qty || 0), 0);
+      qtyMax = Math.min(qtyMax, Math.max(0, stockQty - othersQty));
+    } else {
+      qtyMax = Math.min(qtyMax, Math.max(0, stockQty - qtyBase));
+    }
+    qtyMax = Number.isFinite(qtyMax) ? qtyMax : '';
     document.getElementById('order-sheet-form').innerHTML = `
       <div class="mode-row" id="order-mode-row">
         <label class="selected" id="mode-lbl-circle"><input type="radio" name="order-mode" value="○" checked onchange="onOrderModeChange()"> ○</label>
@@ -544,6 +555,25 @@ async function submitOrder(){
     if(baseQty + qty > totalQty){
       msgEl.textContent = `発注数が残数（${totalQty - baseQty}個）を超えています。`;
       return;
+    }
+  }
+
+  if(mode === '数量'){
+    const stockQty = stockRow?.stock_qty ?? 0;
+    if(itemType === 'common'){
+      const othersQty = (ordersCache[stockItemId] || [])
+        .filter(o => o.team_id !== teamId && o.mode === '数量')
+        .reduce((sum, o) => sum + (o.qty || 0), 0);
+      if(othersQty + qty > stockQty){
+        msgEl.textContent = `在庫数（${stockQty}個）を超えています（他班分：${othersQty}個含む）。`;
+        return;
+      }
+    } else {
+      const baseQty = (existingMode === '数量') ? existingQty : 0;
+      if(baseQty + qty > stockQty){
+        msgEl.textContent = `在庫数（${stockQty}個）を超えています。`;
+        return;
+      }
     }
   }
 
