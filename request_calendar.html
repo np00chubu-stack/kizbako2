@@ -108,6 +108,13 @@ function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// 依頼フォームの階層カテゴリ「3000まで」「3001以上」は、サイズで自動振り分けするための
+// 内部区分にすぎず、品目名として意味を持たないため、画面表示からは常に除外する。
+const HIDDEN_CATEGORY_LABELS = ['3000まで', '3001以上'];
+function displayCategory(cat){
+  return HIDDEN_CATEGORY_LABELS.includes(cat) ? '' : (cat || '');
+}
+
 // =============================================
 // JST基準の日付ユーティリティ
 // =============================================
@@ -270,7 +277,8 @@ function totalOf(items){
 
 function reqCardHtml(it){
   const cancelledClass = it.canceled_at ? 'is-cancelled' : '';
-  const nameLine = it.client_name ? `${it.client_name}　${it.category}` : it.category;
+  const catText = displayCategory(it.category);
+  const nameLine = it.client_name ? (catText ? `${it.client_name}　${catText}` : it.client_name) : catText;
   const urgentTag = it.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
   return `
     <div class="req-card ${cancelledClass}">
