@@ -465,6 +465,8 @@ function openOrderSheet(stockItemId, itemType, teamId){
   const canEdit = canOperate && !blocked && !deliveredLocked && (itemType === 'common' || isSelfItem || currentUser.role === '管理者');
 
   if(canEdit){
+    const qtyBase = (orderSheetState.existingMode === '数量') ? orderSheetState.existingQty : 0;
+    const qtyMax = orderSheetState.totalQty ? (orderSheetState.totalQty - qtyBase) : '';
     document.getElementById('order-sheet-form').innerHTML = `
       <div class="mode-row" id="order-mode-row">
         <label class="selected" id="mode-lbl-circle"><input type="radio" name="order-mode" value="○" checked onchange="onOrderModeChange()"> ○</label>
@@ -473,7 +475,7 @@ function openOrderSheet(stockItemId, itemType, teamId){
       </div>
       <div class="field-group" id="order-qty-group" style="display:none">
         <label class="field-label">数量</label>
-        <input type="number" id="order-qty-input" min="1">
+        <input type="number" id="order-qty-input" min="1" max="${qtyMax}">
       </div>
       <div class="field-group" id="order-date-group" style="display:none">
         <label class="field-label">希望日</label>
@@ -536,6 +538,14 @@ async function submitOrder(){
   const isSelfItem = itemType === 'individual' && stockRow && stockRow.requester_name === currentUser.name;
   const isProxy = itemType === 'individual' ? !isSelfItem : false;
   const exOrder = historyExtras(stockRow);
+
+  if(mode === '数量' && totalQty){
+    const baseQty = (existingMode === '数量') ? existingQty : 0;
+    if(baseQty + qty > totalQty){
+      msgEl.textContent = `発注数が残数（${totalQty - baseQty}個）を超えています。`;
+      return;
+    }
+  }
 
   let cumulativeQty = qty;
 
