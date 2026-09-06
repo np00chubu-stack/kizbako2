@@ -205,6 +205,7 @@ body{
         <div class="sheet-meta" id="sheet-detail"></div>
         <div id="sheet-edit-area"></div>
         <div class="sheet-note" id="sheet-cancel-msg"></div>
+        <button class="sheet-cancel-link" id="order-cancel-btn" style="display:none" onclick="cancelOrderFromDetailSheet()">発注を取消す</button>
         <button class="sheet-cancel-link" id="sheet-cancel-btn" style="display:none" onclick="cancelFromDetailSheet()">この納入日の依頼を取り消す</button>
         <button class="sheet-close" onclick="closeSheet()">閉じる</button>
       </div>
@@ -462,7 +463,60 @@ function openSheet(dateRowId){
     cancelBtn.style.display = 'none';
   }
 
+  const orderCancelBtn = document.getElementById('order-cancel-btn');
+  if(!row.canceled_at && row.status === '発注済み・受取待ち'){
+    orderCancelBtn.style.display = 'block';
+    orderCancelBtn.dataset.dateRowId = dateRowId;
+  } else {
+    orderCancelBtn.style.display = 'none';
+  }
+
   document.getElementById('sheet-overlay').classList.add('show');
+}
+
+async function cancelOrderFromDetailSheet(){
+  const dateRowId = document.getElementById('order-cancel-btn').dataset.dateRowId;
+  if(!dateRowId) return;
+  if(!confirm('発注を取消しますか？依頼自体は「発注可能」の状態に戻ります。')) return;
+
+  const r_oc = myItems.find(r => r.id === dateRowId);
+
+  const { data: stockRow, error: stockErr } = await sbClient
+    .from('stock_items')
+    .select('id')
+    .eq('request_item_date_id', dateRowId)
+    .maybeSingle();
+
+  if(stockErr || !stockRow){
+    document.getElementById('sheet-cancel-msg').textContent = '発注データが見つかりませんでした。';
+    return;
+  }
+
+  const { error: cancelOrderErr } = await sbClient
+    .from('stock_orders')
+    .update({ is_canceled: true })
+    .eq('stock_item_id', stockRow.id)
+    .eq('is_canceled', false);
+
+  if(cancelOrderErr){
+    document.getElementById('sheet-cancel-msg').textContent = '取消に失敗しました：' + cancelOrderErr.message;
+    return;
+  }
+
+  const { error: statusErr } = await sbClient
+    .from('request_item_dates')
+    .update({ status: '発注可能' })
+    .eq('id', dateRowId);
+
+  if(statusErr){
+    document.getElementById('sheet-cancel-msg').textContent = '発注の取消はできましたが、状態更新に失敗しました：' + statusErr.message;
+    return;
+  }
+
+  await logChange('request_item_dates', dateRowId, 'status', '発注済み・受取待ち', '発注可能', r_oc?.category, currentUser.name, r_oc?.delivery_date, r_oc ? sizeText(r_oc) : null);
+
+  document.getElementById('sheet-overlay').classList.remove('show');
+  await loadMyItems();
 }
 
 async function cancelFromDetailSheet(){
@@ -564,7 +618,12 @@ function renderOrderModeBody(){
         <button type="button" id="orderQtyPlus">＋</button>
       </div>`;
     document.getElementById('orderQtyMinus').onclick = () => { if(orderSheetState.qty > 1) orderSheetState.qty--; document.getElementById('orderQtyVal').textContent = orderSheetState.qty; };
-    document.getElementById('orderQtyPlus').onclick = () => { orderSheetState.qty++; document.getElementById('orderQtyVal').textContent = orderSheetState.qty; };
+    document.getElementById('orderQtyPlus').onclick = () => {
+      const baseQty = (orderSheetState.existingMode === '数量') ? orderSheetState.existingQty : 0;
+      const maxQty = orderSheetState.totalQty ? (orderSheetState.totalQty - baseQty) : Infinity;
+      if(orderSheetState.qty < maxQty) orderSheetState.qty++;
+      document.getElementById('orderQtyVal').textContent = orderSheetState.qty;
+    };
   } else if(orderSheetState.mode === 'date'){
     body.innerHTML = `
       <div class="mb-desc">受け取りたい日を指定できます。</div>
@@ -591,6 +650,14 @@ async function submitOrderFromMypage(){
   const modeLabel = mode === 'circle' ? '○' : (mode === 'qty' ? '数量' : '日付');
   const { existingOrderId, existingMode, existingQty, totalQty } = orderSheetState;
   const r_now = myItems.find(r => r.id === orderSheetState.dateRowId);
+
+  if(modeLabel === '数量' && totalQty){
+    const baseQty = (existingMode === '数量') ? existingQty : 0;
+    if(baseQty + qty > totalQty){
+      msgEl.textContent = `発注数が残数（${totalQty - baseQty}個）を超えています。`;
+      return;
+    }
+  }
 
   let cumulativeQty = qty;
 
