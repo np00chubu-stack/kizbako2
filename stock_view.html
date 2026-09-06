@@ -38,8 +38,8 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .ir-main{min-width:0}
 .ir-name{font-size:12px;font-weight:bold;color:#1a3a5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .urgent-tag{font-size:8px;font-weight:bold;color:#fff;background:#c4531f;padding:1.5px 5.5px;border-radius:999px;margin-left:4px}
-.ir-size{font-size:9.5px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ir-qty{font-size:11px;text-align:center;color:#555}
+.ir-size{font-size:11px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ir-qty{font-size:14px;font-weight:bold;text-align:center;color:#1a3a5c}
 .ir-requester{font-size:10px;color:#666;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ir-cell{display:flex;justify-content:center}
 
@@ -56,7 +56,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .cm-cell{display:flex;justify-content:center}
 
 /* 発注欄フィールド */
-.order-field{appearance:none;cursor:pointer;font-weight:bold;border-radius:8px;padding:5px 9px;font-size:10.5px;min-width:34px;text-align:center;background:#fff;border:1.4px solid #ccc;color:#333}
+.order-field{appearance:none;cursor:pointer;font-weight:bold;border-radius:8px;padding:5px 9px;font-size:13px;min-width:34px;text-align:center;background:#fff;border:1.4px solid #ccc;color:#1a3a5c}
 .order-field.empty{color:#bbb;border-style:dashed;font-weight:normal}
 .order-field.disabled{opacity:.5;cursor:not-allowed}
 .order-field.mark-prep{background:#fbdce4;border-color:#e79ab0;color:#8a3a52}
@@ -321,7 +321,7 @@ function renderIndividualTable(rows){
     const fieldLabel = order
       ? (order.mode === '数量'
           ? (dateInfo && dateInfo.qty && order.qty < dateInfo.qty ? `${order.qty}/${dateInfo.qty}` : order.qty)
-          : (order.mode === '日付' ? '日' : '○'))
+          : (order.mode === '日付' ? (order.desired_date ? order.desired_date.slice(5).replace('-', '/') : '日') : '○'))
       : 'ー';
     const disabledClass = clickable ? '' : 'disabled';
     const onclickAttr = clickable ? `onclick="openOrderSheet('${row.id}','individual')"` : '';
@@ -385,7 +385,7 @@ function renderCommonTable(rows){
       const deliveredLocked = mark === 'delivered' && currentUser.role !== '管理者';
       const canOperate = (currentUser.role === '依頼者' || currentUser.role === '管理者') && !blocked && !deliveredLocked;
       const fieldClass = order ? '' : 'empty';
-      const fieldLabel = order ? (order.mode === '数量' ? order.qty : (order.mode === '日付' ? '日' : '○')) : 'ー';
+      const fieldLabel = order ? (order.mode === '数量' ? order.qty : (order.mode === '日付' ? (order.desired_date ? order.desired_date.slice(5).replace('-', '/') : '日') : '○')) : 'ー';
       const disabledClass = canOperate ? '' : 'disabled';
       const onclickAttr = canOperate ? `onclick="openOrderSheet('${row.id}','common','${team.id}')"` : '';
       const markClass = mark ? `mark-${mark}` : '';
