@@ -2,7 +2,8 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- ピンチアウト（拡大）を許可するために user-scalable=yes に変更 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <title>依頼カレンダー</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -26,53 +27,96 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .month-nav button:active{background:#eef3f8}
 .month-nav .month-label{font-size:16px;font-weight:bold;color:#1a3a5c;min-width:120px;text-align:center}
 
-/* 週ブロック（ラベルなし・区切り余白のみ） */
-.week-block{margin-bottom:14px}
-.week-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:8px}
-@media (max-width:600px){
-  .week-grid{grid-template-columns:repeat(5,minmax(96px,1fr));gap:4px}
-  .day-head{padding:5px 5px 4px}
-  .day-head .dh-date{font-size:11px}
-  .day-head .dh-dow{font-size:8px}
-  .day-head .dh-total{font-size:8px;padding:1px 5px}
-  .day-body{padding:4px;gap:3px}
-  .req-card{padding:4px 5px 4px}
-  .rq-name{font-size:8.5px}
-  .rq-size{font-size:7.5px}
-  .rq-qty{font-size:8.5px;padding:1px 5px}
-  .rq-requester{font-size:7px}
-  .urgent-tag{font-size:6.5px;padding:1px 4px}
+/* カレンダーコンテナ（横スクロール可能化） */
+#calendar-content {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
 }
 
-.day-col{display:flex;flex-direction:column;background:#fff;border:1px solid #e2e6ec;border-radius:10px;overflow:hidden;min-height:120px}
-.day-col.out-of-month{background:#f7f7f8;opacity:.55}
-.day-head{display:flex;align-items:baseline;justify-content:space-between;padding:8px 9px 6px;border-bottom:1px solid #e2e6ec;background:#f7f9fc}
-.day-head .dh-date{font-size:14px;font-weight:bold;color:#1a3a5c}
-.day-head .dh-dow{font-size:10px;color:#888;margin-left:3px}
-.day-head .dh-total{font-size:10px;font-weight:bold;color:#1a3a5c;background:#e6ecf7;padding:2px 7px;border-radius:999px;white-space:nowrap}
-.day-head .dh-total.zero{background:#f0f0f0;color:#aaa}
-.day-body{padding:7px;display:flex;flex-direction:column;gap:5px;max-height:280px;overflow-y:auto}
-.day-empty{font-size:10px;color:#bbb;text-align:center;padding:10px 4px}
+/* 週ブロック */
+.week-block{margin-bottom:14px}
+.week-grid{display:grid;grid-template-columns:repeat(5, minmax(140px, 1fr));gap:6px}
 
-.req-card{background:#fff;border:1px solid #e2e6ec;border-radius:8px;padding:6px 8px 5px}
+/* モバイル向けスタイル調整 */
+@media (max-width:600px){
+  /* 5列が潰れすぎないよう横幅を確保（横スクロールで閲覧） */
+  .week-grid{grid-template-columns:repeat(5, minmax(110px, 1fr));gap:4px}
+  
+  .day-head{padding:4px 5px}
+  .day-head .dh-date{font-size:10.5px}
+  .day-head .dh-dow{font-size:8px}
+  .day-head .dh-total{font-size:8px;padding:1px 4px}
+  .day-body{padding:3px;gap:3px;max-height:220px}
+  
+  /* カード内の「省略（...）」レイアウト設定 */
+  .req-card{padding:3px 4px; overflow: hidden;}
+  .rq-line{display:flex; flex-direction:column; gap:0;}
+  
+  /* ぱっと見で分かるように文字を1行省略に指定 */
+  .rq-name{
+    font-size:8.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+  }
+  .rq-size{
+    font-size:7.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+  }
+  .rq-qty{font-size:8px;padding:0 4px}
+  .rq-requester{
+    font-size:7px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .urgent-tag{font-size:6.5px;padding:0 3px; margin-left:2px;}
+}
+
+/* ピンチアウト（ズームイン）時、または解像度変更時に自動で省略を解除して全容を表示 */
+@media (max-width:600px) and (min-resolution: 1.2dppx), (min-width: 601px) {
+  .rq-name, .rq-size, .rq-requester {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+}
+
+.day-col{display:flex;flex-direction:column;background:#fff;border:1px solid #e2e6ec;border-radius:8px;overflow:hidden;min-height:100px}
+.day-col.out-of-month{background:#f7f7f8;opacity:.55}
+.day-head{display:flex;align-items:baseline;justify-content:space-between;padding:6px 8px 5px;border-bottom:1px solid #e2e6ec;background:#f7f9fc}
+.day-head .dh-date{font-size:13px;font-weight:bold;color:#1a3a5c}
+.day-head .dh-dow{font-size:10px;color:#888;margin-left:3px}
+.day-head .dh-total{font-size:9.5px;font-weight:bold;color:#1a3a5c;background:#e6ecf7;padding:2px 6px;border-radius:999px;white-space:nowrap}
+.day-head .dh-total.zero{background:#f0f0f0;color:#aaa}
+.day-body{padding:5px;display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto}
+.day-empty{font-size:9px;color:#bbb;text-align:center;padding:8px 2px}
+
+.req-card{background:#fff;border:1px solid #e2e6ec;border-radius:6px;padding:5px 6px}
 .req-card.is-cancelled{opacity:.55}
 .req-card.is-cancelled .rq-name,.req-card.is-cancelled .rq-size{text-decoration:line-through}
 
 .rq-line{display:flex;flex-direction:column;gap:1px}
-.rq-name{font-size:11px;font-weight:bold;white-space:normal;word-break:break-word;min-width:0}
-.rq-size{font-size:9.5px;color:#888;white-space:nowrap;flex-shrink:0}
-.rq-row{display:flex;align-items:center;justify-content:space-between;margin-top:3px}
-.rq-qty{font-weight:bold;font-size:10.5px;color:#1a3a5c;background:#e6ecf7;padding:1px 7px;border-radius:999px}
-.rq-requester{font-size:9px;color:#999}
-.urgent-tag{font-size:8px;font-weight:bold;color:#fff;background:#c4531f;padding:1.5px 5.5px;border-radius:999px;margin-left:4px}
+.rq-name{font-size:10.5px;font-weight:bold;min-width:0}
+.rq-size{font-size:9px;color:#888;flex-shrink:0}
+.rq-row{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
+.rq-qty{font-weight:bold;font-size:9.5px;color:#1a3a5c;background:#e6ecf7;padding:1px 6px;border-radius:999px}
+.rq-requester{font-size:8.5px;color:#999}
+.urgent-tag{font-size:7.5px;font-weight:bold;color:#fff;background:#c4531f;padding:1px 4px;border-radius:999px;margin-left:3px; vertical-align: middle;}
 
 /* 土曜帯 */
 .sat-strip{margin-top:6px}
-.sat-day{max-width:220px;background:#e6ecf7;border:1.4px dashed #1a3a5c;border-radius:10px;overflow:hidden}
+.sat-day{max-width:200px;background:#e6ecf7;border:1.4px dashed #1a3a5c;border-radius:8px;overflow:hidden}
 .sat-day .day-head{background:#1a3a5c;color:#fff}
 .sat-day .day-head .dh-dow{color:rgba(255,255,255,.75)}
 .sat-day .day-head .dh-total{background:rgba(255,255,255,.25);color:#fff}
-.sat-flag{font-size:9.5px;font-weight:bold;color:#1a3a5c;padding:5px 9px 0}
+.sat-flag{font-size:9px;font-weight:bold;color:#1a3a5c;padding:4px 8px 0}
 </style>
 </head>
 <body>
@@ -122,8 +166,6 @@ function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// 依頼フォームの階層カテゴリ「3000まで」「3001以上」は、サイズで自動振り分けするための
-// 内部区分にすぎず、品目名として意味を持たないため、画面表示からは常に除外する。
 const HIDDEN_CATEGORY_LABELS = ['3000まで', '3001以上'];
 function displayCategory(cat, itemName){
   return HIDDEN_CATEGORY_LABELS.includes(cat) ? (itemName || '') : (cat || '');
@@ -155,7 +197,7 @@ function formatMD(d){
 }
 
 // =============================================
-// 1年より前の依頼日データをアーカイブへ移動（ログイン時に1回だけ実行。対象が無ければ何もしない）
+// 1年より前の依頼日データをアーカイブへ移動
 // =============================================
 async function runArchive(){
   try{
@@ -175,7 +217,6 @@ function changeMonth(delta){
   loadCalendarItems();
 }
 
-// 指定月の1日を含む週の月曜、末日を含む週の金曜を返す
 function getMonthDisplayRange(year, month){
   const firstDay = new Date(year, month-1, 1);
   const lastDay = new Date(year, month, 0);
@@ -185,14 +226,14 @@ function getMonthDisplayRange(year, month){
   const rangeStart = addDays(firstDay, startDiff);
 
   const lastDow = lastDay.getDay();
-  const endDiff = (lastDow === 0) ? -2 : (5 - lastDow); // 直近の金曜まで進める（土日なら金曜側に寄せる）
+  const endDiff = (lastDow === 0) ? -2 : (5 - lastDow);
   const rangeEnd = addDays(lastDay, endDiff >= 0 ? endDiff : endDiff);
 
   return { rangeStart, rangeEnd, firstDay, lastDay };
 }
 
 // =============================================
-// データ読み込み（全ロール閲覧可・取消含めすべて表示）
+// データ読み込み
 // =============================================
 async function loadCalendarItems(){
   document.getElementById('month-label').textContent = `${viewYear}年${viewMonth}月`;
@@ -251,9 +292,6 @@ async function loadCalendarItems(){
   render();
 }
 
-// =============================================
-// 週データの構築（月外の日はout_of_monthフラグを付けて薄く表示）
-// =============================================
 function buildWeeks(rangeStart, rangeEnd, satExceptionSet){
   weeks = [];
   let cur = rangeStart;
@@ -293,7 +331,7 @@ function totalOf(items){
 function reqCardHtml(it){
   const cancelledClass = it.canceled_at ? 'is-cancelled' : '';
   const catText = displayCategory(it.category, it.item_name);
-  const nameLine = it.client_name ? (catText ? `${it.client_name}　${catText}` : it.client_name) : catText;
+  const nameLine = it.client_name ? (catText ? `${it.client_name} ${catText}` : it.client_name) : catText;
   const urgentTag = it.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
   return `
     <div class="req-card ${cancelledClass}">
@@ -350,7 +388,7 @@ function render(){
 }
 
 // =============================================
-// 認証（全ロール閲覧可）
+// 認証
 // =============================================
 async function loginWithGoogle(){
   const { error } = await sbClient.auth.signInWithOAuth({
@@ -401,9 +439,6 @@ async function initAuth(){
   renderFooterNav(currentUser.role, 'requestCalendar');
 }
 
-// =============================================
-// Realtime購読
-// =============================================
 function subscribeRealtime(){
   sbClient
     .channel('request_calendar_changes')
@@ -411,9 +446,6 @@ function subscribeRealtime(){
     .subscribe();
 }
 
-// =============================================
-// 共通フッターナビ（依頼者・作業者はタブバー／管理者はホームへ戻るリンク）
-// =============================================
 (function(){
   const style = document.createElement('style');
   style.textContent = `
@@ -433,7 +465,7 @@ const FNAV_ICONS = {
   stock: '<path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v8l9 4 9-4V8M12 12v8"/>',
   user: '<circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4.2-6 7-6s5.8 2 7 6"/>',
   wrench: '<path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2.6-.6-.6-2.6z"/>',
-  doc: '<path d="M6 3h9l4 4v14a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M14 3v5h5M8 13h3M8 16h6M8 10h2"/>',
+  doc: '<path d="M6 3h9l4 4v14a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M8 13h3M8 16h6M8 10h2"/>',
   back: '<path d="M19 12H5M11 18l-6-6 6-6"/>'
 };
 function fIcon(name){
