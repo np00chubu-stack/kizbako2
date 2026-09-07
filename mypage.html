@@ -64,8 +64,10 @@ body{
 
 .req-list{ flex:0 0 auto; display:flex; flex-direction:column; gap:8px; }
 
-.ready-card{ background:var(--accent-soft); border:1.5px solid var(--accent); border-radius:14px; padding:11px 13px; display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; margin-bottom:8px; }
-.ready-card:active{ box-shadow:inset 0 0 0 1.5px var(--accent-deep); }
+.ready-card{ background:var(--amber-soft); border:1.5px solid var(--amber); border-radius:14px; padding:11px 13px; display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; margin-bottom:8px; }
+.ready-card:active{ box-shadow:inset 0 0 0 1.5px var(--amber); }
+.ready-card .rc-date{ color:var(--amber); }
+.ready-card .ready-arrow{ background:var(--amber); }
 .ready-card.ordered{ background:#E7EEF6; border-color:#B9C6DC; }
 .ready-card.ordered .ready-arrow{ background:#3D5A80; }
 .ready-card.ordered .rc-date{ color:#3D5A80; }
@@ -276,6 +278,29 @@ function sizeText(row){
   return [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
 }
 
+// =============================================
+// 締切・解除ロック判定（在庫表と同じ設定を参照）
+// =============================================
+let lockSettings = { start: null, end: null };
+let isLocked = false;
+
+async function loadLockSettings(){
+  const { data, error } = await sbClient
+    .from('business_settings')
+    .select('lock_start_time, lock_end_time')
+    .limit(1)
+    .maybeSingle();
+
+  if(error || !data){ isLocked = false; return; }
+
+  lockSettings.start = data.lock_start_time;
+  lockSettings.end = data.lock_end_time;
+
+  const now = new Date();
+  const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
+  isLocked = (nowStr >= lockSettings.start && nowStr < lockSettings.end);
+}
+
 // JST基準で「今日」かどうかを判定
 function isTodayJST(isoString){
   if(!isoString) return false;
@@ -482,6 +507,7 @@ function openSheet(dateRowId){
 }
 
 async function cancelOrderFromDetailSheet(){
+  if(isLocked){ alert('ただいまロック中のため、発注の取消はできません。'); return; }
   const dateRowId = document.getElementById('order-cancel-btn').dataset.dateRowId;
   if(!dateRowId) return;
   if(!confirm('発注を取消しますか？依頼自体は「発注可能」の状態に戻ります。')) return;
@@ -560,6 +586,7 @@ function closeSheet(e){
 let orderSheetState = { dateRowId: null, stockItemId: null, mode: 'circle', qty: 1, date: '' };
 
 async function openOrderSheet(dateRowId){
+  if(isLocked){ alert('ただいまロック中のため、発注はできません。'); return; }
   const row = myItems.find(r => r.id === dateRowId);
   if(!row) return;
 
@@ -640,6 +667,10 @@ function renderOrderModeBody(){
 }
 
 async function submitOrderFromMypage(){
+  if(isLocked){
+    document.getElementById('order-sheet-msg').textContent = 'ただいまロック中のため、発注はできません。';
+    return;
+  }
   const mode = orderSheetState.mode;
   const msgEl = document.getElementById('order-sheet-msg');
   msgEl.textContent = '';
@@ -966,6 +997,7 @@ async function initAuth(){
   document.getElementById('app-content').style.display='block';
 
   renderTabbar();
+  await loadLockSettings();
   await loadMyItems();
   subscribeRealtime();
 }
@@ -1004,6 +1036,11 @@ function subscribeRealtime(){
       loadMyItems();
     }
   }, 1500);
+
+  setInterval(async () => {
+    if(isSheetOpen()) return;
+    await loadLockSettings();
+  }, 60000);
 }
 
 initAuth();
