@@ -186,6 +186,8 @@ const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '', role: '' };
+let lastSizeRows = [];
+let lastClientRows = [];
 
 function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -317,6 +319,9 @@ async function submitSize(){
   showMsg('size-msg', '', '');
   if(!cat || !size){ showMsg('size-msg', 'カテゴリとサイズを入力してください。', 'err'); return; }
 
+  const dup = lastSizeRows.some(r => r.category === cat && (r.subcategory || '') === sub && r.size === size);
+  if(dup){ showMsg('size-msg', '同じ内容がすでに登録されています。', 'err'); return; }
+
   const btn = document.getElementById('btn-size-add');
   btn.disabled = true; btn.textContent = '登録中...';
 
@@ -361,6 +366,7 @@ async function loadSizes(){
     return;
   }
   errEl.style.display = 'none';
+  lastSizeRows = data || [];
 
   if(!data || !data.length){
     listEl.innerHTML = '<div class="empty-msg">登録されているサイズはありません</div>';
@@ -382,6 +388,9 @@ async function submitClient(){
 
   showMsg('client-msg', '', '');
   if(!name){ showMsg('client-msg', '客先名を入力してください。', 'err'); return; }
+
+  const dup = lastClientRows.some(r => r.name === name);
+  if(dup){ showMsg('client-msg', '同じ客先名がすでに登録されています。', 'err'); return; }
 
   const btn = document.getElementById('btn-client-add');
   btn.disabled = true; btn.textContent = '登録中...';
@@ -421,6 +430,7 @@ async function loadClients(){
     return;
   }
   errEl.style.display = 'none';
+  lastClientRows = data || [];
 
   if(!data || !data.length){
     listEl.innerHTML = '<div class="empty-msg">登録されている客先はありません</div>';
