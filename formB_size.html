@@ -798,6 +798,16 @@ function parseSizeLWH(str){
   return [parseInt(last[1],10), parseInt(last[2],10), parseInt(last[3],10)];
 }
 
+// 「ﾄﾗﾝｽﾌｧｰ　2250×1150×2540」のような選択肢から、サイズ数字より前の品名部分だけを取り出す。
+// 品名が付いていない（数字だけの）選択肢の場合は null を返す。
+function parseItemNamePrefix(str){
+  const s = String(str);
+  const m = s.match(/\d+\s*×\s*\d+\s*×\s*\d+/);
+  if(!m) return null;
+  const prefix = s.slice(0, m.index).trim();
+  return prefix || null;
+}
+
 async function submitForm(){
   const btn=document.getElementById('btn-send');
 
@@ -855,6 +865,7 @@ async function submitForm(){
         request_id: reqRow.id,
         client_name: it.client || null,
         category: it.cat,
+        item_name: parseItemNamePrefix(it.size),
         size_l: l, size_w: w, size_h: h,
         daimoku_lift: it.daimoku === 'あり',
         is_urgent: it.urgent,
