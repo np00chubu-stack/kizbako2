@@ -26,6 +26,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .month-nav button{appearance:none;border:1px solid #1a3a5c;background:#fff;color:#1a3a5c;border-radius:8px;width:44px;height:44px;font-size:18px;font-weight:bold;cursor:pointer;flex-shrink:0}
 .month-nav button:active{background:#eef3f8}
 .month-nav .month-label{font-size:16px;font-weight:bold;color:#1a3a5c;min-width:120px;text-align:center}
+.month-total-bar{text-align:center;font-size:13px;font-weight:bold;color:#1a3a5c;margin-bottom:16px}
 
 /* カレンダーコンテナ（横スクロール可能化） */
 #calendar-content {
@@ -144,6 +145,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
     <span class="month-label" id="month-label"></span>
     <button onclick="changeMonth(1)">▶</button>
   </div>
+  <div class="month-total-bar" id="month-total-bar"></div>
 
   <div id="calendar-content"></div>
   <div id="load-error" style="display:none"></div>
@@ -238,9 +240,11 @@ function getMonthDisplayRange(year, month){
 async function loadCalendarItems(){
   document.getElementById('month-label').textContent = `${viewYear}年${viewMonth}月`;
 
-  const { rangeStart, rangeEnd } = getMonthDisplayRange(viewYear, viewMonth);
+  const { rangeStart, rangeEnd, firstDay, lastDay } = getMonthDisplayRange(viewYear, viewMonth);
   const rangeStartStr = dateToYmd(rangeStart);
   const rangeEndStr = dateToYmd(rangeEnd);
+  const monthFirstStr = dateToYmd(firstDay);
+  const monthLastStr = dateToYmd(lastDay);
 
   const { data, error } = await sbClient
     .from('request_item_dates')
@@ -287,6 +291,11 @@ async function loadCalendarItems(){
   const satExceptionSet = new Set((exRows || [])
     .filter(r => ymdToDate(r.exception_date).getDay() === 6)
     .map(r => r.exception_date));
+
+  const monthTotal = rawItems
+    .filter(it => it.delivery_date >= monthFirstStr && it.delivery_date <= monthLastStr && !it.canceled_at)
+    .reduce((sum, it) => sum + (it.qty || 0), 0);
+  document.getElementById('month-total-bar').textContent = `月合計：${monthTotal}`;
 
   buildWeeks(rangeStart, rangeEnd, satExceptionSet);
   render();
