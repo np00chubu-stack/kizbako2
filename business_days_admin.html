@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>営業日の例外設定</title>
+<title>管理設定</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
@@ -54,11 +54,16 @@ input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px rgba(49,130,2
 .empty-msg{text-align:center;color:#999;font-size:13px;padding:20px 0}
 #load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
 
-.hist-row{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:10px 14px;margin-bottom:8px;font-size:12px}
-.hist-row .hist-when{color:#777;margin-bottom:3px}
-.hist-row .hist-what{color:#1a3a5c;font-weight:bold}
-.hist-row .hist-meta{color:#666;margin-top:2px}
-.hist-row .hist-by{color:#555;margin-top:2px}
+.tab-bar{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto}
+.tab-btn{flex-shrink:0;padding:9px 14px;border:1px solid #ccc;border-radius:20px;background:#fff;color:#555;font-size:13px;font-weight:bold;cursor:pointer}
+.tab-btn.active{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+.mrow{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:10px 14px;margin-bottom:8px}
+.mrow .mrow-main{font-size:13px;color:#333;flex:1;line-height:1.5}
+.mrow .mrow-sub{font-size:11px;color:#999}
+select.role-select{font-size:12px;padding:5px 6px;border:1px solid #ccc;border-radius:4px;background:#fff}
 </style>
 </head>
 <body>
@@ -67,21 +72,30 @@ input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px rgba(49,130,2
 <div id="auth-loading">読み込み中...</div>
 
 <div id="auth-login" class="login-box" style="display:none">
-  <h1>📅 営業日の例外設定</h1>
+  <h1>⚙️ 管理設定</h1>
   <button class="btn-google" onclick="loginWithGoogle()">Googleでログイン</button>
   <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#c53030"></div>
 </div>
 
 <div id="auth-denied" class="login-box" style="display:none">
-  <h1>📅 営業日の例外設定</h1>
+  <h1>⚙️ 管理設定</h1>
   <p style="font-size:14px;color:#c53030">このページは管理者のみ利用できます。</p>
 </div>
 
 <div id="app-content" style="display:none">
-  <h1>📅 営業日の例外設定</h1>
-  <p class="desc">祝日や特定の土曜出勤など、通常の週間パターンでは表現しきれない日付だけの例外を登録します。</p>
+  <h1>⚙️ 管理設定</h1>
 
   <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="holiday" onclick="switchTab('holiday')">営業日設定</button>
+    <button class="tab-btn" data-tab="size" onclick="switchTab('size')">サイズ管理</button>
+    <button class="tab-btn" data-tab="clients" onclick="switchTab('clients')">客先管理</button>
+    <button class="tab-btn" data-tab="users" onclick="switchTab('users')">ユーザー管理</button>
+  </div>
+
+  <div id="tab-holiday" class="tab-panel active">
+  <p class="desc">祝日や特定の土曜出勤など、通常の週間パターンでは表現しきれない日付だけの例外を登録します。</p>
 
   <div class="card">
     <div class="form-group">
@@ -106,10 +120,61 @@ input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px rgba(49,130,2
   <div class="list-title">登録済みの例外日</div>
   <div id="ex-list"></div>
   <div id="load-error" style="display:none"></div>
+  </div>
 
-  <div class="list-title" style="margin-top:24px">変更履歴（直近100件）</div>
-  <div id="hist-list"></div>
-  <div id="hist-error" style="display:none;text-align:center;color:#c53030;font-size:13px;padding:20px 0"></div>
+  <div id="tab-size" class="tab-panel">
+  <p class="desc">依頼フォームで選べるサイズ一覧です。大分類・サイズは必須、中分類は「工機」など内部で細分化が必要な場合だけ入力してください。</p>
+
+  <div class="card">
+    <div class="form-group"><label>大分類（カテゴリ）</label><input type="text" id="sz-cat" placeholder="例：本箱、工機など"></div>
+    <div class="form-group"><label>中分類（任意）</label><input type="text" id="sz-sub" placeholder="工機の場合のみ入力"></div>
+    <div class="form-group"><label>サイズ</label><input type="text" id="sz-size" placeholder="例：300×200×150"></div>
+    <button class="btn-submit" id="btn-size-add" onclick="submitSize()">登録する</button>
+    <div id="size-msg"></div>
+  </div>
+
+  <div class="list-title">登録済みサイズ</div>
+  <div id="size-list"></div>
+  <div id="size-load-error" style="display:none"></div>
+  </div>
+
+  <div id="tab-clients" class="tab-panel">
+  <p class="desc">依頼フォームの客先名候補です。</p>
+
+  <div class="card">
+    <div class="form-group"><label>客先名</label><input type="text" id="cl-name" placeholder="客先名"></div>
+    <button class="btn-submit" id="btn-client-add" onclick="submitClient()">登録する</button>
+    <div id="client-msg"></div>
+  </div>
+
+  <div class="list-title">登録済み客先</div>
+  <div id="client-list"></div>
+  <div id="client-load-error" style="display:none"></div>
+  </div>
+
+  <div id="tab-users" class="tab-panel">
+  <p class="desc">ログインを許可するユーザーです。ここで追加しただけではログインできません。Google Cloud ConsoleのTest usersにも同じメールアドレスを追加してください。</p>
+
+  <div class="card">
+    <div class="form-group"><label>メールアドレス（Googleアカウント）</label><input type="text" id="us-email" placeholder="example@gmail.com"></div>
+    <div class="form-group"><label>名前（表示名）</label><input type="text" id="us-name" placeholder="山田太郎"></div>
+    <div class="form-group">
+      <label>役割</label>
+      <select id="us-role" style="width:100%;padding:9px 10px;border:1px solid #ccc;border-radius:4px;font-size:14px;font-family:inherit">
+        <option value="依頼者">依頼者</option>
+        <option value="作業者">作業者</option>
+        <option value="管理者">管理者</option>
+      </select>
+    </div>
+    <button class="btn-submit" id="btn-user-add" onclick="submitUser()">登録する</button>
+    <div id="user-msg"></div>
+  </div>
+
+  <div class="list-title">登録済みユーザー</div>
+  <div id="user-list"></div>
+  <div id="user-load-error" style="display:none"></div>
+  </div>
+
 </div>
 
 </div>
@@ -130,6 +195,20 @@ function updateStatusStyle(){
   const checked = document.querySelector('input[name="ex-status"]:checked').value;
   document.getElementById('lbl-business').classList.toggle('selected-business', checked === 'business');
   document.getElementById('lbl-holiday').classList.toggle('selected-holiday', checked === 'holiday');
+}
+
+// =============================================
+// タブ切替
+// =============================================
+const TAB_LOADERS = { size: loadSizes, clients: loadClients, users: loadUsers };
+const loadedTabs = new Set(['holiday']);
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  if(!loadedTabs.has(name) && TAB_LOADERS[name]){
+    loadedTabs.add(name);
+    TAB_LOADERS[name]();
+  }
 }
 
 function showFormMsg(text, type){
@@ -221,6 +300,214 @@ async function loadExceptions(){
     </div>`).join('');
 }
 
+// =============================================
+// サイズ管理（size_master）
+// =============================================
+function showMsg(elId, text, type){
+  const el = document.getElementById(elId);
+  el.className = type;
+  el.textContent = text;
+}
+
+async function submitSize(){
+  const cat = document.getElementById('sz-cat').value.trim();
+  const sub = document.getElementById('sz-sub').value.trim();
+  const size = document.getElementById('sz-size').value.trim();
+
+  showMsg('size-msg', '', '');
+  if(!cat || !size){ showMsg('size-msg', 'カテゴリとサイズを入力してください。', 'err'); return; }
+
+  const btn = document.getElementById('btn-size-add');
+  btn.disabled = true; btn.textContent = '登録中...';
+
+  const { error } = await sbClient.from('size_master').insert({
+    category: cat,
+    subcategory: sub || null,
+    size: size
+  });
+
+  btn.disabled = false; btn.textContent = '登録する';
+
+  if(error){
+    showMsg('size-msg', '登録に失敗しました：' + error.message, 'err');
+    return;
+  }
+  showMsg('size-msg', '登録しました。', 'ok');
+  document.getElementById('sz-cat').value = '';
+  document.getElementById('sz-sub').value = '';
+  document.getElementById('sz-size').value = '';
+  await loadSizes();
+}
+
+async function deleteSize(id){
+  if(!confirm('このサイズを削除しますか？')) return;
+  const { error } = await sbClient.from('size_master').delete().eq('id', id);
+  if(error){ alert('削除に失敗しました：' + error.message); return; }
+  await loadSizes();
+}
+
+async function loadSizes(){
+  const { data, error } = await sbClient
+    .from('size_master')
+    .select('id, category, subcategory, size')
+    .order('category').order('subcategory').order('size');
+
+  const listEl = document.getElementById('size-list');
+  const errEl = document.getElementById('size-load-error');
+
+  if(error){
+    errEl.style.display = 'block';
+    errEl.textContent = '一覧の取得に失敗しました：' + error.message;
+    return;
+  }
+  errEl.style.display = 'none';
+
+  if(!data || !data.length){
+    listEl.innerHTML = '<div class="empty-msg">登録されているサイズはありません</div>';
+    return;
+  }
+
+  listEl.innerHTML = data.map(row => `
+    <div class="mrow">
+      <div class="mrow-main">${escapeHtml(row.category)}${row.subcategory ? '　/　' + escapeHtml(row.subcategory) : ''}<br><span class="mrow-sub">${escapeHtml(row.size)}</span></div>
+      <button class="btn-delete" onclick="deleteSize('${row.id}')">削除</button>
+    </div>`).join('');
+}
+
+// =============================================
+// 客先管理（clients_master）
+// =============================================
+async function submitClient(){
+  const name = document.getElementById('cl-name').value.trim();
+
+  showMsg('client-msg', '', '');
+  if(!name){ showMsg('client-msg', '客先名を入力してください。', 'err'); return; }
+
+  const btn = document.getElementById('btn-client-add');
+  btn.disabled = true; btn.textContent = '登録中...';
+
+  const { error } = await sbClient.from('clients_master').insert({ name });
+
+  btn.disabled = false; btn.textContent = '登録する';
+
+  if(error){
+    showMsg('client-msg', '登録に失敗しました：' + error.message, 'err');
+    return;
+  }
+  showMsg('client-msg', '登録しました。', 'ok');
+  document.getElementById('cl-name').value = '';
+  await loadClients();
+}
+
+async function deleteClient(id){
+  if(!confirm('この客先を削除しますか？')) return;
+  const { error } = await sbClient.from('clients_master').delete().eq('id', id);
+  if(error){ alert('削除に失敗しました：' + error.message); return; }
+  await loadClients();
+}
+
+async function loadClients(){
+  const { data, error } = await sbClient
+    .from('clients_master')
+    .select('id, name')
+    .order('name');
+
+  const listEl = document.getElementById('client-list');
+  const errEl = document.getElementById('client-load-error');
+
+  if(error){
+    errEl.style.display = 'block';
+    errEl.textContent = '一覧の取得に失敗しました：' + error.message;
+    return;
+  }
+  errEl.style.display = 'none';
+
+  if(!data || !data.length){
+    listEl.innerHTML = '<div class="empty-msg">登録されている客先はありません</div>';
+    return;
+  }
+
+  listEl.innerHTML = data.map(row => `
+    <div class="mrow">
+      <div class="mrow-main">${escapeHtml(row.name)}</div>
+      <button class="btn-delete" onclick="deleteClient('${row.id}')">削除</button>
+    </div>`).join('');
+}
+
+// =============================================
+// ユーザー管理（users_allowlist）
+// =============================================
+async function submitUser(){
+  const email = document.getElementById('us-email').value.trim();
+  const name = document.getElementById('us-name').value.trim();
+  const role = document.getElementById('us-role').value;
+
+  showMsg('user-msg', '', '');
+  if(!email || !name){ showMsg('user-msg', 'メールアドレスと名前を入力してください。', 'err'); return; }
+
+  const btn = document.getElementById('btn-user-add');
+  btn.disabled = true; btn.textContent = '登録中...';
+
+  const { error } = await sbClient.from('users_allowlist').upsert({ email, name, role }, { onConflict: 'email' });
+
+  btn.disabled = false; btn.textContent = '登録する';
+
+  if(error){
+    showMsg('user-msg', '登録に失敗しました：' + error.message, 'err');
+    return;
+  }
+  showMsg('user-msg', '登録しました。Google Cloud ConsoleのTest usersへの追加もお忘れなく。', 'ok');
+  document.getElementById('us-email').value = '';
+  document.getElementById('us-name').value = '';
+  document.getElementById('us-role').value = '依頼者';
+  await loadUsers();
+}
+
+async function updateUserRole(email, role){
+  const { error } = await sbClient.from('users_allowlist').update({ role }).eq('email', email);
+  if(error){ alert('役割の変更に失敗しました：' + error.message); await loadUsers(); }
+}
+
+async function deleteUser(email){
+  if(!confirm('このユーザーを削除しますか？（ログインできなくなります）')) return;
+  const { error } = await sbClient.from('users_allowlist').delete().eq('email', email);
+  if(error){ alert('削除に失敗しました：' + error.message); return; }
+  await loadUsers();
+}
+
+async function loadUsers(){
+  const { data, error } = await sbClient
+    .from('users_allowlist')
+    .select('email, name, role')
+    .order('name');
+
+  const listEl = document.getElementById('user-list');
+  const errEl = document.getElementById('user-load-error');
+
+  if(error){
+    errEl.style.display = 'block';
+    errEl.textContent = '一覧の取得に失敗しました：' + error.message;
+    return;
+  }
+  errEl.style.display = 'none';
+
+  if(!data || !data.length){
+    listEl.innerHTML = '<div class="empty-msg">登録されているユーザーはいません</div>';
+    return;
+  }
+
+  listEl.innerHTML = data.map(row => `
+    <div class="mrow">
+      <div class="mrow-main">${escapeHtml(row.name)}<br><span class="mrow-sub">${escapeHtml(row.email)}</span></div>
+      <select class="role-select" onchange="updateUserRole('${row.email}', this.value)">
+        <option value="依頼者" ${row.role==='依頼者'?'selected':''}>依頼者</option>
+        <option value="作業者" ${row.role==='作業者'?'selected':''}>作業者</option>
+        <option value="管理者" ${row.role==='管理者'?'selected':''}>管理者</option>
+      </select>
+      <button class="btn-delete" onclick="deleteUser('${row.email}')">削除</button>
+    </div>`).join('');
+}
+
 async function loginWithGoogle(){
   const { error } = await sbClient.auth.signInWithOAuth({
     provider: 'google',
@@ -229,85 +516,6 @@ async function loginWithGoogle(){
   if(error){
     document.getElementById('auth-msg').textContent = 'ログインに失敗しました：' + error.message;
   }
-}
-
-const HIST_TABLE_LABEL = {
-  request_item_dates: '依頼',
-  stock_orders: '発注',
-  stock_items: '在庫欄'
-};
-
-const HIST_FIELD_LABEL = {
-  status: 'ステータス',
-  canceled_at: '取消',
-  qty: '数量',
-  stage1_done: '工程A',
-  stage2_done: '工程B',
-  completed: '完成',
-  reflected_to_stock: '在庫反映',
-  is_canceled: '発注取消',
-  is_finalized: '発注確定',
-  order: '発注内容'
-};
-
-const HIST_VALUE_LABEL = {
-  'true': 'はい',
-  'false': 'いいえ',
-  'null': '（なし）'
-};
-
-function histFieldName(fieldName){
-  if(fieldName.startsWith('delivery_marks.')) return '発注欄マーク';
-  return HIST_FIELD_LABEL[fieldName] || fieldName;
-}
-
-function histValue(v){
-  if(v === null || v === undefined) return '（なし）';
-  return HIST_VALUE_LABEL[v] !== undefined ? HIST_VALUE_LABEL[v] : v;
-}
-
-function histLabel(row){
-  const table = HIST_TABLE_LABEL[row.table_name] || row.table_name;
-  const field = histFieldName(row.field_name);
-  const item = row.item_label ? `「${row.item_label}」の` : '';
-  return `${item}${field}：${histValue(row.old_value)} → ${histValue(row.new_value)}（${table}）`;
-}
-
-async function loadHistory(){
-  const { data, error } = await sbClient
-    .from('change_history')
-    .select('*')
-    .order('changed_at', { ascending: false })
-    .limit(100);
-
-  const listEl = document.getElementById('hist-list');
-  const errEl = document.getElementById('hist-error');
-
-  if(error){
-    errEl.textContent = '履歴の取得に失敗しました：' + error.message;
-    errEl.style.display = 'block';
-    return;
-  }
-
-  if(!data || !data.length){
-    listEl.innerHTML = '<div class="empty-msg">履歴はまだありません</div>';
-    return;
-  }
-
-  listEl.innerHTML = data.map(row => {
-    const metaParts = [];
-    if(row.delivery_date) metaParts.push(`納入日：${row.delivery_date}`);
-    if(row.requester_name) metaParts.push(`依頼者：${row.requester_name}`);
-    if(row.size_text) metaParts.push(`サイズ：${row.size_text}`);
-    const metaHtml = metaParts.length ? `<div class="hist-meta">${escapeHtml(metaParts.join('　'))}</div>` : '';
-    return `
-    <div class="hist-row">
-      <div class="hist-when">${escapeHtml(new Date(row.changed_at).toLocaleString('ja-JP'))}</div>
-      <div class="hist-what">${escapeHtml(histLabel(row))}</div>
-      ${metaHtml}
-      <div class="hist-by">${escapeHtml(row.changed_by_name || '（不明）')}</div>
-    </div>`;
-  }).join('');
 }
 
 async function initAuth(){
@@ -340,7 +548,6 @@ async function initAuth(){
   document.getElementById('app-content').style.display='block';
 
   await loadExceptions();
-  await loadHistory();
 }
 
 initAuth();
