@@ -111,8 +111,8 @@ function escapeHtml(s){
 // 依頼フォームの階層カテゴリ「3000まで」「3001以上」は、サイズで自動振り分けするための
 // 内部区分にすぎず、品目名として意味を持たないため、画面表示からは常に除外する。
 const HIDDEN_CATEGORY_LABELS = ['3000まで', '3001以上'];
-function displayCategory(cat){
-  return HIDDEN_CATEGORY_LABELS.includes(cat) ? '' : (cat || '');
+function displayCategory(cat, itemName){
+  return HIDDEN_CATEGORY_LABELS.includes(cat) ? (itemName || '') : (cat || '');
 }
 
 // =============================================
@@ -191,7 +191,7 @@ async function loadCalendarItems(){
     .from('request_item_dates')
     .select(`
       id, delivery_date, qty, status, canceled_at,
-      request_items ( id, client_name, category, size_l, size_w, size_h, is_urgent, requests ( requester_name ) )
+      request_items ( id, client_name, category, item_name, size_l, size_w, size_h, is_urgent, requests ( requester_name ) )
     `)
     .gte('delivery_date', rangeStartStr)
     .lte('delivery_date', rangeEndStr)
@@ -215,6 +215,7 @@ async function loadCalendarItems(){
       canceled_at: row.canceled_at,
       client_name: item.client_name || '',
       category: item.category || '',
+      item_name: item.item_name || '',
       is_urgent: !!item.is_urgent,
       sizeText: [item.size_l, item.size_w, item.size_h].filter(v=>v!=null).join('×'),
       requester_name: req.requester_name || ''
@@ -277,7 +278,7 @@ function totalOf(items){
 
 function reqCardHtml(it){
   const cancelledClass = it.canceled_at ? 'is-cancelled' : '';
-  const catText = displayCategory(it.category);
+  const catText = displayCategory(it.category, it.item_name);
   const nameLine = it.client_name ? (catText ? `${it.client_name}　${catText}` : it.client_name) : catText;
   const urgentTag = it.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
   return `
