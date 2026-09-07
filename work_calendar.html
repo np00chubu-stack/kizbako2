@@ -464,7 +464,6 @@ function render(){
   }
   el.innerHTML = weeks.map(w => `
     <div class="week-block">
-      <div class="week-label">${w.weekLabel}</div>
       <div class="week-grid">${w.days.map(dayColHtml).join('')}</div>
       ${satStripHtml(w.saturday)}
     </div>
