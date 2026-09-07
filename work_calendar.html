@@ -218,8 +218,8 @@ function escapeHtml(s){
 // 依頼フォームの階層カテゴリ「3000まで」「3001以上」は、サイズで自動振り分けするための
 // 内部区分にすぎず、品目名として意味を持たないため、画面表示からは常に除外する。
 const HIDDEN_CATEGORY_LABELS = ['3000まで', '3001以上'];
-function displayCategory(cat){
-  return HIDDEN_CATEGORY_LABELS.includes(cat) ? '' : (cat || '');
+function displayCategory(cat, itemName){
+  return HIDDEN_CATEGORY_LABELS.includes(cat) ? (itemName || '') : (cat || '');
 }
 
 // =============================================
@@ -272,7 +272,7 @@ async function loadCalendarItems(){
       stage2_done, stage2_done_by, stage2_done_at,
       completed, completed_by, completed_at,
       reflected_to_stock, grace_ends_at,
-      request_items ( id, category, size_l, size_w, size_h, is_urgent, request_id, requests ( requester_name ) )
+      request_items ( id, category, item_name, size_l, size_w, size_h, is_urgent, request_id, requests ( requester_name ) )
     `)
     .gte('delivery_date', mondayStr)
     .order('delivery_date', { ascending: true });
@@ -300,6 +300,7 @@ async function loadCalendarItems(){
       reflected_to_stock: row.reflected_to_stock,
       grace_ends_at: row.grace_ends_at,
       category: item.category || '',
+      item_name: item.item_name || '',
       is_urgent: !!item.is_urgent,
       sizeText: [item.size_l, item.size_w, item.size_h].filter(v=>v!=null).join('×'),
       requester_name: req.requester_name || ''
@@ -418,7 +419,7 @@ function reqCardHtml(it){
   const urgentTag = it.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
   return `
     <div class="req-card ${stageClass} ${cancelledClass}" data-item="${it.id}">
-      <div class="rq-line"><span class="rq-name">${escapeHtml(displayCategory(it.category))}${urgentTag}</span><span class="rq-size">${escapeHtml(it.sizeText)}</span></div>
+      <div class="rq-line"><span class="rq-name">${escapeHtml(displayCategory(it.category, it.item_name))}${urgentTag}</span><span class="rq-size">${escapeHtml(it.sizeText)}</span></div>
       <div class="rq-row">
         <span class="rq-qty">${it.qty}</span>
         <span class="rq-requester">${escapeHtml(it.requester_name)}</span>
@@ -528,7 +529,7 @@ function bindCardEvents(){
 // =============================================
 function openProcSheet(item){
   activeProcId = item.id;
-  document.getElementById('proc-name').textContent = displayCategory(item.category);
+  document.getElementById('proc-name').textContent = displayCategory(item.category, item.item_name);
   document.getElementById('proc-detail').textContent = `サイズ：${item.sizeText || '-'}／数量 ${item.qty}／依頼者：${item.requester_name || '-'}`;
   document.getElementById('proc-overlay').classList.add('show');
 }
@@ -543,7 +544,7 @@ function closeProcSheet(e){
 function openProgSheet(item){
   if(item.canceled_at) return;
   activeProgId = item.id;
-  document.getElementById('prog-name').textContent = displayCategory(item.category);
+  document.getElementById('prog-name').textContent = displayCategory(item.category, item.item_name);
   document.getElementById('prog-detail').textContent = `サイズ：${item.sizeText || '-'}／数量 ${item.qty}`;
   renderProgSheet();
   document.getElementById('prog-overlay').classList.add('show');
@@ -643,7 +644,7 @@ async function saveQtyChange(){
   item.qty = newQty;
   renderProgSheet();
   render();
-  toast(`${displayCategory(item.category)}：数量を${newQty}に変更しました`);
+  toast(`${displayCategory(item.category, item.item_name)}：数量を${newQty}に変更しました`);
 }
 
 document.getElementById('prog-p1-btn').addEventListener('click', () => toggleStage(1));
@@ -701,7 +702,7 @@ document.getElementById('prog-complete-btn').addEventListener('click', async () 
     await logChange('request_item_dates', item.id, 'completed', true, false, item.category);
     item.completed = false;
     item.grace_ends_at = null;
-    toast(`${displayCategory(item.category)}：完成前の状態に戻しました`);
+    toast(`${displayCategory(item.category, item.item_name)}：完成前の状態に戻しました`);
   } else if(item.stage1_done && item.stage2_done && !item.completed){
     const graceEnds = new Date(Date.now() + 60*1000).toISOString();
     const { error } = await sbClient.from('request_item_dates').update({
@@ -731,8 +732,8 @@ function updateGraceBanner(){
   const remain = Math.max(0, Math.ceil((new Date(nearest.grace_ends_at) - Date.now())/1000));
   const m = Math.floor(remain/60), s = remain%60;
   const label = active.length > 1
-    ? `${displayCategory(nearest.category)} 他${active.length-1}件：反映まで ${m}:${String(s).padStart(2,'0')}`
-    : `${displayCategory(nearest.category)}：反映まで ${m}:${String(s).padStart(2,'0')}`;
+    ? `${displayCategory(nearest.category, nearest.item_name)} 他${active.length-1}件：反映まで ${m}:${String(s).padStart(2,'0')}`
+    : `${displayCategory(nearest.category, nearest.item_name)}：反映まで ${m}:${String(s).padStart(2,'0')}`;
   document.getElementById('grace-text').textContent = label;
   banner.classList.add('show');
   document.getElementById('grace-cancel-btn').onclick = () => revertFromBanner(nearest.id);
@@ -748,7 +749,7 @@ async function revertFromBanner(itemId){
   await logChange('request_item_dates', item.id, 'completed', true, false, item.category);
   item.completed = false;
   item.grace_ends_at = null;
-  toast(`${displayCategory(item.category)}：完成前の状態に戻しました`);
+  toast(`${displayCategory(item.category, item.item_name)}：完成前の状態に戻しました`);
   render();
 }
 
