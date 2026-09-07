@@ -1164,8 +1164,11 @@ function subscribeRealtime(){
 
   setInterval(async () => {
     if(isAnySheetOpen()) return;
+    const wasLocked = isLocked;
+    await loadLockSettings();
+    updateLockBanner();
     const changed = await performFinalization();
-    if(changed) loadStockItems();
+    if(changed || wasLocked !== isLocked) loadStockItems();
   }, 60000);
 }
 
