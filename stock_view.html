@@ -828,7 +828,7 @@ async function loadStockItems(){
 
   const { data: items, error: itemsErr } = await sbClient
     .from('stock_items')
-    .select('id, item_type, item_name, size_l, size_w, size_h, requester_name, stock_qty, min_line, request_item_date_id, delivery_marks')
+    .select('id, item_type, item_name, size_l, size_w, size_h, requester_name, stock_qty, min_line, request_item_date_id, delivery_marks, is_hidden')
     .order('item_name', { ascending: true });
 
   if(itemsErr){
@@ -873,7 +873,7 @@ async function loadStockItems(){
   }
 
   const individualRows = stockItemsCache.filter(r => r.item_type === 'individual');
-  const commonRows = stockItemsCache.filter(r => r.item_type === 'common');
+  const commonRows = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
 
   renderIndividualTable(individualRows);
   renderCommonTable(commonRows);
@@ -1003,7 +1003,7 @@ async function cycleDeliveryMark(stockItemId, markKey){
 
   row.delivery_marks = marks;
   const individualRows = stockItemsCache.filter(r => r.item_type === 'individual');
-  const commonRows = stockItemsCache.filter(r => r.item_type === 'common');
+  const commonRows = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
   renderIndividualTable(individualRows);
   renderCommonTable(commonRows);
 
