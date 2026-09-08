@@ -92,6 +92,7 @@ select.role-select{font-size:12px;padding:5px 6px;border:1px solid #ccc;border-r
     <button class="tab-btn" data-tab="size" onclick="switchTab('size')">サイズ管理</button>
     <button class="tab-btn" data-tab="clients" onclick="switchTab('clients')">客先管理</button>
     <button class="tab-btn" data-tab="users" onclick="switchTab('users')">ユーザー管理</button>
+    <button class="tab-btn" data-tab="stock" onclick="switchTab('stock')">共通品管理</button>
   </div>
 
   <div id="tab-holiday" class="tab-panel active">
@@ -177,6 +178,22 @@ select.role-select{font-size:12px;padding:5px 6px;border:1px solid #ccc;border-r
   <div id="user-load-error" style="display:none"></div>
   </div>
 
+  <div id="tab-stock" class="tab-panel">
+  <p class="desc">在庫表に表示される共通品の一覧です。品目を削除すると過去の発注・補充履歴の紐付けが壊れるおそれがあるため、削除ではなく非表示にする運用です。非表示にした品目は在庫表から消え、いつでもここから再表示できます。</p>
+
+  <div class="card">
+    <div class="form-group"><label>品目名</label><input type="text" id="st-name" placeholder="例：C1300"></div>
+    <button class="btn-submit" id="btn-stock-add" onclick="submitStockItem()">登録する</button>
+    <div id="stock-msg"></div>
+  </div>
+
+  <div class="list-title">表示中の品目</div>
+  <div id="stock-list-visible"></div>
+  <div class="list-title" style="margin-top:20px">非表示の品目</div>
+  <div id="stock-list-hidden"></div>
+  <div id="stock-load-error" style="display:none"></div>
+  </div>
+
 </div>
 
 </div>
@@ -204,7 +221,7 @@ function updateStatusStyle(){
 // =============================================
 // タブ切替
 // =============================================
-const TAB_LOADERS = { size: loadSizes, clients: loadClients, users: loadUsers };
+const TAB_LOADERS = { size: loadSizes, clients: loadClients, users: loadUsers, stock: loadStockMaster };
 const loadedTabs = new Set(['holiday']);
 function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -542,6 +559,96 @@ async function loadUsers(){
       </select>
       <button class="btn-delete" onclick="deleteUser('${row.email}')">削除</button>
     </div>`).join('');
+}
+
+// =============================================
+// 共通品管理（stock_items / item_type='common'）
+// =============================================
+let lastStockRows = [];
+
+async function submitStockItem(){
+  const name = document.getElementById('st-name').value.trim();
+
+  showMsg('stock-msg', '', '');
+  if(!name){ showMsg('stock-msg', '品目名を入力してください。', 'err'); return; }
+
+  const dup = lastStockRows.some(r => r.item_name === name);
+  if(dup){ showMsg('stock-msg', '同じ品目名がすでに登録されています。', 'err'); return; }
+
+  const btn = document.getElementById('btn-stock-add');
+  btn.disabled = true; btn.textContent = '登録中...';
+
+  const { error } = await sbClient.from('stock_items').insert({
+    item_type: 'common',
+    item_name: name,
+    stock_qty: 0,
+    min_line: 0,
+    is_hidden: false
+  });
+
+  btn.disabled = false; btn.textContent = '登録する';
+
+  if(error){
+    showMsg('stock-msg', '登録に失敗しました：' + error.message, 'err');
+    return;
+  }
+  showMsg('stock-msg', '登録しました。', 'ok');
+  document.getElementById('st-name').value = '';
+  await loadStockMaster();
+}
+
+async function hideStockItem(id, stockQty){
+  if(stockQty > 0){
+    if(!confirm('現在の在庫が0ではありません（在庫数：' + stockQty + '）。非表示にしてもよろしいですか？')) return;
+  } else {
+    if(!confirm('この品目を非表示にしますか？')) return;
+  }
+  const { error } = await sbClient.from('stock_items').update({ is_hidden: true }).eq('id', id);
+  if(error){ alert('非表示にできませんでした：' + error.message); return; }
+  await loadStockMaster();
+}
+
+async function unhideStockItem(id){
+  const { error } = await sbClient.from('stock_items').update({ is_hidden: false }).eq('id', id);
+  if(error){ alert('再表示に失敗しました：' + error.message); return; }
+  await loadStockMaster();
+}
+
+async function loadStockMaster(){
+  const { data, error } = await sbClient
+    .from('stock_items')
+    .select('id, item_name, stock_qty, is_hidden')
+    .eq('item_type', 'common')
+    .order('item_name');
+
+  const errEl = document.getElementById('stock-load-error');
+  if(error){
+    errEl.style.display = 'block';
+    errEl.textContent = '一覧の取得に失敗しました：' + error.message;
+    return;
+  }
+  errEl.style.display = 'none';
+  lastStockRows = data || [];
+  renderStockMasterList();
+}
+
+function renderStockMasterList(){
+  const visEl = document.getElementById('stock-list-visible');
+  const hidEl = document.getElementById('stock-list-hidden');
+  const visible = lastStockRows.filter(r => !r.is_hidden);
+  const hidden = lastStockRows.filter(r => r.is_hidden);
+
+  visEl.innerHTML = visible.length ? visible.map(row => `
+    <div class="mrow">
+      <div class="mrow-main">${escapeHtml(row.item_name)}<br><span class="mrow-sub">在庫数：${row.stock_qty ?? 0}</span></div>
+      <button class="btn-delete" onclick="hideStockItem('${row.id}', ${row.stock_qty ?? 0})">非表示にする</button>
+    </div>`).join('') : '<div class="empty-msg">表示中の品目はありません</div>';
+
+  hidEl.innerHTML = hidden.length ? hidden.map(row => `
+    <div class="mrow">
+      <div class="mrow-main">${escapeHtml(row.item_name)}<br><span class="mrow-sub">在庫数：${row.stock_qty ?? 0}</span></div>
+      <button class="btn-delete" onclick="unhideStockItem('${row.id}')">再表示する</button>
+    </div>`).join('') : '<div class="empty-msg">非表示の品目はありません</div>';
 }
 
 async function loginWithGoogle(){
