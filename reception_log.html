@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>受付一覧</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.container{max-width:640px;margin:24px auto;padding:0 12px 40px}
+h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
+
+.login-box{max-width:360px;margin:80px auto;text-align:center}
+.login-box h1{border:none;margin-bottom:20px}
+.btn-google{padding:13px 24px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
+.btn-google:hover{background:#2c5282}
+#auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
+.login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:6px;margin-bottom:14px}
+
+.date-nav{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:16px}
+.date-nav button{appearance:none;border:1px solid #1a3a5c;background:#fff;color:#1a3a5c;border-radius:8px;width:40px;height:40px;font-size:16px;font-weight:bold;cursor:pointer;flex-shrink:0}
+.date-nav button:active{background:#eef3f8}
+.date-nav input[type="date"]{border:1px solid #ccc;border-radius:6px;padding:8px 10px;font-size:14px;font-family:inherit}
+.date-total{text-align:center;font-size:13px;color:#666;margin-bottom:14px}
+
+.log-row{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.log-row.is-cancelled{opacity:.55}
+.log-row.is-cancelled .log-name,.log-row.is-cancelled .log-size{text-decoration:line-through}
+.log-time{font-size:11px;color:#999;width:44px;flex-shrink:0}
+.log-main{flex:1;min-width:0}
+.log-name{font-size:13px;font-weight:bold;color:#1a3a5c}
+.log-size{font-size:11px;color:#777}
+.log-sub{font-size:11px;color:#999;margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.log-qty{font-weight:bold;font-size:11px;color:#1a3a5c;background:#e6ecf7;padding:1px 6px;border-radius:999px}
+.log-team{font-weight:bold;font-size:10px;color:#fff;background:#d9822b;padding:1px 5px;border-radius:999px}
+.log-cancel-tag{font-size:10px;color:#c53030;font-weight:bold}
+.log-status{font-size:11px;font-weight:bold;padding:3px 8px;border-radius:10px;flex-shrink:0;white-space:nowrap}
+.st-none{background:#eee;color:#777}
+.st-pink{background:#fde3ec;color:#b83060}
+.st-blue{background:#e3edfd;color:#2c5282}
+.st-ready{background:#fff3d6;color:#a06b00}
+.st-done{background:#fce4d6;color:#c4531f}
+
+.empty-msg{text-align:center;color:#999;font-size:13px;padding:30px 0}
+#load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div id="auth-loading">読み込み中...</div>
+
+<div id="auth-login" class="login-box" style="display:none">
+  <h1>受付一覧</h1>
+  <button class="btn-google" onclick="loginWithGoogle()">Googleでログイン</button>
+  <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#c53030"></div>
+</div>
+
+<div id="auth-denied" class="login-box" style="display:none">
+  <h1>受付一覧</h1>
+  <p style="font-size:14px;color:#c53030">このページは管理者のみ利用できます。</p>
+</div>
+
+<div id="app-content" style="display:none">
+  <h1>受付一覧</h1>
+  <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
+
+  <div class="date-nav">
+    <button onclick="changeDay(-1)">←</button>
+    <input type="date" id="log-date" onchange="onDateInput()">
+    <button onclick="changeDay(1)">→</button>
+  </div>
+  <div class="date-total" id="date-total"></div>
+
+  <div id="log-list"></div>
+  <div id="load-error" style="display:none"></div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = { email: '', name: '', role: '' };
+let selectedDate = '';
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function todayJstStr(){
+  const now = new Date();
+  const jst = new Date(now.getTime() + (9 * 60 - now.getTimezoneOffset()) * 60000);
+  return jst.toISOString().slice(0, 10);
+}
+
+function addDaysStr(dateStr, delta){
+  const d = new Date(dateStr + 'T00:00:00+09:00');
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
+function jstDayRangeIso(dateStr){
+  const start = new Date(dateStr + 'T00:00:00+09:00');
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  return { startIso: start.toISOString(), endIso: end.toISOString() };
+}
+
+function jstTimeLabel(isoStr){
+  const d = new Date(isoStr);
+  const jst = new Date(d.getTime() + (9 * 60 - d.getTimezoneOffset()) * 60000);
+  const hh = String(jst.getUTCHours()).padStart(2, '0');
+  const mm = String(jst.getUTCMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+function computeStage(row){
+  if(row.completed) return { cls: 'st-done', label: '完成' };
+  if(row.stage1_done && row.stage2_done) return { cls: 'st-ready', label: '両方完了' };
+  if(row.stage1_done) return { cls: 'st-pink', label: '工程Aのみ' };
+  if(row.stage2_done) return { cls: 'st-blue', label: '工程Bのみ' };
+  return { cls: 'st-none', label: '受付済み' };
+}
+
+function changeDay(delta){
+  selectedDate = addDaysStr(selectedDate, delta);
+  document.getElementById('log-date').value = selectedDate;
+  loadLog();
+}
+
+function onDateInput(){
+  const val = document.getElementById('log-date').value;
+  if(!val) return;
+  selectedDate = val;
+  loadLog();
+}
+
+async function loadLog(){
+  const { startIso, endIso } = jstDayRangeIso(selectedDate);
+
+  const { data, error } = await sbClient
+    .from('requests')
+    .select(`
+      id, submitted_at, requester_name,
+      request_items (
+        id, category, item_name, size_l, size_w, size_h,
+        team_master ( team_abbr ),
+        request_item_dates ( id, qty, canceled_at, stage1_done, stage2_done, completed )
+      )
+    `)
+    .gte('submitted_at', startIso)
+    .lt('submitted_at', endIso)
+    .order('submitted_at', { ascending: true });
+
+  const errEl = document.getElementById('load-error');
+  const listEl = document.getElementById('log-list');
+  const totalEl = document.getElementById('date-total');
+
+  if(error){
+    errEl.style.display = 'block';
+    errEl.textContent = '一覧の取得に失敗しました：' + error.message;
+    listEl.innerHTML = '';
+    totalEl.textContent = '';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  const rows = [];
+  (data || []).forEach(req => {
+    (req.request_items || []).forEach(item => {
+      const sizeText = [item.size_l, item.size_w, item.size_h].filter(v => v != null).join('×');
+      (item.request_item_dates || []).forEach(d => {
+        rows.push({
+          submitted_at: req.submitted_at,
+          requester_name: req.requester_name || '',
+          category: item.category || '',
+          item_name: item.item_name || '',
+          sizeText,
+          team_abbr: (item.team_master && item.team_master.team_abbr) || '',
+          qty: d.qty,
+          canceled_at: d.canceled_at,
+          stage1_done: d.stage1_done,
+          stage2_done: d.stage2_done,
+          completed: d.completed
+        });
+      });
+    });
+  });
+
+  totalEl.textContent = rows.length ? `${selectedDate} の受付件数：${rows.length}件` : `${selectedDate} の受付件数：0件`;
+
+  if(!rows.length){
+    listEl.innerHTML = '<div class="empty-msg">この日の受付はありません</div>';
+    return;
+  }
+
+  listEl.innerHTML = rows.map(r => {
+    const cancelledClass = r.canceled_at ? 'is-cancelled' : '';
+    const cancelTag = r.canceled_at ? '<span class="log-cancel-tag">取消</span>' : '';
+    const stage = computeStage(r);
+    const nameText = r.category ? `${r.category}${r.item_name ? ' ' + r.item_name : ''}` : (r.item_name || '');
+    return `
+      <div class="log-row ${cancelledClass}">
+        <div class="log-time">${jstTimeLabel(r.submitted_at)}</div>
+        <div class="log-main">
+          <div class="log-name">${escapeHtml(nameText)}</div>
+          <div class="log-size">${escapeHtml(r.sizeText)}</div>
+          <div class="log-sub">
+            <span class="log-qty">${r.qty}</span>
+            <span class="log-team">${escapeHtml(r.team_abbr)}</span>
+            <span>${escapeHtml(r.requester_name)}</span>
+            ${cancelTag}
+          </div>
+        </div>
+        <div class="log-status ${stage.cls}">${stage.label}</div>
+      </div>`;
+  }).join('');
+}
+
+async function loginWithGoogle(){
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if(error){
+    document.getElementById('auth-msg').textContent = 'ログインに失敗しました：' + error.message;
+  }
+}
+
+async function initAuth(){
+  const { data: { user } } = await sbClient.auth.getUser();
+
+  if(!user){
+    document.getElementById('auth-loading').style.display = 'none';
+    document.getElementById('auth-login').style.display = 'block';
+    return;
+  }
+
+  const { data: allowRow, error: allowErr } = await sbClient
+    .from('users_allowlist')
+    .select('name, role')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  if(allowErr || !allowRow || !allowRow.name || allowRow.role !== '管理者'){
+    document.getElementById('auth-loading').style.display = 'none';
+    document.getElementById('auth-denied').style.display = 'block';
+    return;
+  }
+
+  currentUser.email = user.email;
+  currentUser.name = allowRow.name;
+  currentUser.role = allowRow.role;
+
+  document.getElementById('login-name-display').textContent = currentUser.name;
+  document.getElementById('auth-loading').style.display = 'none';
+  document.getElementById('app-content').style.display = 'block';
+
+  selectedDate = todayJstStr();
+  document.getElementById('log-date').value = selectedDate;
+  await loadLog();
+}
+
+initAuth();
+</script>
+</body>
+</html>
