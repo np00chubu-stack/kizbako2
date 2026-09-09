@@ -826,7 +826,7 @@ function parseSizeLWH(str){
 function parseItemNamePrefix(str){
   const s = String(str);
   const m = s.match(/\d+\s*×\s*\d+\s*×\s*\d+/);
-  if(!m) return null;
+  if(!m) return s.trim() || null;
   const prefix = s.slice(0, m.index).trim();
   return prefix || null;
 }
