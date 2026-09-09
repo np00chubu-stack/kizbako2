@@ -62,7 +62,8 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .rq-size{font-size:9.5px;color:#888;white-space:nowrap;flex-shrink:0;margin-top:1px}
 .rq-row{display:flex;align-items:center;justify-content:space-between;margin-top:3px}
 .rq-qty{font-weight:bold;font-size:10.5px;color:#1a3a5c;background:#e6ecf7;padding:1px 7px;border-radius:999px}
-.rq-team{font-weight:bold;font-size:9.5px;color:#2c5282}
+.rq-qtyteam{display:inline-flex;align-items:center;gap:4px}
+.rq-team{font-weight:bold;font-size:9.5px;color:#fff;background:#d9822b;padding:1px 6px;border-radius:999px}
 .rq-requester{font-size:9px;color:#999}
 
 /* 土曜帯 */
@@ -423,8 +424,7 @@ function reqCardHtml(it){
     <div class="req-card ${stageClass} ${cancelledClass}" data-item="${it.id}">
       <div class="rq-line"><span class="rq-name">${escapeHtml(displayCategory(it.category, it.item_name))}${urgentTag}</span><span class="rq-size">${escapeHtml(it.sizeText)}</span></div>
       <div class="rq-row">
-        <span class="rq-qty">${it.qty}</span>
-        <span class="rq-team">${escapeHtml(it.team_abbr)}</span>
+        <span class="rq-qtyteam"><span class="rq-qty">${it.qty}</span><span class="rq-team">${escapeHtml(it.team_abbr)}</span></span>
         <span class="rq-requester">${escapeHtml(it.requester_name)}</span>
       </div>
     </div>`;
