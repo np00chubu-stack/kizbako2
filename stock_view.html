@@ -779,6 +779,7 @@ async function loadTeams(){
   const { data, error } = await sbClient
     .from('team_master')
     .select('id, team_name, sort_order')
+    .eq('is_hidden', false)
     .order('sort_order', { ascending: true });
   teams = error ? [] : (data || []);
 }
