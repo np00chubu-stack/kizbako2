@@ -125,6 +125,14 @@ function computeStage(row){
   return { cls: 'st-none', label: '受付済み' };
 }
 
+function subscribeRealtime(){
+  sbClient
+    .channel('reception_log_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, loadLog)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'request_item_dates' }, loadLog)
+    .subscribe();
+}
+
 function changeDay(delta){
   selectedDate = addDaysStr(selectedDate, delta);
   document.getElementById('log-date').value = selectedDate;
@@ -262,6 +270,7 @@ async function initAuth(){
   selectedDate = todayJstStr();
   document.getElementById('log-date').value = selectedDate;
   await loadLog();
+  subscribeRealtime();
 }
 
 initAuth();
