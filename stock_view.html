@@ -37,6 +37,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .ir-date{font-size:10px;color:#777;text-align:center}
 .ir-main{min-width:0}
 .ir-name{font-size:12px;font-weight:bold;color:#1a3a5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ir-team{font-weight:bold;font-size:9.5px;color:#fff;background:#d9822b;padding:1px 6px;border-radius:999px;margin-right:4px;display:inline-block}
 .urgent-tag{font-size:8px;font-weight:bold;color:#fff;background:#c4531f;padding:1.5px 5.5px;border-radius:999px;margin-left:4px}
 .ir-size{font-size:11px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ir-qty{font-size:14px;font-weight:bold;text-align:center;color:#1a3a5c}
@@ -343,7 +344,7 @@ function renderIndividualTable(rows){
         <div class="ir-cell"><button class="order-field ${fieldClass} ${disabledClass} ${markClass}" data-mark-key="individual" ${onclickAttr}>${fieldContent}</button></div>
         <div class="ir-date">${escapeHtml(dateText)}</div>
         <div class="ir-main">
-          <div class="ir-name">${escapeHtml(displayItemName(row.item_name))}${urgentTag}</div>
+          <div class="ir-name">${dateInfo && dateInfo.team_abbr ? `<span class="ir-team">${escapeHtml(dateInfo.team_abbr)}</span>` : ''}${escapeHtml(displayItemName(row.item_name))}${urgentTag}</div>
           <div class="ir-size">${escapeHtml(sizeText)}</div>
         </div>
         <div class="ir-qty">${row.stock_qty ?? 0}</div>
@@ -437,17 +438,17 @@ function openOrderSheet(stockItemId, itemType, teamId){
   const isViewOnly = currentUser.role === '作業者';
   const canOperate = currentUser.role === '依頼者' || currentUser.role === '管理者';
 
-  let title = displayItemName(row.item_name);
+  const teamBadge = (itemType === 'individual' && dateInfo && dateInfo.team_abbr) ? `<span class="ir-team">${escapeHtml(dateInfo.team_abbr)}</span>` : '';
+  let title = teamBadge + escapeHtml(displayItemName(row.item_name));
   let sub = '';
   if(itemType === 'individual'){
     const sizeText = [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
-    const dateInfo = row.request_item_date_id ? dateInfoCache[row.request_item_date_id] : null;
     sub = `${sizeText}${dateInfo ? '　納入日：' + dateInfo.delivery_date : ''}　依頼者：${row.requester_name || ''}`;
   } else {
     const team = teams.find(t => t.id === teamId);
     sub = team ? team.team_name : '';
   }
-  document.getElementById('order-sheet-title').textContent = title;
+  document.getElementById('order-sheet-title').innerHTML = title;
   document.getElementById('order-sheet-sub').textContent = sub;
 
   const activeOrders = ordersCache[stockItemId] || [];
@@ -848,12 +849,13 @@ async function loadStockItems(){
   if(dateIds.length){
     const { data: dateRows } = await sbClient
       .from('request_item_dates')
-      .select('id, delivery_date, request_items ( is_urgent )')
+      .select('id, delivery_date, request_items ( is_urgent, team_master ( team_abbr ) )')
       .in('id', dateIds);
     (dateRows || []).forEach(d => {
       dateInfoCache[d.id] = {
         delivery_date: d.delivery_date,
-        is_urgent: !!(d.request_items && d.request_items.is_urgent)
+        is_urgent: !!(d.request_items && d.request_items.is_urgent),
+        team_abbr: (d.request_items && d.request_items.team_master && d.request_items.team_master.team_abbr) || ''
       };
     });
   }
@@ -1022,9 +1024,11 @@ function openDeleteSheet(stockItemId){
   if(!row) return;
   deleteTargetStockItemId = stockItemId;
 
+  const dateInfo = row.request_item_date_id ? dateInfoCache[row.request_item_date_id] : null;
+  const teamBadge = (dateInfo && dateInfo.team_abbr) ? `<span class="ir-team">${escapeHtml(dateInfo.team_abbr)}</span>` : '';
   const sizeText = [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
   document.getElementById('delete-sheet-detail').innerHTML = `
-    <div class="detail-line"><b>品名</b>${escapeHtml(displayItemName(row.item_name))}</div>
+    <div class="detail-line"><b>品名</b>${teamBadge}${escapeHtml(displayItemName(row.item_name))}</div>
     <div class="detail-line"><b>サイズ</b>${escapeHtml(sizeText)}</div>
     <div class="detail-line"><b>依頼者</b>${escapeHtml(row.requester_name || '（不明）')}</div>
     <div class="detail-line"><b>在庫数</b>${row.stock_qty ?? 0}</div>`;
