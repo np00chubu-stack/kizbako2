@@ -211,6 +211,7 @@ function applyDateMinForItem(id){
 }
 
 let CLIENTS = []; // 客先名一覧（起動時にSupabaseの最新データで上書きされる。読み込み完了までは空扱い）
+let TEAMS = []; // 班一覧（id, team_name。起動時にSupabaseの最新データで上書きされる）
 
 // ★工機カテゴリのサブカテゴリ・サイズは今回からSupabase（size_master）から取得する
 let KOKI_DATA = {};
@@ -256,6 +257,24 @@ function makeClientSelect(id){
         <div id="client-suggest-${id}" class="client-suggest"></div>
       </div>
     </div>`;
+}
+
+// 班選択欄HTML生成（品目ブロック用）。FA・新工場など、依頼のたびに必須選択。
+function makeTeamSelect(id){
+  const opts = TEAMS.map(t=>`<option value="${t.id}">${escapeHtml(t.team_name)}</option>`).join('');
+  return `
+    <div class="form-group">
+      <label>班<span class="req">*</span></label>
+      <select id="team-${id}">
+        <option value="">-- 選択 --</option>
+        ${opts}
+      </select>
+    </div>`;
+}
+
+function getTeamVal(id){
+  const el = document.getElementById(`team-${id}`);
+  return el ? el.value : '';
 }
 
 function getClientVal(id){
@@ -320,6 +339,7 @@ function addItem(data){
       ${id>1?`<button class="btn-del-item" onclick="removeItem(${id})">×</button>`:''}
     </div>
     ${makeClientSelect(id)}
+    ${makeTeamSelect(id)}
     <div class="form-group">
       <label>サイズから検索（任意・L×W×H完全一致）</label>
       <div class="input-toggle">
@@ -696,12 +716,13 @@ function collectItems(){
     const daimoku=getDaimoku(id);
     const urgent=getUrgent(id);
     const client=getClientVal(id);
+    const team=getTeamVal(id);
     const isNew = document.getElementById(`item-lwh-${id}`).style.display !== 'none';
     const dates=[];
     const dateInputs=block.querySelectorAll('.date-input');
     const qtyInputs=block.querySelectorAll('.qty-input');
     dateInputs.forEach((d,i)=>{ if(d.value||qtyInputs[i].value) dates.push({date:d.value,qty:qtyInputs[i].value}); });
-    items.push({cat:catDisplay,size:sizeVal,daimoku,urgent,client,dates,isNew});
+    items.push({cat:catDisplay,size:sizeVal,daimoku,urgent,client,team,dates,isNew});
   });
   return items;
 }
@@ -715,6 +736,7 @@ function goConfirm(){
     if(!it.cat||it.cat==='工機'){ valid=false; showMsg(`品目${i+1}：カテゴリを選択してください。`,'err'); }
     if(!it.size){ valid=false; showMsg(`品目${i+1}：サイズを選択または入力してください。`,'err'); }
     if(!it.dates.length||!it.dates[0].date||!it.dates[0].qty){ valid=false; showMsg(`品目${i+1}：納入日と数量を入力してください。`,'err'); }
+    if(!it.team){ valid=false; showMsg(`品目${i+1}：班を選択してください。`,'err'); }
   });
   if(!valid) return;
 
@@ -753,6 +775,7 @@ function goConfirm(){
         <div style="font-size:12px;font-weight:bold;color:#2c5282;margin-bottom:8px">品目 ${i+1}</div>
         <table class="confirm-table">
           <tr><th>客先名</th><td><input type="text" id="c-client-${i}" value="${it.client}"></td></tr>
+          <tr><th>班</th><td><select id="c-team-${i}">${TEAMS.map(t=>`<option value="${t.id}" ${t.id===it.team?'selected':''}>${escapeHtml(t.team_name)}</option>`).join('')}</select></td></tr>
           <tr><th>カテゴリ</th><td><input type="text" id="c-cat-${i}" value="${it.cat}"></td></tr>
           <tr><th>サイズ</th><td><input type="text" id="c-size-${i}" value="${it.size}"></td></tr>
           <tr><th>台木リフト</th><td><input type="text" id="c-daimoku-${i}" value="${it.daimoku}"></td></tr>
@@ -819,6 +842,7 @@ async function submitForm(){
   const items=[];
   for(let i=0;i<n;i++){
     const client = document.getElementById(`c-client-${i}`).value;
+    const team = document.getElementById(`c-team-${i}`).value;
     const cat = document.getElementById(`c-cat-${i}`).value;
     const size = document.getElementById(`c-size-${i}`).value;
     const daimoku = document.getElementById(`c-daimoku-${i}`).value;
@@ -829,7 +853,7 @@ async function submitForm(){
     const qtyEls=document.querySelectorAll(`.c-qty-${i}`);
     dateEls.forEach((d,j)=>{ dates.push({date:d.value, qty: parseInt(qtyEls[j].value,10)}); });
     const isNew = (window._confirmItems && window._confirmItems[i]) ? window._confirmItems[i].isNew : false;
-    items.push({client, cat, size, daimoku, urgent, dates, isNew});
+    items.push({client, team, cat, size, daimoku, urgent, dates, isNew});
   }
 
   const minDate = minAllowedDateStr();
@@ -864,6 +888,7 @@ async function submitForm(){
       return {
         request_id: reqRow.id,
         client_name: it.client || null,
+        team_id: it.team || null,
         category: it.cat,
         item_name: parseItemNamePrefix(it.size),
         size_l: l, size_w: w, size_h: h,
@@ -1021,6 +1046,15 @@ async function loadMasters(){
     .order('name');
   if(!clientErr && clientRows){
     CLIENTS = clientRows.map(r=>r.name);
+  }
+
+  const { data: teamRows, error: teamErr } = await sbClient
+    .from('team_master')
+    .select('id, team_name')
+    .eq('is_hidden', false)
+    .order('sort_order');
+  if(!teamErr && teamRows){
+    TEAMS = teamRows;
   }
 }
 
