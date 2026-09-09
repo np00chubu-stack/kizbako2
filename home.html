@@ -233,6 +233,7 @@ const URLS = {
   stock: 'stock_view.html',
   workCalendar: 'work_calendar.html',
   requestCalendar: 'request_calendar.html',
+  receptionLog: 'reception_log.html',
   settings: 'business_days_admin.html'
 };
 
@@ -413,6 +414,7 @@ function renderAdminHome(){
     <div class="pc-tile" onclick="goto(URLS.requestCalendar)"><div class="icon">${icon('calendar','stroke-width="1.8"')}</div><div class="name">依頼カレンダー</div><div class="desc">全依頼の一覧を確認する</div></div>
     <div class="pc-tile disabled" onclick="comingSoon()"><div class="icon">${icon('wrench','stroke-width="1.8"')}</div><div class="name">作業工程</div><div class="desc">全依頼明細の進捗を一覧管理（準備中）</div></div>
     <div class="pc-tile" onclick="goto(URLS.workCalendar)"><div class="icon">${icon('calendar','stroke-width="1.8"')}</div><div class="name">作業カレンダー</div><div class="desc">未完成の依頼を管理する</div></div>
+    <div class="pc-tile" onclick="goto(URLS.receptionLog)"><div class="icon">${icon('doc','stroke-width="1.8"')}</div><div class="name">受付日報</div><div class="desc">受付順の一覧・その日の進捗状況</div></div>
     <div class="pc-tile disabled" onclick="comingSoon()"><div class="icon">${icon('doc','stroke-width="1.8"')}</div><div class="name">手順書</div><div class="desc">登録・修正・自動生成（準備中）</div></div>
     <div class="pc-tile" onclick="goto(URLS.stock)"><div class="icon">${icon('stock','stroke-width="1.8"')}</div><div class="name">在庫表</div><div class="desc">最低数ライン変更を含む全操作（配送済み操作も含む）</div></div>
     <div class="pc-tile" onclick="goto(URLS.settings)"><div class="icon">${icon('gear','stroke-width="1.8"')}</div><div class="name">設定</div><div class="desc">営業日の例外設定</div></div>`;
