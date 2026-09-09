@@ -52,6 +52,12 @@ input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px rgba(49,130,2
 .btn-delete:hover{background:#fff5f5}
 
 .empty-msg{text-align:center;color:#999;font-size:13px;padding:20px 0}
+.hist-row{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:10px 14px;margin-bottom:8px}
+.hist-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.hist-time{font-size:11px;color:#888}
+.hist-by{font-size:12px;font-weight:bold;color:#1a3a5c}
+.hist-item{font-size:12px;color:#555;margin-top:3px}
+.hist-detail{font-size:13px;color:#333;margin-top:4px}
 #load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
 
 .tab-bar{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto}
@@ -99,6 +105,7 @@ select.role-select{font-size:12px;padding:5px 6px;border:1px solid #ccc;border-r
     <button class="tab-btn" data-tab="stock" onclick="switchTab('stock')">共通品管理</button>
     <button class="tab-btn" data-tab="newsize" onclick="switchTab('newsize')">新サイズ承認待ち<span id="newsize-badge" class="badge" style="display:none"></span></button>
     <button class="tab-btn" data-tab="locktime" onclick="switchTab('locktime')">ロック時間</button>
+    <button class="tab-btn" data-tab="history" onclick="switchTab('history')">変更履歴</button>
   </div>
 
   <div id="tab-holiday" class="tab-panel active">
@@ -218,6 +225,12 @@ select.role-select{font-size:12px;padding:5px 6px;border:1px solid #ccc;border-r
   <div id="locktime-load-error" style="display:none"></div>
   </div>
 
+  <div id="tab-history" class="tab-panel">
+  <p class="desc">直近100件の変更履歴です（新しいものが上）。</p>
+  <div id="history-list"></div>
+  <div id="history-load-error" style="display:none"></div>
+  </div>
+
 </div>
 
 </div>
@@ -245,7 +258,7 @@ function updateStatusStyle(){
 // =============================================
 // タブ切替
 // =============================================
-const TAB_LOADERS = { size: loadSizes, clients: loadClients, users: loadUsers, stock: loadStockMaster, newsize: loadNewSizeQueue, locktime: loadLockTime };
+const TAB_LOADERS = { size: loadSizes, clients: loadClients, users: loadUsers, stock: loadStockMaster, newsize: loadNewSizeQueue, locktime: loadLockTime, history: loadHistory };
 const loadedTabs = new Set(['holiday']);
 function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -879,6 +892,101 @@ async function submitLockTime(){
     return;
   }
   showMsg('locktime-msg', '保存しました。', 'ok');
+}
+
+// =============================================
+// 変更履歴（change_history）
+// =============================================
+const HIST_TABLE_LABELS = {
+  request_item_dates: '依頼',
+  stock_orders: '発注',
+  stock_items: '在庫'
+};
+
+const HIST_FIELD_LABELS = {
+  status: '状態',
+  canceled_at: '取消状態',
+  qty: '数量',
+  is_canceled: '取消状態',
+  is_finalized: '発注確定状態',
+  completed: '完成状態',
+  reflected_to_stock: '在庫反映状態',
+  stage1_done: '工程A',
+  stage2_done: '工程B',
+  order: '発注内容'
+};
+
+function histFieldLabel(field){
+  if(HIST_FIELD_LABELS[field]) return HIST_FIELD_LABELS[field];
+  if(field && field.startsWith('delivery_marks.')) return '配送マーク（' + field.split('.')[1] + '）';
+  return field || '項目';
+}
+
+function histValueText(field, val){
+  if(val === null || val === undefined || val === '') return 'なし';
+  if(val === 'true') return 'あり';
+  if(val === 'false') return 'なし';
+  return val;
+}
+
+function histLine(row){
+  const tableLabel = HIST_TABLE_LABELS[row.table_name] || row.table_name;
+  const fieldLabel = histFieldLabel(row.field_name);
+
+  if(row.field_name === 'order'){
+    return `${tableLabel}を登録：${row.new_value || ''}`;
+  }
+  if(row.field_name === 'canceled_at' && row.new_value === '取消'){
+    return `${tableLabel}を取消にした`;
+  }
+  return `${tableLabel}の${fieldLabel}を「${histValueText(row.field_name, row.old_value)}」→「${histValueText(row.field_name, row.new_value)}」に変更`;
+}
+
+function histTimeJST(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  const fmt = new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', hour12:false
+  });
+  return fmt.format(d).replace(/\//g,'/');
+}
+
+async function loadHistory(){
+  const { data, error } = await sbClient
+    .from('change_history')
+    .select('id, table_name, record_id, field_name, old_value, new_value, item_label, requester_name, delivery_date, size_text, changed_by_name, changed_at')
+    .order('changed_at', { ascending: false })
+    .limit(100);
+
+  const listEl = document.getElementById('history-list');
+  const errEl = document.getElementById('history-load-error');
+
+  if(error){
+    errEl.style.display = 'block';
+    errEl.textContent = '履歴の取得に失敗しました：' + error.message;
+    return;
+  }
+  errEl.style.display = 'none';
+
+  if(!data || !data.length){
+    listEl.innerHTML = '<div class="empty-msg">履歴はまだありません</div>';
+    return;
+  }
+
+  listEl.innerHTML = data.map(row => {
+    const itemBits = [row.item_label, row.size_text, row.requester_name ? '依頼者：' + row.requester_name : null, row.delivery_date ? '納入日：' + row.delivery_date : null]
+      .filter(Boolean).join('／');
+    return `
+      <div class="hist-row">
+        <div class="hist-top">
+          <span class="hist-by">${escapeHtml(row.changed_by_name || '-')}</span>
+          <span class="hist-time">${escapeHtml(histTimeJST(row.changed_at))}</span>
+        </div>
+        ${itemBits ? `<div class="hist-item">${escapeHtml(itemBits)}</div>` : ''}
+        <div class="hist-detail">${escapeHtml(histLine(row))}</div>
+      </div>`;
+  }).join('');
 }
 
 initAuth();
