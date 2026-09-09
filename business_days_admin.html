@@ -58,6 +58,11 @@ input:focus{outline:none;border-color:#3182ce;box-shadow:0 0 0 2px rgba(49,130,2
 .hist-by{font-size:12px;font-weight:bold;color:#1a3a5c}
 .hist-item{font-size:12px;color:#555;margin-top:3px}
 .hist-detail{font-size:13px;color:#333;margin-top:4px}
+.minline-edit{margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.minline-edit label{font-size:11px;color:#777}
+.minline-edit input{width:60px;padding:4px 6px;border:1px solid #ccc;border-radius:4px;font-size:13px}
+.btn-small{font-size:11px;padding:5px 10px;border:none;border-radius:6px;background:#1a3a5c;color:#fff;cursor:pointer}
+.minline-msg{font-size:11px;color:#276749}
 #load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
 
 .tab-bar{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto}
@@ -654,7 +659,7 @@ async function unhideStockItem(id){
 async function loadStockMaster(){
   const { data, error } = await sbClient
     .from('stock_items')
-    .select('id, item_name, stock_qty, is_hidden')
+    .select('id, item_name, stock_qty, min_line, is_hidden')
     .eq('item_type', 'common')
     .order('item_name');
 
@@ -669,6 +674,27 @@ async function loadStockMaster(){
   renderStockMasterList();
 }
 
+async function saveMinLine(id){
+  const input = document.getElementById('minline-' + id);
+  const msgEl = document.getElementById('minline-msg-' + id);
+  const newVal = parseInt(input.value, 10);
+
+  if(isNaN(newVal) || newVal < 0){
+    msgEl.textContent = '0以上の数値を入力してください。';
+    return;
+  }
+  msgEl.textContent = '';
+
+  const { error } = await sbClient.from('stock_items').update({ min_line: newVal }).eq('id', id);
+  if(error){
+    msgEl.textContent = '保存に失敗しました：' + error.message;
+    return;
+  }
+  msgEl.textContent = '保存しました。';
+  const row = lastStockRows.find(r => r.id === id);
+  if(row) row.min_line = newVal;
+}
+
 function renderStockMasterList(){
   const visEl = document.getElementById('stock-list-visible');
   const hidEl = document.getElementById('stock-list-hidden');
@@ -677,13 +703,20 @@ function renderStockMasterList(){
 
   visEl.innerHTML = visible.length ? visible.map(row => `
     <div class="mrow">
-      <div class="mrow-main">${escapeHtml(row.item_name)}<br><span class="mrow-sub">在庫数：${row.stock_qty ?? 0}</span></div>
+      <div class="mrow-main">${escapeHtml(row.item_name)}<br><span class="mrow-sub">在庫数：${row.stock_qty ?? 0}</span>
+        <div class="minline-edit">
+          <label>最低数ライン</label>
+          <input type="number" min="0" id="minline-${row.id}" value="${row.min_line ?? 0}">
+          <button class="btn-small" onclick="saveMinLine('${row.id}')">変更する</button>
+          <span id="minline-msg-${row.id}" class="minline-msg"></span>
+        </div>
+      </div>
       <button class="btn-delete" onclick="hideStockItem('${row.id}', ${row.stock_qty ?? 0})">非表示にする</button>
     </div>`).join('') : '<div class="empty-msg">表示中の品目はありません</div>';
 
   hidEl.innerHTML = hidden.length ? hidden.map(row => `
     <div class="mrow">
-      <div class="mrow-main">${escapeHtml(row.item_name)}<br><span class="mrow-sub">在庫数：${row.stock_qty ?? 0}</span></div>
+      <div class="mrow-main">${escapeHtml(row.item_name)}<br><span class="mrow-sub">在庫数：${row.stock_qty ?? 0}／最低数ライン：${row.min_line ?? 0}</span></div>
       <button class="btn-delete" onclick="unhideStockItem('${row.id}')">再表示する</button>
     </div>`).join('') : '<div class="empty-msg">非表示の品目はありません</div>';
 }
