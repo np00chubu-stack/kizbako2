@@ -98,6 +98,7 @@ select.role-select{font-size:12px;padding:5px 6px;border:1px solid #ccc;border-r
     <button class="tab-btn" data-tab="users" onclick="switchTab('users')">ユーザー管理</button>
     <button class="tab-btn" data-tab="stock" onclick="switchTab('stock')">共通品管理</button>
     <button class="tab-btn" data-tab="newsize" onclick="switchTab('newsize')">新サイズ承認待ち<span id="newsize-badge" class="badge" style="display:none"></span></button>
+    <button class="tab-btn" data-tab="locktime" onclick="switchTab('locktime')">ロック時間</button>
   </div>
 
   <div id="tab-holiday" class="tab-panel active">
@@ -205,6 +206,18 @@ select.role-select{font-size:12px;padding:5px 6px;border:1px solid #ccc;border-r
   <div id="newsize-load-error" style="display:none"></div>
   </div>
 
+  <div id="tab-locktime" class="tab-panel">
+  <p class="desc">在庫表・マイページで発注や取消をロックする時間帯を設定します。</p>
+
+  <div class="card">
+    <div class="form-group"><label>ロック開始時刻</label><input type="time" id="lt-start"></div>
+    <div class="form-group"><label>ロック終了時刻</label><input type="time" id="lt-end"></div>
+    <button class="btn-submit" id="btn-locktime-save" onclick="submitLockTime()">保存する</button>
+    <div id="locktime-msg"></div>
+  </div>
+  <div id="locktime-load-error" style="display:none"></div>
+  </div>
+
 </div>
 
 </div>
@@ -232,7 +245,7 @@ function updateStatusStyle(){
 // =============================================
 // タブ切替
 // =============================================
-const TAB_LOADERS = { size: loadSizes, clients: loadClients, users: loadUsers, stock: loadStockMaster, newsize: loadNewSizeQueue };
+const TAB_LOADERS = { size: loadSizes, clients: loadClients, users: loadUsers, stock: loadStockMaster, newsize: loadNewSizeQueue, locktime: loadLockTime };
 const loadedTabs = new Set(['holiday']);
 function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -814,6 +827,58 @@ async function initAuth(){
   await loadExceptions();
   await loadNewSizeQueue();
   loadedTabs.add('newsize');
+}
+
+// =============================================
+// ロック時間（business_settings）
+// =============================================
+let lockTimeRowId = null;
+
+async function loadLockTime(){
+  const { data, error } = await sbClient
+    .from('business_settings')
+    .select('id, lock_start_time, lock_end_time')
+    .limit(1)
+    .maybeSingle();
+
+  const errEl = document.getElementById('locktime-load-error');
+  if(error){
+    errEl.style.display = 'block';
+    errEl.textContent = '設定の取得に失敗しました：' + error.message;
+    return;
+  }
+  errEl.style.display = 'none';
+
+  if(data){
+    lockTimeRowId = data.id;
+    document.getElementById('lt-start').value = (data.lock_start_time || '').slice(0,5);
+    document.getElementById('lt-end').value = (data.lock_end_time || '').slice(0,5);
+  }
+}
+
+async function submitLockTime(){
+  const startVal = document.getElementById('lt-start').value;
+  const endVal = document.getElementById('lt-end').value;
+
+  showMsg('locktime-msg', '', '');
+  if(!startVal || !endVal){ showMsg('locktime-msg', '開始・終了の両方を入力してください。', 'err'); return; }
+  if(!lockTimeRowId){ showMsg('locktime-msg', '設定行が見つかりません。読み込みからやり直してください。', 'err'); return; }
+
+  const btn = document.getElementById('btn-locktime-save');
+  btn.disabled = true; btn.textContent = '保存中...';
+
+  const { error } = await sbClient
+    .from('business_settings')
+    .update({ lock_start_time: startVal + ':00', lock_end_time: endVal + ':00' })
+    .eq('id', lockTimeRowId);
+
+  btn.disabled = false; btn.textContent = '保存する';
+
+  if(error){
+    showMsg('locktime-msg', '保存に失敗しました：' + error.message, 'err');
+    return;
+  }
+  showMsg('locktime-msg', '保存しました。', 'ok');
 }
 
 initAuth();
