@@ -364,17 +364,6 @@ async function reflectExpiredGraceItems(items){
       it.status = '発注可能';
       it.reflected_to_stock = true;
       await logChange('request_item_dates', it.id, 'status', prevStatus, '発注可能', it.category, 'システム（自動反映）', null);
-
-      if(it.requester_email){
-        const label = `${formatMD(ymdToDate(it.delivery_date))} ${displayCategory(it.category, it.item_name)} ${it.sizeText} ${it.qty}c/s 完成`;
-        await sbClient.from('notifications').insert({
-          recipient_email: it.requester_email,
-          recipient_role: '依頼者',
-          type: '完成',
-          request_item_date_id: it.id,
-          after_value: label
-        });
-      }
     }
   }
 }
