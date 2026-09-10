@@ -299,7 +299,7 @@ function renderNotifBadges(){
 async function loadNotifications(){
   const { data, error } = await sbClient
     .from('notifications')
-    .select('id, type, after_value, is_read, created_at')
+    .select('id, type, before_value, after_value, is_read, created_at')
     .eq('recipient_email', currentUser.email)
     .order('created_at', { ascending: false });
   if(error) return;
@@ -315,7 +315,7 @@ function renderNotifList(){
   }
   listEl.innerHTML = myNotifications.map(n => `
     <div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="markNotifRead('${n.id}')">
-      <div>${escapeHtmlSafe(n.after_value || '')}</div>
+      <div>${escapeHtmlSafe((n.before_value ? n.before_value + ' ' : '') + (n.after_value || ''))}</div>
       <div class="notif-time">${notifTimeText(n.created_at)}</div>
     </div>
   `).join('');
