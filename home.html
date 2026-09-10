@@ -159,6 +159,26 @@ body{
 .pc-tile .desc{ font-size:11px; color:var(--ink-soft); line-height:1.5; }
 .pc-tile .pc-badge2{ position:absolute; top:14px; right:14px; font-size:10.5px; font-weight:800; color:var(--alert); background:var(--alert-soft); padding:2px 8px; border-radius:999px; }
 
+/* 通知ベル */
+.notif-bell{ position:relative; width:32px; height:32px; border-radius:50%; background:var(--bg-page); display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0; border:none; cursor:pointer; }
+.notif-bell svg{ width:16px; height:16px; }
+.notif-bell .notif-count{ position:absolute; top:-4px; right:-4px; min-width:16px; height:16px; padding:0 4px; border-radius:999px; background:var(--alert); color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+.notif-bell .notif-count.hide{ display:none; }
+.pc-badge-row{ display:flex; align-items:center; gap:8px; }
+
+/* 通知一覧パネル */
+.notif-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:999; }
+.notif-overlay.show{ display:flex; }
+.notif-panel{ width:min(360px,90vw); max-height:70vh; background:#fff; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+.notif-panel-head{ display:flex; align-items:center; justify-content:space-between; }
+.notif-panel-head h3{ margin:0; font-size:15px; }
+.notif-panel-close{ border:none; background:none; font-size:14px; color:var(--ink-soft); cursor:pointer; }
+.notif-list{ overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
+.notif-item{ padding:10px 12px; border-radius:10px; background:var(--bg-page); font-size:13px; cursor:pointer; }
+.notif-item.unread{ background:var(--alert-soft); font-weight:700; }
+.notif-item .notif-time{ font-size:11px; color:var(--ink-faint); margin-top:3px; font-weight:400; }
+.notif-empty{ font-size:13px; color:var(--ink-faint); text-align:center; padding:20px 0; }
+
 @media (max-width:520px){
   .pc-grid{ grid-template-columns:1fr 1fr; }
 }
@@ -189,7 +209,13 @@ body{
         <div class="date mono" id="headerDate"></div>
         <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
       </div>
-      <div class="header-icon" id="headerIcon"></div>
+      <div class="pc-badge-row">
+        <button class="notif-bell" id="notifBellPhone" style="display:none" onclick="openNotifPanel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-count hide" id="notifCountPhone">0</span>
+        </button>
+        <div class="header-icon" id="headerIcon"></div>
+      </div>
     </div>
     <div class="app-content" id="role-body"></div>
     <div class="tabbar" id="tabbar"></div>
@@ -211,11 +237,27 @@ body{
           <h2>管理者ダッシュボード</h2>
           <div class="pc-date" id="pcDate"></div>
         </div>
-        <div class="pc-badge">ログイン中：<span id="login-name-display-admin"></span> さん</div>
+        <div class="pc-badge-row">
+          <button class="notif-bell" id="notifBellAdmin" onclick="openNotifPanel()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notif-count hide" id="notifCountAdmin">0</span>
+          </button>
+          <div class="pc-badge">ログイン中：<span id="login-name-display-admin"></span> さん</div>
+        </div>
       </div>
       <div class="pc-stats" id="pcStats"></div>
       <div class="pc-grid" id="admin-body"></div>
     </div>
+  </div>
+</div>
+
+<div class="notif-overlay" id="notifOverlay">
+  <div class="notif-panel">
+    <div class="notif-panel-head">
+      <h3>お知らせ</h3>
+      <button class="notif-panel-close" onclick="closeNotifPanel()">閉じる</button>
+    </div>
+    <div class="notif-list" id="notifList"></div>
   </div>
 </div>
 
@@ -238,6 +280,67 @@ const URLS = {
 };
 
 let currentUser = { email: '', name: '', role: '' };
+let myNotifications = [];
+
+function notifTimeText(iso){
+  const d = new Date(iso);
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function renderNotifBadges(){
+  const unread = myNotifications.filter(n => !n.is_read).length;
+  [document.getElementById('notifCountPhone'), document.getElementById('notifCountAdmin')].forEach(el=>{
+    if(!el) return;
+    el.textContent = unread > 99 ? '99+' : String(unread);
+    el.classList.toggle('hide', unread === 0);
+  });
+}
+
+async function loadNotifications(){
+  const { data, error } = await sbClient
+    .from('notifications')
+    .select('id, type, after_value, is_read, created_at')
+    .eq('recipient_email', currentUser.email)
+    .order('created_at', { ascending: false });
+  if(error) return;
+  myNotifications = data || [];
+  renderNotifBadges();
+}
+
+function renderNotifList(){
+  const listEl = document.getElementById('notifList');
+  if(!myNotifications.length){
+    listEl.innerHTML = '<div class="notif-empty">お知らせはありません</div>';
+    return;
+  }
+  listEl.innerHTML = myNotifications.map(n => `
+    <div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="markNotifRead('${n.id}')">
+      <div>${escapeHtmlSafe(n.after_value || '')}</div>
+      <div class="notif-time">${notifTimeText(n.created_at)}</div>
+    </div>
+  `).join('');
+}
+
+function escapeHtmlSafe(s){
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function openNotifPanel(){
+  renderNotifList();
+  document.getElementById('notifOverlay').classList.add('show');
+}
+function closeNotifPanel(){
+  document.getElementById('notifOverlay').classList.remove('show');
+}
+
+async function markNotifRead(id){
+  const target = myNotifications.find(n => n.id === id);
+  if(!target || target.is_read) return;
+  target.is_read = true;
+  renderNotifBadges();
+  renderNotifList();
+  await sbClient.from('notifications').update({ is_read: true }).eq('id', id);
+}
 
 function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -482,6 +585,8 @@ async function initAuth(){
     document.getElementById('admin-content').style.display = 'block';
     renderAdminHome();
     await loadAdminStats();
+    await loadNotifications();
+    setInterval(loadNotifications, 30000);
   } else if(currentUser.role === '作業者'){
     document.getElementById('login-name-display').textContent = currentUser.name;
     document.getElementById('headerDate').textContent = headerDateText(now);
@@ -491,7 +596,10 @@ async function initAuth(){
     document.getElementById('login-name-display').textContent = currentUser.name;
     document.getElementById('headerDate').textContent = headerDateText(now);
     document.getElementById('app-content').style.display = 'block';
+    document.getElementById('notifBellPhone').style.display = 'flex';
     await renderRequesterHome();
+    await loadNotifications();
+    setInterval(loadNotifications, 30000);
   }
 }
 
