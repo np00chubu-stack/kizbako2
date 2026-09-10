@@ -279,7 +279,7 @@ async function loadCalendarItems(){
       category: item.category || '',
       item_name: item.item_name || '',
       is_urgent: !!item.is_urgent,
-      sizeText: [item.size_l, item.size_w, item.size_h].filter(v=>v!=null).join('×'),
+      sizeText: [item.size_l, item.size_w, item.size_h].filter(v=>v!=null).join('×') || (item.item_name || ''),
       requester_name: req.requester_name || '',
       team_abbr: (item.team_master && item.team_master.team_abbr) || ''
     };
