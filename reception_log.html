@@ -92,15 +92,18 @@ function escapeHtml(s){
 }
 
 function todayJstStr(){
-  const now = new Date();
-  const jst = new Date(now.getTime() + (9 * 60 - now.getTimezoneOffset()) * 60000);
-  return jst.toISOString().slice(0, 10);
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' });
+  return fmt.format(new Date());
 }
 
 function addDaysStr(dateStr, delta){
-  const d = new Date(dateStr + 'T00:00:00+09:00');
-  d.setUTCDate(d.getUTCDate() + delta);
-  return d.toISOString().slice(0, 10);
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + delta);
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
 }
 
 function jstDayRangeIso(dateStr){
@@ -110,11 +113,8 @@ function jstDayRangeIso(dateStr){
 }
 
 function jstTimeLabel(isoStr){
-  const d = new Date(isoStr);
-  const jst = new Date(d.getTime() + (9 * 60 - d.getTimezoneOffset()) * 60000);
-  const hh = String(jst.getUTCHours()).padStart(2, '0');
-  const mm = String(jst.getUTCMinutes()).padStart(2, '0');
-  return `${hh}:${mm}`;
+  const fmt = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  return fmt.format(new Date(isoStr));
 }
 
 function computeStage(row){
@@ -123,14 +123,6 @@ function computeStage(row){
   if(row.stage1_done) return { cls: 'st-pink', label: '工程Aのみ' };
   if(row.stage2_done) return { cls: 'st-blue', label: '工程Bのみ' };
   return { cls: 'st-none', label: '受付済み' };
-}
-
-function subscribeRealtime(){
-  sbClient
-    .channel('reception_log_changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'requests' }, loadLog)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'request_item_dates' }, loadLog)
-    .subscribe();
 }
 
 function changeDay(delta){
@@ -156,7 +148,7 @@ async function loadLog(){
       request_items (
         id, category, item_name, size_l, size_w, size_h,
         team_master ( team_abbr ),
-        request_item_dates ( id, qty, canceled_at, stage1_done, stage2_done, completed )
+        request_item_dates ( id, qty, delivery_date, canceled_at, stage1_done, stage2_done, completed )
       )
     `)
     .gte('submitted_at', startIso)
@@ -189,6 +181,7 @@ async function loadLog(){
           sizeText,
           team_abbr: (item.team_master && item.team_master.team_abbr) || '',
           qty: d.qty,
+          delivery_date: d.delivery_date,
           canceled_at: d.canceled_at,
           stage1_done: d.stage1_done,
           stage2_done: d.stage2_done,
@@ -220,6 +213,7 @@ async function loadLog(){
             <span class="log-qty">${r.qty}</span>
             <span class="log-team">${escapeHtml(r.team_abbr)}</span>
             <span>${escapeHtml(r.requester_name)}</span>
+            <span>納入日：${escapeHtml(r.delivery_date || '')}</span>
             ${cancelTag}
           </div>
         </div>
@@ -270,7 +264,6 @@ async function initAuth(){
   selectedDate = todayJstStr();
   document.getElementById('log-date').value = selectedDate;
   await loadLog();
-  subscribeRealtime();
 }
 
 initAuth();
