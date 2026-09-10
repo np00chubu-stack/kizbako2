@@ -446,6 +446,14 @@ async function saveEditChanges(dateRowId){
     last_changed_at: new Date().toISOString()
   };
 
+  // 通知用：5分以内に連続で変更された場合、最初の変更前の日付を残しておく
+  if(newDate !== row.delivery_date){
+    if(!row.pending_changed_at){
+      payload.pending_before_date = row.delivery_date;
+    }
+    payload.pending_changed_at = new Date().toISOString();
+  }
+
   if(row.status === '受付済み'){
     const qtyInput = document.getElementById('edit-qty-input');
     const newQty = qtyInput ? parseInt(qtyInput.value, 10) : NaN;
@@ -828,7 +836,7 @@ async function loadMyItems(){
 
   const { data: dateRows, error: dateErr } = await sbClient
     .from('request_item_dates')
-    .select('id, request_item_id, delivery_date, qty, status, canceled_at, is_urgent')
+    .select('id, request_item_id, delivery_date, qty, status, canceled_at, is_urgent, pending_changed_at')
     .in('request_item_id', itemIds)
     .order('delivery_date', { ascending: true });
 
