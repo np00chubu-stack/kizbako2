@@ -275,7 +275,7 @@ function displayCategory(cat, itemName){
 }
 
 function sizeText(row){
-  return [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×');
+  return [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×') || (row.item_name || '');
 }
 
 // =============================================
