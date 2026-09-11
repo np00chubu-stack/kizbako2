@@ -339,7 +339,7 @@ async function markNotifRead(id){
   target.is_read = true;
   renderNotifBadges();
   renderNotifList();
-  await sbClient.from('notifications').update({ is_read: true }).eq('id', id);
+  await sbClient.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('id', id);
 }
 
 function escapeHtml(s){
