@@ -1004,8 +1004,14 @@ async function loadNewSizeQueue(){
     groups[key].ids.push(r.id);
     groups[key].count++;
   });
-  // 件数の多い順（＝登録推奨に近いもの順）に並べる
-  lastNewSizeGroups = Object.values(groups).sort((a, b) => b.count - a.count);
+  // カテゴリ単位の合計件数（サイズ違いを合算）が多い順に並べ、同じカテゴリはまとめて隣接させる
+  const catTotals = {};
+  Object.values(groups).forEach(g => { catTotals[g.category] = (catTotals[g.category] || 0) + g.count; });
+  lastNewSizeGroups = Object.values(groups).sort((a, b) => {
+    const diff = catTotals[b.category] - catTotals[a.category];
+    if(diff !== 0) return diff;
+    return a.category.localeCompare(b.category, 'ja');
+  });
   renderNewSizeQueue();
 }
 
@@ -1025,10 +1031,18 @@ function renderNewSizeQueue(){
     listEl.innerHTML = '<div class="empty-msg">承認待ちの新サイズはありません</div>';
     return;
   }
+
+  // カテゴリ単位の合計件数（サイズ違いを合算）を先に計算しておく
+  const categoryTotals = {};
+  lastNewSizeGroups.forEach(g => {
+    categoryTotals[g.category] = (categoryTotals[g.category] || 0) + g.count;
+  });
+
   listEl.innerHTML = lastNewSizeGroups.map((g, i) => {
     const sizeTxt = `${g.size_l ?? ''}×${g.size_w ?? ''}×${g.size_h ?? ''}`;
-    const recommend = g.count >= newCategoryThreshold
-      ? '<span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:10px;background:#fff3cd;color:#856404;font-size:11px;font-weight:bold">登録推奨</span>'
+    const catTotal = categoryTotals[g.category];
+    const recommend = catTotal >= newCategoryThreshold
+      ? `<span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:10px;background:#fff3cd;color:#856404;font-size:11px;font-weight:bold">登録推奨（${escapeHtml(g.category)}計${catTotal}件）</span>`
       : '';
     return `
     <div class="mrow">
