@@ -45,7 +45,6 @@ body {
 .mono { font-family: 'JetBrains Mono', monospace; }
 .tech-font { font-family: 'Chakra Petch', sans-serif; text-transform: uppercase; }
 
-/* 共通フレーム構造 */
 .page-wrap {
   max-width: 820px;
   margin: 0 auto;
@@ -67,7 +66,6 @@ body {
   position: relative;
 }
 
-/* ノッチデザイン */
 .notch {
   position: absolute;
   top: 0;
@@ -83,7 +81,6 @@ body {
   z-index: 5;
 }
 
-/* ログイン画面群 */
 .login-box {
   max-width: 360px;
   margin: 80px auto;
@@ -126,7 +123,6 @@ body {
 #auth-msg { margin-top: 14px; font-size: 13px; color: var(--red); }
 .login-box p { font-size: 13.5px; color: var(--red); line-height: 1.6; }
 
-/* ヘッダー */
 .app-header {
   flex: 0 0 auto;
   padding: 30px 20px 12px;
@@ -167,11 +163,7 @@ body {
   transition: all 0.2s ease;
 }
 
-.back-icon:hover {
-  border-color: var(--cyan);
-  color: var(--cyan);
-}
-
+.back-icon:hover { border-color: var(--cyan); color: var(--cyan); }
 .back-icon svg { width: 16px; height: 16px; }
 
 .login-name-bar {
@@ -183,7 +175,6 @@ body {
   letter-spacing: 0.05em;
 }
 
-/* メインコンテンツエリア */
 .app-content {
   flex: 1 1 auto;
   min-height: 0;
@@ -194,7 +185,6 @@ body {
   overflow-y: auto;
 }
 
-/* アクションバナー */
 .action-banner {
   display: none;
   flex: 0 0 auto;
@@ -225,7 +215,6 @@ body {
 .action-banner .ab-title { font-size: 13px; font-weight: 800; color: #fff; }
 .action-banner .ab-sub { font-size: 10px; color: var(--cyan); margin-top: 1px; }
 
-/* セクションラベル */
 .section-label {
   flex: 0 0 auto;
   font-size: 11px;
@@ -246,15 +235,9 @@ body {
   background: var(--cyan);
 }
 
-.section-label .sl-count {
-  font-weight: 500;
-  color: var(--text-sub);
-  font-size: 10px;
-}
-
+.section-label .sl-count { font-weight: 500; color: var(--text-sub); font-size: 10px; }
 .req-list { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; }
 
-/* 完成品カード */
 .ready-card {
   background: var(--bg-card);
   border: 1px solid var(--amber);
@@ -269,18 +252,11 @@ body {
   transition: all 0.2s ease;
 }
 
-.ready-card:hover {
-  background: var(--bg-card-hover);
-  box-shadow: 0 0 20px var(--amber-glow);
-}
-
+.ready-card:hover { background: var(--bg-card-hover); box-shadow: 0 0 20px var(--amber-glow); }
 .ready-card .rc-date { color: var(--amber); }
 .ready-card .ready-arrow { background: var(--amber); color: #000; }
 
-.ready-card.ordered {
-  border-color: var(--blue);
-  box-shadow: none;
-}
+.ready-card.ordered { border-color: var(--blue); box-shadow: none; }
 .ready-card.ordered .ready-arrow { background: var(--blue); color: #fff; }
 .ready-card.ordered .rc-date { color: var(--blue); }
 
@@ -299,7 +275,6 @@ body {
 }
 .ready-arrow svg { width: 14px; height: 14px; }
 
-/* 依頼一覧リスト */
 .plain-list {
   background: var(--bg-card);
   border: 1px solid var(--panel-border);
@@ -320,13 +295,7 @@ body {
 .plain-row:first-child { border-top: none; }
 .plain-row:hover { background: var(--bg-card-hover); }
 
-.plain-row .pr-date {
-  font-size: 10px;
-  color: var(--text-sub);
-  width: 38px;
-  flex-shrink: 0;
-}
-
+.plain-row .pr-date { font-size: 10px; color: var(--text-sub); width: 38px; flex-shrink: 0; }
 .plain-row .pr-main { flex: 1; min-width: 0; }
 .plain-row .pr-name { font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .plain-row.is-cancelled .pr-name { text-decoration: line-through; color: var(--text-dim); }
@@ -343,7 +312,6 @@ body {
   display: inline-block;
 }
 
-/* ステータスバッジ */
 .status-pill {
   flex-shrink: 0;
   display: flex;
@@ -369,7 +337,6 @@ body {
 
 .spacer { flex: 1 1 auto; }
 
-/* ナビゲーションタブバー */
 .tabbar {
   flex: 0 0 auto;
   display: flex;
@@ -398,7 +365,6 @@ body {
 .tab.active { color: var(--cyan); }
 .tab.active svg { filter: drop-shadow(0 0 5px var(--cyan)); }
 
-/* ---------- ボトムシート ---------- */
 .sheet-overlay {
   position: absolute;
   inset: 0;
@@ -488,7 +454,6 @@ body {
   line-height: 1.5;
 }
 
-/* モード切替タブ */
 .mode-tabs { display: flex; gap: 8px; margin-top: 18px; }
 
 .mode-tab {
@@ -517,7 +482,6 @@ body {
 .mode-body { margin-top: 16px; min-height: 50px; }
 .mode-body .mb-desc { font-size: 11px; color: var(--text-sub); line-height: 1.5; margin-bottom: 12px; }
 
-/* ステッパー */
 .qty-stepper { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 10px 0; }
 
 .qty-stepper button {
@@ -535,7 +499,6 @@ body {
 .qty-stepper button:active { background: var(--cyan); color: #000; }
 .qty-stepper .qs-val { font-size: 22px; font-weight: 800; min-width: 50px; text-align: center; color: var(--text-main); }
 
-/* ダイアログボタン群 */
 .sheet-confirm {
   width: 100%;
   margin-top: 18px;
@@ -600,7 +563,7 @@ body {
 
 <div id="auth-login" class="login-box" style="display:none">
   <h1 class="tech-font">MY PAGE</h1>
-  <button class="btn-google">Googleでログイン</button>
+  <button class="btn-google" onclick="loginWithGoogle()">Googleでログイン</button>
   <div id="auth-msg"></div>
 </div>
 
@@ -645,28 +608,28 @@ body {
     <div class="tabbar" id="tabbar"></div>
 
     <!-- 詳細ボトムシート -->
-    <div class="sheet-overlay" id="sheet-overlay">
-      <div class="sheet">
+    <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet(event)">
+      <div class="sheet" onclick="event.stopPropagation()">
         <div class="sheet-handle"></div>
         <div class="sheet-title" id="sheet-title"></div>
         <div class="sheet-meta" id="sheet-detail"></div>
         <div id="sheet-edit-area"></div>
         <div class="sheet-note" id="sheet-cancel-msg"></div>
-        <button class="sheet-cancel-link" id="order-cancel-btn" style="display:none">発注を取消す</button>
-        <button class="sheet-cancel-link" id="sheet-cancel-btn" style="display:none">この納入日の依頼を取り消す</button>
-        <button class="sheet-close">閉じる</button>
+        <button class="sheet-cancel-link" id="order-cancel-btn" style="display:none" onclick="cancelOrderFromDetailSheet()">発注を取消す</button>
+        <button class="sheet-cancel-link" id="sheet-cancel-btn" style="display:none" onclick="cancelFromDetailSheet()">この納入日の依頼を取り消す</button>
+        <button class="sheet-close" onclick="closeSheet()">閉じる</button>
       </div>
     </div>
 
     <!-- 発注設定ボトムシート -->
-    <div class="sheet-overlay" id="order-sheet-overlay">
-      <div class="sheet">
+    <div class="sheet-overlay" id="order-sheet-overlay" onclick="closeOrderSheet(event)">
+      <div class="sheet" onclick="event.stopPropagation()">
         <div class="sheet-handle"></div>
         <div class="sheet-title" id="order-sheet-title"></div>
         <div class="sheet-sub" id="order-sheet-detail"></div>
 
         <div class="mode-tabs" id="orderModeTabs">
-          <button type="button" class="mode-tab active" data-mode="circle"><div class="mt-emoji">[ O ]</div><div class="mt-label">完成次第</div></button>
+          <button type="button" class="mode-tab" data-mode="circle"><div class="mt-emoji">[ O ]</div><div class="mt-label">完成次第</div></button>
           <button type="button" class="mode-tab" data-mode="qty"><div class="mt-emoji">[ # ]</div><div class="mt-label">数量指定</div></button>
           <button type="button" class="mode-tab" data-mode="date"><div class="mt-emoji">[ D ]</div><div class="mt-label">日付指定</div></button>
         </div>
@@ -674,13 +637,785 @@ body {
 
         <div class="sheet-note" id="order-sheet-msg"></div>
 
-        <button class="sheet-confirm" id="order-confirm-btn">この内容で発注する</button>
-        <button class="sheet-cancel-link">この納入日の依頼を取り消す</button>
-        <button class="sheet-close">閉じる</button>
+        <button class="sheet-confirm" id="order-confirm-btn" onclick="submitOrderFromMypage()">この内容で発注する</button>
+        <button class="sheet-cancel-link" onclick="cancelRequestItem()">この納入日の依頼を取り消す</button>
+        <button class="sheet-close" onclick="closeOrderSheet()">閉じる</button>
       </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
+const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = { email: '', name: '' };
+
+async function logChange(tableName, recordId, fieldName, oldValue, newValue, itemLabel, requesterName, deliveryDate, sizeTxt){
+  await sbClient.from('change_history').insert({
+    table_name: tableName,
+    record_id: recordId,
+    field_name: fieldName,
+    old_value: oldValue === null || oldValue === undefined ? null : String(oldValue),
+    new_value: newValue === null || newValue === undefined ? null : String(newValue),
+    item_label: itemLabel || null,
+    requester_name: requesterName || null,
+    delivery_date: deliveryDate || null,
+    size_text: sizeTxt || null,
+    changed_by_name: currentUser.name,
+    changed_by_email: currentUser.email
+  });
+}
+
+let myItems = [];
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const HIDDEN_CATEGORY_LABELS = ['3000まで', '3001以上'];
+function displayCategory(cat, itemName){
+  return HIDDEN_CATEGORY_LABELS.includes(cat) ? (itemName || '') : (cat || '');
+}
+
+function sizeText(row){
+  return [row.size_l, row.size_w, row.size_h].filter(v=>v!=null).join('×') || (row.item_name || '');
+}
+
+let lockSettings = { start: null, end: null };
+let isLocked = false;
+
+async function loadLockSettings(){
+  const { data, error } = await sbClient
+    .from('business_settings')
+    .select('lock_start_time, lock_end_time')
+    .limit(1)
+    .maybeSingle();
+
+  if(error || !data){ isLocked = false; return; }
+
+  lockSettings.start = data.lock_start_time;
+  lockSettings.end = data.lock_end_time;
+
+  const now = new Date();
+  const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
+  isLocked = (nowStr >= lockSettings.start && nowStr < lockSettings.end);
+}
+
+function isTodayJST(isoString){
+  if(!isoString) return false;
+  const fmt = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit' });
+  return fmt.format(new Date(isoString)) === fmt.format(new Date());
+}
+
+function shortDate(ymd){
+  const m = String(ymd).match(/^\d{4}-(\d{1,2})-(\d{1,2})/);
+  return m ? `${parseInt(m[1],10)}/${parseInt(m[2],10)}` : ymd;
+}
+
+function statusClass(label){
+  if(label === '取消済み') return 'canceled';
+  if(label === '発注済み') return 'done';
+  if(label === '受付済み') return 'ok';
+  if(label === '作業中') return 'wip';
+  if(label === '発注可能') return 'ready';
+  return 'ok';
+}
+function statusIcon(cls){
+  if(cls === 'wip') return '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>';
+  if(cls === 'canceled') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg>';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+}
+
+function renderReadyCard(row){
+  const urgentTag = row.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
+  const isOrdered = row.status === '発注済み・受取待ち';
+  const isPartial = !isOrdered && row.ordered_qty && row.ordered_qty > 0 && row.ordered_qty < row.qty;
+  const cardClass = isOrdered ? 'ready-card ordered' : (isPartial ? 'ready-card partial' : 'ready-card');
+  const clickHandler = isOrdered ? `openSheet('${row.id}')` : `openOrderSheet('${row.id}')`;
+  const orderedBadge = isOrdered
+    ? '<span class="status-pill done" style="margin-right:5px">発注済み</span>'
+    : (isPartial ? `<span class="status-pill partial" style="margin-right:5px">一部発注済み(${row.ordered_qty}/${row.qty})</span>` : '');
+  return `
+    <div class="${cardClass}" onclick="${clickHandler}">
+      <div class="ready-main">
+        <div class="rc-date mono">希望日 ${escapeHtml(shortDate(row.delivery_date))}</div>
+        <div class="rc-name">${orderedBadge}${escapeHtml(displayCategory(row.category, row.item_name))}${urgentTag}</div>
+        <div class="rc-detail">${escapeHtml(sizeText(row))} ${escapeHtml(String(row.qty))}c/s</div>
+      </div>
+      <div class="ready-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </div>`;
+}
+
+function renderListRow(row){
+  const cancelled = !!row.canceled_at;
+  const isOrdered = row.status === '発注済み・受取待ち';
+  const label = cancelled ? '取消済み' : (isOrdered ? '発注済み' : row.status);
+  const cls = statusClass(label);
+  const urgentTag = row.is_urgent ? '<span class="urgent-tag">急ぎ</span>' : '';
+  return `
+    <div class="plain-row${cancelled ? ' is-cancelled' : ''}" onclick="openSheet('${row.id}')">
+      <div class="pr-date mono">${escapeHtml(shortDate(row.delivery_date))}</div>
+      <div class="pr-main">
+        <div class="pr-name">${escapeHtml(displayCategory(row.category, row.item_name))}${urgentTag}</div>
+        <div class="pr-detail">${escapeHtml(sizeText(row))} ${escapeHtml(String(row.qty))}c/s</div>
+      </div>
+      <span class="status-pill ${cls}">${statusIcon(cls)}<span>${escapeHtml(label)}</span></span>
+    </div>`;
+}
+
+function renderList(){
+  const readyRows = myItems
+    .filter(r => !r.canceled_at && (r.status === '発注可能' || r.status === '発注済み・受取待ち'))
+    .sort((a,b) => {
+      const pa = a.status === '発注可能' ? 0 : 1;
+      const pb = b.status === '発注可能' ? 0 : 1;
+      if(pa !== pb) return pa - pb;
+      return a.delivery_date.localeCompare(b.delivery_date);
+    });
+  const unorderedCount = readyRows.filter(r => r.status === '発注可能').length;
+
+  const listRows = myItems
+    .filter(r => r.status === '受付済み' || r.status === '作業中' || r.canceled_at)
+    .sort((a,b) => a.delivery_date.localeCompare(b.delivery_date));
+
+  const banner = document.getElementById('action-banner');
+  if(unorderedCount){
+    banner.classList.add('show');
+    document.getElementById('ab-title').textContent = `${unorderedCount}件の完成品があります`;
+  } else {
+    banner.classList.remove('show');
+  }
+
+  document.getElementById('count-ready').textContent = readyRows.length ? `(${readyRows.length})` : '';
+  document.getElementById('count-all').textContent = listRows.length ? `(${listRows.length})` : '';
+
+  document.getElementById('list-ready').innerHTML = readyRows.length
+    ? readyRows.map(renderReadyCard).join('')
+    : '<div class="empty-note">現在、完成品はありません</div>';
+
+  document.getElementById('list-all').innerHTML = listRows.length
+    ? `<div class="plain-list">${listRows.map(renderListRow).join('')}</div>`
+    : '<div class="plain-list"><div class="empty-note">依頼中のものはありません</div></div>';
+}
+
+function renderEditArea(row){
+  if(row.canceled_at) return '';
+  if(row.status !== '受付済み' && row.status !== '作業中') return '';
+
+  const qtyFieldHtml = row.status === '受付済み'
+    ? `<label>数量(c/s)</label><input type="number" id="edit-qty-input" min="1" value="${row.qty}">`
+    : `<div class="edit-note">数量の変更は管理者へご連絡ください（作業に取りかかっているため）</div>`;
+
+  return `
+    <div class="edit-area">
+      <div class="edit-title">日程・数量の変更</div>
+      <label>納入日</label>
+      <input type="date" id="edit-date-input" value="${row.delivery_date}">
+      ${qtyFieldHtml}
+      <button class="sheet-confirm" style="margin-top:2px" onclick="saveEditChanges('${row.id}')">この内容で変更する</button>
+      <div class="sheet-note" id="sheet-edit-msg"></div>
+    </div>`;
+}
+
+async function saveEditChanges(dateRowId){
+  const row = myItems.find(r => r.id === dateRowId);
+  if(!row) return;
+
+  const dateInput = document.getElementById('edit-date-input');
+  const newDate = dateInput ? dateInput.value : '';
+  const msgEl = document.getElementById('sheet-edit-msg');
+
+  if(!newDate){ msgEl.textContent = '納入日を入力してください。'; return; }
+
+  const payload = {
+    delivery_date: newDate,
+    last_changed_by: currentUser.name,
+    last_changed_at: new Date().toISOString()
+  };
+
+  if(newDate !== row.delivery_date){
+    if(!row.pending_changed_at){
+      payload.pending_before_date = row.delivery_date;
+    }
+    payload.pending_changed_at = new Date().toISOString();
+  }
+
+  if(row.status === '受付済み'){
+    const qtyInput = document.getElementById('edit-qty-input');
+    const newQty = qtyInput ? parseInt(qtyInput.value, 10) : NaN;
+    if(!newQty || newQty < 1){ msgEl.textContent = '数量を入力してください。'; return; }
+    payload.qty = newQty;
+  }
+
+  const { error } = await sbClient
+    .from('request_item_dates')
+    .update(payload)
+    .eq('id', dateRowId);
+
+  if(error){
+    msgEl.textContent = '変更に失敗しました：' + error.message;
+    return;
+  }
+
+  document.getElementById('sheet-overlay').classList.remove('show');
+  await loadMyItems();
+}
+
+function openSheet(dateRowId){
+  const row = myItems.find(r => r.id === dateRowId);
+  if(!row) return;
+
+  document.getElementById('sheet-title').textContent = displayCategory(row.category, row.item_name);
+
+  const statusLabel = row.canceled_at ? '取消済み' : (row.status === '発注済み・受取待ち' ? '発注済み' : row.status);
+
+  document.getElementById('sheet-detail').innerHTML = `
+    <div class="mrow"><span class="mk">サイズ</span><span class="mv">${escapeHtml(sizeText(row))}</span></div>
+    <div class="mrow"><span class="mk">納入日</span><span class="mv mono">${escapeHtml(row.delivery_date)}（${escapeHtml(String(row.qty))}c/s）</span></div>
+    <div class="mrow"><span class="mk">ステータス</span><span class="mv">${escapeHtml(statusLabel)}</span></div>
+    ${row.client_name ? `<div class="mrow"><span class="mk">客先名</span><span class="mv">${escapeHtml(row.client_name)}</span></div>` : ''}
+    ${row.note_item ? `<div class="mrow"><span class="mk">備考</span><span class="mv">${escapeHtml(row.note_item)}</span></div>` : ''}
+  `;
+
+  document.getElementById('sheet-edit-area').innerHTML = renderEditArea(row);
+
+  const cancelBtn = document.getElementById('sheet-cancel-btn');
+  const cancelMsg = document.getElementById('sheet-cancel-msg');
+  cancelMsg.textContent = row.canceled_at ? '本日中のみ表示されます（日付が変わると一覧から消えます）' : '';
+  if(!row.canceled_at && (row.status === '受付済み' || row.status === '作業中')){
+    cancelBtn.style.display = 'block';
+    cancelBtn.dataset.dateRowId = dateRowId;
+  } else {
+    cancelBtn.style.display = 'none';
+  }
+
+  const orderCancelBtn = document.getElementById('order-cancel-btn');
+  if(!row.canceled_at && row.status === '発注済み・受取待ち'){
+    orderCancelBtn.style.display = 'block';
+    orderCancelBtn.dataset.dateRowId = dateRowId;
+  } else {
+    orderCancelBtn.style.display = 'none';
+  }
+
+  document.getElementById('sheet-overlay').classList.add('show');
+}
+
+async function cancelOrderFromDetailSheet(){
+  if(isLocked){ alert('ただいまロック中のため、発注の取消はできません。'); return; }
+  const dateRowId = document.getElementById('order-cancel-btn').dataset.dateRowId;
+  if(!dateRowId) return;
+  if(!confirm('発注を取消しますか？依頼自体は「発注可能」の状態に戻ります。')) return;
+
+  const r_oc = myItems.find(r => r.id === dateRowId);
+
+  const { data: stockRow, error: stockErr } = await sbClient
+    .from('stock_items')
+    .select('id')
+    .eq('request_item_date_id', dateRowId)
+    .maybeSingle();
+
+  if(stockErr || !stockRow){
+    document.getElementById('sheet-cancel-msg').textContent = '発注データが見つかりませんでした。';
+    return;
+  }
+
+  const { error: cancelOrderErr } = await sbClient
+    .from('stock_orders')
+    .update({ is_canceled: true })
+    .eq('stock_item_id', stockRow.id)
+    .eq('is_canceled', false);
+
+  if(cancelOrderErr){
+    document.getElementById('sheet-cancel-msg').textContent = '取消に失敗しました：' + cancelOrderErr.message;
+    return;
+  }
+
+  const { error: statusErr } = await sbClient
+    .from('request_item_dates')
+    .update({ status: '発注可能' })
+    .eq('id', dateRowId);
+
+  if(statusErr){
+    document.getElementById('sheet-cancel-msg').textContent = '発注の取消はできましたが、状態更新に失敗しました：' + statusErr.message;
+    return;
+  }
+
+  await logChange('request_item_dates', dateRowId, 'status', '発注済み・受取待ち', '発注可能', r_oc?.category, currentUser.name, r_oc?.delivery_date, r_oc ? sizeText(r_oc) : null);
+
+  document.getElementById('sheet-overlay').classList.remove('show');
+  await loadMyItems();
+}
+
+async function cancelFromDetailSheet(){
+  const dateRowId = document.getElementById('sheet-cancel-btn').dataset.dateRowId;
+  if(!dateRowId) return;
+  if(!confirm('この納入日の依頼を取り消しますか？取消後も本日中は依頼一覧に取消線付きで表示されます。')) return;
+
+  const { error } = await sbClient
+    .from('request_item_dates')
+    .update({ canceled_at: new Date().toISOString() })
+    .eq('id', dateRowId);
+
+  if(error){
+    document.getElementById('sheet-cancel-msg').textContent = '取消に失敗しました：' + error.message;
+    return;
+  }
+
+  const r_478 = myItems.find(r => r.id === dateRowId);
+  await logChange('request_item_dates', dateRowId, 'canceled_at', null, '取消', r_478?.category, currentUser.name, r_478?.delivery_date, r_478 ? sizeText(r_478) : null);
+
+  document.getElementById('sheet-overlay').classList.remove('show');
+  await loadMyItems();
+}
+
+function closeSheet(e){
+  if(e && e.target !== e.currentTarget) return;
+  document.getElementById('sheet-overlay').classList.remove('show');
+}
+
+let orderSheetState = { dateRowId: null, stockItemId: null, mode: 'circle', qty: 1, date: '' };
+
+async function openOrderSheet(dateRowId){
+  if(isLocked){ alert('ただいまロック中のため、発注はできません。'); return; }
+  const row = myItems.find(r => r.id === dateRowId);
+  if(!row) return;
+
+  const { data: stockRow, error } = await sbClient
+    .from('stock_items')
+    .select('id')
+    .eq('request_item_date_id', dateRowId)
+    .maybeSingle();
+
+  if(error || !stockRow){
+    alert('在庫データが見つかりませんでした。時間をおいて再度お試しください。');
+    return;
+  }
+
+  orderSheetState = { dateRowId, stockItemId: stockRow.id, mode: 'circle', qty: 1, date: '', existingOrderId: null, existingMode: null, existingQty: 0, totalQty: row.qty };
+
+  const { data: existingOrder } = await sbClient
+    .from('stock_orders')
+    .select('id, mode, qty')
+    .eq('stock_item_id', stockRow.id)
+    .eq('is_canceled', false)
+    .maybeSingle();
+
+  let progressNote = '';
+  if(existingOrder){
+    orderSheetState.existingOrderId = existingOrder.id;
+    orderSheetState.existingMode = existingOrder.mode;
+    orderSheetState.existingQty = existingOrder.qty || 0;
+    if(existingOrder.mode === '数量' && existingOrder.qty < row.qty){
+      orderSheetState.mode = 'qty';
+      orderSheetState.qty = Math.max(1, row.qty - existingOrder.qty);
+      progressNote = `<div class="mb-desc">これまでに${existingOrder.qty}個発注済み。残り${row.qty - existingOrder.qty}個です。</div>`;
+    }
+  }
+
+  document.getElementById('order-sheet-title').textContent = displayCategory(row.category, row.item_name);
+  document.getElementById('order-sheet-detail').innerHTML = `${escapeHtml(sizeText(row))}／納入日：${escapeHtml(row.delivery_date)}（${escapeHtml(String(row.qty))}c/s）${progressNote}`;
+  document.getElementById('order-sheet-msg').textContent = '';
+
+  renderOrderModeTabs();
+  renderOrderModeBody();
+
+  document.getElementById('order-sheet-overlay').classList.add('show');
+}
+
+function renderOrderModeTabs(){
+  document.querySelectorAll('#orderModeTabs .mode-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.mode === orderSheetState.mode);
+    el.onclick = () => { orderSheetState.mode = el.dataset.mode; renderOrderModeTabs(); renderOrderModeBody(); };
+  });
+}
+
+function renderOrderModeBody(){
+  const body = document.getElementById('orderModeBody');
+  if(orderSheetState.mode === 'circle'){
+    body.innerHTML = `<div class="mb-desc">完成次第、すぐ受け取りたい場合はこちらを選びます。</div>`;
+  } else if(orderSheetState.mode === 'qty'){
+    body.innerHTML = `
+      <div class="mb-desc">今回はこの数だけ欲しい場合に指定します(部分発注)。</div>
+      <div class="qty-stepper">
+        <button type="button" id="orderQtyMinus">−</button>
+        <div class="qs-val mono" id="orderQtyVal">${orderSheetState.qty}</div>
+        <button type="button" id="orderQtyPlus">＋</button>
+      </div>`;
+    document.getElementById('orderQtyMinus').onclick = () => { if(orderSheetState.qty > 1) orderSheetState.qty--; document.getElementById('orderQtyVal').textContent = orderSheetState.qty; };
+    document.getElementById('orderQtyPlus').onclick = () => {
+      const baseQty = (orderSheetState.existingMode === '数量') ? orderSheetState.existingQty : 0;
+      const maxQty = orderSheetState.totalQty ? (orderSheetState.totalQty - baseQty) : Infinity;
+      if(orderSheetState.qty < maxQty) orderSheetState.qty++;
+      document.getElementById('orderQtyVal').textContent = orderSheetState.qty;
+    };
+  } else if(orderSheetState.mode === 'date'){
+    body.innerHTML = `
+      <div class="mb-desc">受け取りたい日を指定できます。</div>
+      <input type="date" class="date-input" id="orderDateInput" value="${orderSheetState.date}">`;
+    document.getElementById('orderDateInput').oninput = (e) => { orderSheetState.date = e.target.value; };
+  }
+}
+
+async function submitOrderFromMypage(){
+  if(isLocked){
+    document.getElementById('order-sheet-msg').textContent = 'ただいまロック中のため、発注はできません。';
+    return;
+  }
+  const mode = orderSheetState.mode;
+  const msgEl = document.getElementById('order-sheet-msg');
+  msgEl.textContent = '';
+
+  let qty = null, desiredDate = null;
+  if(mode === 'qty'){
+    qty = orderSheetState.qty;
+    if(!qty || qty < 1){ msgEl.textContent = '数量を入力してください。'; return; }
+  }
+  if(mode === 'date'){
+    desiredDate = orderSheetState.date;
+    if(!desiredDate){ msgEl.textContent = '希望日を入力してください。'; return; }
+  }
+
+  const modeLabel = mode === 'circle' ? '○' : (mode === 'qty' ? '数量' : '日付');
+  const { existingOrderId, existingMode, existingQty, totalQty } = orderSheetState;
+  const r_now = myItems.find(r => r.id === orderSheetState.dateRowId);
+
+  if(modeLabel === '数量' && totalQty){
+    const baseQty = (existingMode === '数量') ? existingQty : 0;
+    if(baseQty + qty > totalQty){
+      msgEl.textContent = `発注数が残数（${totalQty - baseQty}個）を超えています。`;
+      return;
+    }
+  }
+
+  let cumulativeQty = qty;
+
+  if(modeLabel === '数量' && existingOrderId && existingMode === '数量'){
+    cumulativeQty = existingQty + qty;
+    const { error: updErr } = await sbClient
+      .from('stock_orders')
+      .update({ qty: cumulativeQty })
+      .eq('id', existingOrderId);
+    if(updErr){
+      msgEl.textContent = '発注に失敗しました：' + updErr.message;
+      return;
+    }
+    await logChange('stock_orders', existingOrderId, 'qty', existingQty, cumulativeQty, r_now?.category, currentUser.name, r_now?.delivery_date, r_now ? sizeText(r_now) : null);
+  } else {
+    const { error: orderErr } = await sbClient.from('stock_orders').insert({
+      stock_item_id: orderSheetState.stockItemId,
+      operated_by_email: currentUser.email,
+      operated_by_name: currentUser.name,
+      destination: null,
+      mode: modeLabel,
+      qty: qty,
+      desired_date: desiredDate,
+      is_proxy: false,
+      is_canceled: false
+    });
+
+    if(orderErr){
+      msgEl.textContent = '発注に失敗しました：' + orderErr.message;
+      return;
+    }
+
+    if(existingOrderId){
+      const { error: cancelErr } = await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId);
+      if(cancelErr){
+        msgEl.textContent = '発注は完了しましたが、古い発注の取消に失敗しました：' + cancelErr.message;
+        return;
+      }
+      await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, r_now?.category, currentUser.name, r_now?.delivery_date, r_now ? sizeText(r_now) : null);
+    }
+  }
+
+  const newStatus = (modeLabel === '数量' && totalQty && cumulativeQty < totalQty) ? '発注可能' : '発注済み・受取待ち';
+
+  const { error: statusErr } = await sbClient
+    .from('request_item_dates')
+    .update({ status: newStatus })
+    .eq('id', orderSheetState.dateRowId);
+
+  if(statusErr){
+    msgEl.textContent = '発注は完了しましたが、状態更新に失敗しました：' + statusErr.message;
+    return;
+  }
+
+  await logChange('request_item_dates', orderSheetState.dateRowId, 'status', null, newStatus, r_now?.category, currentUser.name, r_now?.delivery_date, r_now ? sizeText(r_now) : null);
+
+  document.getElementById('order-sheet-overlay').classList.remove('show');
+  await loadMyItems();
+}
+
+async function cancelRequestItem(){
+  if(!confirm('この納入日の依頼を取り消しますか？取消後も本日中は依頼一覧に取消線付きで表示されます。')) return;
+
+  const { error } = await sbClient
+    .from('request_item_dates')
+    .update({ canceled_at: new Date().toISOString() })
+    .eq('id', orderSheetState.dateRowId);
+
+  if(error){
+    document.getElementById('order-sheet-msg').textContent = '取消に失敗しました：' + error.message;
+    return;
+  }
+
+  const r_614 = myItems.find(r => r.id === orderSheetState.dateRowId);
+  await logChange('request_item_dates', orderSheetState.dateRowId, 'canceled_at', null, '取消', r_614?.category, currentUser.name, r_614?.delivery_date, r_614 ? sizeText(r_614) : null);
+
+  document.getElementById('order-sheet-overlay').classList.remove('show');
+  await loadMyItems();
+}
+
+function closeOrderSheet(e){
+  if(e && e.target !== e.currentTarget) return;
+  document.getElementById('order-sheet-overlay').classList.remove('show');
+}
+
+async function loadMyItems(){
+  const { data: reqRows, error: reqErr } = await sbClient
+    .from('requests')
+    .select('id')
+    .eq('requester_email', currentUser.email);
+
+  if(reqErr){
+    document.getElementById('load-error').style.display = 'block';
+    document.getElementById('load-error').textContent = '依頼データの取得に失敗しました：' + reqErr.message;
+    return;
+  }
+
+  const requestIds = (reqRows || []).map(r => r.id);
+  if(!requestIds.length){
+    myItems = [];
+    renderList();
+    return;
+  }
+
+  const { data: itemRows, error: itemErr } = await sbClient
+    .from('request_items')
+    .select('id, request_id, client_name, category, item_name, size_l, size_w, size_h, note_item')
+    .in('request_id', requestIds);
+
+  if(itemErr){
+    document.getElementById('load-error').style.display = 'block';
+    document.getElementById('load-error').textContent = '依頼明細の取得に失敗しました：' + itemErr.message;
+    return;
+  }
+
+  const itemIds = (itemRows || []).map(r => r.id);
+  if(!itemIds.length){
+    myItems = [];
+    renderList();
+    return;
+  }
+
+  const { data: dateRows, error: dateErr } = await sbClient
+    .from('request_item_dates')
+    .select('id, request_item_id, delivery_date, qty, status, canceled_at, is_urgent, pending_changed_at')
+    .in('request_item_id', itemIds)
+    .order('delivery_date', { ascending: true });
+
+  if(dateErr){
+    document.getElementById('load-error').style.display = 'block';
+    document.getElementById('load-error').textContent = '納入日データの取得に失敗しました：' + dateErr.message;
+    return;
+  }
+
+  const itemById = {};
+  (itemRows || []).forEach(it => { itemById[it.id] = it; });
+
+  myItems = (dateRows || [])
+    .filter(d => {
+      if(d.canceled_at) return isTodayJST(d.canceled_at);
+      return ['受付済み','作業中','発注可能','発注済み・受取待ち'].includes(d.status);
+    })
+    .map(d => {
+      const parent = itemById[d.request_item_id] || {};
+      return {
+        id: d.id,
+        request_item_id: d.request_item_id,
+        delivery_date: d.delivery_date,
+        qty: d.qty,
+        status: d.status,
+        canceled_at: d.canceled_at,
+        is_urgent: d.is_urgent,
+        client_name: parent.client_name,
+        category: parent.category,
+        item_name: parent.item_name,
+        size_l: parent.size_l,
+        size_w: parent.size_w,
+        size_h: parent.size_h,
+        note_item: parent.note_item
+      };
+    });
+
+  const orderedIds = myItems.filter(r => r.status === '発注済み・受取待ち').map(r => r.id);
+  if(orderedIds.length){
+    const deliveredDateIds = await getDeliveredDateIds(orderedIds);
+    myItems = myItems.filter(r => !(r.status === '発注済み・受取待ち' && deliveredDateIds.has(r.id)));
+  }
+
+  const readyIds = myItems.filter(r => r.status === '発注可能').map(r => r.id);
+  if(readyIds.length){
+    const { data: stockRows2 } = await sbClient
+      .from('stock_items')
+      .select('id, request_item_date_id')
+      .in('request_item_date_id', readyIds);
+    const stockIdToDateId2 = {};
+    const stockIds2 = (stockRows2 || []).map(s => { stockIdToDateId2[s.id] = s.request_item_date_id; return s.id; });
+    if(stockIds2.length){
+      const { data: orderRows2 } = await sbClient
+        .from('stock_orders')
+        .select('stock_item_id, qty')
+        .in('stock_item_id', stockIds2)
+        .eq('is_canceled', false)
+        .eq('mode', '数量');
+      const orderedByDateId = {};
+      (orderRows2 || []).forEach(o => {
+        const dId = stockIdToDateId2[o.stock_item_id];
+        if(dId) orderedByDateId[dId] = (orderedByDateId[dId] || 0) + (o.qty || 0);
+      });
+      myItems.forEach(r => { if(orderedByDateId[r.id]) r.ordered_qty = orderedByDateId[r.id]; });
+    }
+  }
+
+  document.getElementById('load-error').style.display = 'none';
+  renderList();
+}
+
+async function getDeliveredDateIds(dateIds){
+  const deliveredSet = new Set();
+  if(!dateIds.length) return deliveredSet;
+
+  const { data: settings } = await sbClient
+    .from('business_settings')
+    .select('lock_end_time')
+    .limit(1)
+    .maybeSingle();
+
+  if(!settings || !settings.lock_end_time) return deliveredSet;
+
+  const now = new Date();
+  const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
+  const pastLockRelease = nowStr >= settings.lock_end_time;
+  if(!pastLockRelease) return deliveredSet;
+
+  const { data: stockRows } = await sbClient
+    .from('stock_items')
+    .select('request_item_date_id, delivery_marks')
+    .in('request_item_date_id', dateIds);
+
+  (stockRows || []).forEach(s => {
+    const mark = (s.delivery_marks || {}).individual || '';
+    if(mark === 'delivered' && s.request_item_date_id) deliveredSet.add(s.request_item_date_id);
+  });
+
+  return deliveredSet;
+}
+
+function icon(name){
+  const paths = {
+    home: '<path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 001 1h10a1 1 0 001-1v-9"/>',
+    form: '<path d="M4 3h13l4 4v14a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M8 9h8M8 13h8M8 17h5"/>',
+    calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    stock: '<path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v8l9 4 9-4V8M12 12v8"/>',
+    user: '<circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.2-4 4.2-6 7-6s5.8 2 7 6"/>'
+  };
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths[name]}</svg>`;
+}
+
+function renderTabbar(){
+  document.getElementById('tabbar').innerHTML = `
+    <a class="tab" href="home.html">${icon('home')}<div class="tlabel tech-font">HOME</div></a>
+    <a class="tab" href="formB_size.html">${icon('form')}<div class="tlabel tech-font">REQUEST</div></a>
+    <a class="tab" href="request_calendar.html">${icon('calendar')}<div class="tlabel tech-font">CALENDAR</div></a>
+    <a class="tab" href="stock_view.html">${icon('stock')}<div class="tlabel tech-font">STOCK</div></a>
+    <a class="tab active" href="mypage.html">${icon('user')}<div class="tlabel tech-font">MYPAGE</div></a>`;
+}
+
+async function loginWithGoogle(){
+  const { error } = await sbClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if(error){
+    document.getElementById('auth-msg').textContent = 'ログインに失敗しました：' + error.message;
+  }
+}
+
+async function initAuth(){
+  const { data: { user } } = await sbClient.auth.getUser();
+
+  if(!user){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-login').style.display='block';
+    return;
+  }
+
+  const { data: allowRow, error: allowErr } = await sbClient
+    .from('users_allowlist')
+    .select('name, role')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  if(allowErr || !allowRow || !allowRow.name){
+    document.getElementById('auth-loading').style.display='none';
+    document.getElementById('auth-denied').style.display='block';
+    return;
+  }
+
+  currentUser.email = user.email;
+  currentUser.name = allowRow.name;
+
+  document.getElementById('login-name-display').textContent = currentUser.name;
+  document.getElementById('auth-loading').style.display='none';
+  document.getElementById('app-content').style.display='block';
+
+  renderTabbar();
+  await loadLockSettings();
+  await loadMyItems();
+  subscribeRealtime();
+}
+
+let realtimeReloadPending = false;
+
+function isSheetOpen(){
+  const overlay = document.getElementById('sheet-overlay');
+  const orderOverlay = document.getElementById('order-sheet-overlay');
+  return (overlay && overlay.classList.contains('show')) || (orderOverlay && orderOverlay.classList.contains('show'));
+}
+
+function requestMyItemsReload(){
+  if(isSheetOpen()){
+    realtimeReloadPending = true;
+    return;
+  }
+  loadMyItems();
+}
+
+function subscribeRealtime(){
+  sbClient
+    .channel('mypage_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'request_item_dates' }, requestMyItemsReload)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_items' }, requestMyItemsReload)
+    .subscribe();
+
+  setInterval(() => {
+    if(realtimeReloadPending && !isSheetOpen()){
+      realtimeReloadPending = false;
+      loadMyItems();
+    }
+  }, 1500);
+
+  setInterval(async () => {
+    if(isSheetOpen()) return;
+    await loadLockSettings();
+  }, 60000);
+}
+
+initAuth();
+</script>
 </body>
 </html>
