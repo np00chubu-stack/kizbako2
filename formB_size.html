@@ -241,6 +241,19 @@ function rebuildFlatIndex(){
 // サイズ検索で候補が見つからなかった場合のL/W/Hを一時保持（自由入力欄への引き継ぎ用）
 const pendingSizeCarry = {};
 
+// L/W/H入力欄で4桁になったら次の欄へ自動でフォーカス移動する（3桁で終わる場合は何もしない）
+function autoAdvanceLWH(el, nextId){
+  if(el.value.length >= 4){
+    const next = document.getElementById(nextId);
+    if(next) next.focus();
+  }
+}
+
+// カテゴリ自由入力の表記ゆれを軽く統一する（前後の空白除去・全角スペース→半角）
+function normalizeFreeText(s){
+  return String(s || '').trim().replace(/\u3000/g, ' ');
+}
+
 let itemCount = 0;
 
 // 客先名入力欄HTML生成（品目ブロック用）
@@ -343,9 +356,9 @@ function addItem(data){
     <div class="form-group">
       <label>サイズから検索（任意・L×W×H完全一致）</label>
       <div class="input-toggle">
-        <input type="number" id="sizesearch-l-${id}" class="lwh-input" placeholder="L" inputmode="numeric" oninput="onSizeSearchInput(${id})">
+        <input type="number" id="sizesearch-l-${id}" class="lwh-input" placeholder="L" inputmode="numeric" oninput="onSizeSearchInput(${id});autoAdvanceLWH(this,'sizesearch-w-${id}')">
         <span class="lwh-sep">×</span>
-        <input type="number" id="sizesearch-w-${id}" class="lwh-input" placeholder="W" inputmode="numeric" oninput="onSizeSearchInput(${id})">
+        <input type="number" id="sizesearch-w-${id}" class="lwh-input" placeholder="W" inputmode="numeric" oninput="onSizeSearchInput(${id});autoAdvanceLWH(this,'sizesearch-h-${id}')">
         <span class="lwh-sep">×</span>
         <input type="number" id="sizesearch-h-${id}" class="lwh-input" placeholder="H" inputmode="numeric" oninput="onSizeSearchInput(${id})">
       </div>
@@ -381,9 +394,9 @@ function addItem(data){
           <option value="">-- カテゴリを先に選択 --</option>
         </select>
         <div id="item-lwh-${id}" style="display:none;gap:4px;align-items:center;flex:1">
-          <input type="number" id="item-l-${id}" class="lwh-input" placeholder="L" inputmode="numeric">
+          <input type="number" id="item-l-${id}" class="lwh-input" placeholder="L" inputmode="numeric" oninput="autoAdvanceLWH(this,'item-w-${id}')">
           <span class="lwh-sep">×</span>
-          <input type="number" id="item-w-${id}" class="lwh-input" placeholder="W" inputmode="numeric">
+          <input type="number" id="item-w-${id}" class="lwh-input" placeholder="W" inputmode="numeric" oninput="autoAdvanceLWH(this,'item-h-${id}')">
           <span class="lwh-sep">×</span>
           <input type="number" id="item-h-${id}" class="lwh-input" placeholder="H" inputmode="numeric">
         </div>
@@ -710,7 +723,8 @@ function collectItems(){
       catDisplay=sub?`工機_${sub}`:'工機';
     } else if(cat==='__other__'){
       const otherText = document.getElementById(`cat-other-text-${id}`);
-      catDisplay = (otherText && otherText.value.trim()) ? otherText.value.trim() : 'その他';
+      const normalized = otherText ? normalizeFreeText(otherText.value) : '';
+      catDisplay = normalized ? normalized : 'その他';
     }
     const sizeVal=getSizeVal(id);
     const daimoku=getDaimoku(id);
@@ -843,7 +857,7 @@ async function submitForm(){
   for(let i=0;i<n;i++){
     const client = document.getElementById(`c-client-${i}`).value;
     const team = document.getElementById(`c-team-${i}`).value;
-    const cat = document.getElementById(`c-cat-${i}`).value;
+    const cat = normalizeFreeText(document.getElementById(`c-cat-${i}`).value);
     const size = document.getElementById(`c-size-${i}`).value;
     const daimoku = document.getElementById(`c-daimoku-${i}`).value;
     const urgentEl = document.getElementById(`c-urgent-${i}`);
