@@ -836,6 +836,7 @@ async function loadStockItems(){
   const { data: items, error: itemsErr } = await sbClient
     .from('stock_items')
     .select('id, item_type, item_name, size_l, size_w, size_h, requester_name, stock_qty, min_line, request_item_date_id, delivery_marks, is_hidden')
+    .order('sort_order', { ascending: true })
     .order('item_name', { ascending: true });
 
   if(itemsErr){
