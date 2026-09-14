@@ -1164,6 +1164,7 @@ function subscribeRealtime(){
     .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_items' }, requestStockReload)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_orders' }, requestStockReload)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'stock_deliveries' }, requestStockReload)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'team_master' }, requestStockReload)
     .subscribe();
 
   setInterval(() => {
