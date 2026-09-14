@@ -247,10 +247,6 @@ select.role-select{font-size:12px;padding:5px 6px;border:1px solid #ccc;border-r
     <div id="ncat-threshold-msg"></div>
   </div>
 
-  <div style="margin-bottom:10px">
-    <button class="btn-free" onclick="mergeSelectedNewSizeGroups()">選択した項目をまとめる</button>
-  </div>
-
   <div id="newsize-list"></div>
   <div id="newsize-load-error" style="display:none"></div>
   </div>
@@ -973,36 +969,38 @@ async function submitNewCategoryThreshold(){
   renderNewSizeQueue();
 }
 
-let promotedCategories = new Set(); // size_masterに既に存在する＝昇格済みのカテゴリ名
-let categoryAllTimeTotals = {}; // カテゴリごとの累計件数（承認済み・却下済み・未承認すべて含む）
+let pendingCategoriesMap = {}; // 仮カテゴリID → {category_name, status}（pending_categories全件）
+let pendingCategoryTotals = {}; // 仮カテゴリIDごとの累計件数（承認済み・却下済み・未承認すべて含む）
 
 async function loadNewSizeQueue(){
   await loadNewCategoryThreshold();
 
-  // size_masterに既にあるカテゴリ名を取得（＝そのカテゴリは既に一覧に反映済み）
-  const { data: masterCats, error: masterErr } = await sbClient
-    .from('size_master')
-    .select('category');
-  if(!masterErr){
-    promotedCategories = new Set((masterCats || []).map(r => r.category));
+  // 仮カテゴリ一覧（新カテゴリ・承認待ちの名前と状態）を取得
+  const { data: pendingCats, error: pendingErr } = await sbClient
+    .from('pending_categories')
+    .select('id, category_name, status');
+  pendingCategoriesMap = {};
+  if(!pendingErr){
+    (pendingCats || []).forEach(r => { pendingCategoriesMap[r.id] = r; });
   }
 
-  // 累計件数（承認済み・却下済み・未承認すべて）をカテゴリ単位で数える
+  // 累計件数（承認済み・却下済み・未承認すべて）を仮カテゴリID単位で数える
   const { data: allRows, error: allErr } = await sbClient
     .from('request_items')
-    .select('category')
-    .eq('is_new_size', true);
-  categoryAllTimeTotals = {};
+    .select('pending_category_id')
+    .eq('is_new_size', true)
+    .not('pending_category_id', 'is', null);
+  pendingCategoryTotals = {};
   if(!allErr){
     (allRows || []).forEach(r => {
-      categoryAllTimeTotals[r.category] = (categoryAllTimeTotals[r.category] || 0) + 1;
+      pendingCategoryTotals[r.pending_category_id] = (pendingCategoryTotals[r.pending_category_id] || 0) + 1;
     });
   }
 
   // 一覧に表示・操作するのは、まだ管理者が判断していない（未承認の）分だけ
   const { data, error } = await sbClient
     .from('request_items')
-    .select('id, category, size_l, size_w, size_h')
+    .select('id, category, size_l, size_w, size_h, pending_category_id')
     .eq('is_new_size', true)
     .eq('new_size_reviewed', false)
     .order('created_at', { ascending: true });
@@ -1023,14 +1021,16 @@ async function loadNewSizeQueue(){
   rows.forEach(r => {
     const key = r.category + '|' + r.size_l + '|' + r.size_w + '|' + r.size_h;
     if(!groups[key]){
-      groups[key] = { category: r.category, size_l: r.size_l, size_w: r.size_w, size_h: r.size_h, ids: [], count: 0 };
+      groups[key] = { category: r.category, size_l: r.size_l, size_w: r.size_w, size_h: r.size_h, ids: [], count: 0, pendingCategoryId: r.pending_category_id };
     }
     groups[key].ids.push(r.id);
     groups[key].count++;
   });
-  // カテゴリの累計件数（size_master未登録のものが優先）が多い順に並べ、同じカテゴリはまとめて隣接させる
+  // 仮カテゴリの累計件数（未反映のものが優先）が多い順に並べ、同じカテゴリはまとめて隣接させる
   lastNewSizeGroups = Object.values(groups).sort((a, b) => {
-    const diff = (categoryAllTimeTotals[b.category] || 0) - (categoryAllTimeTotals[a.category] || 0);
+    const totalA = a.pendingCategoryId ? (pendingCategoryTotals[a.pendingCategoryId] || 0) : 0;
+    const totalB = b.pendingCategoryId ? (pendingCategoryTotals[b.pendingCategoryId] || 0) : 0;
+    const diff = totalB - totalA;
     if(diff !== 0) return diff;
     return a.category.localeCompare(b.category, 'ja');
   });
@@ -1058,20 +1058,23 @@ function renderNewSizeQueue(){
   let prevCategory = null;
 
   lastNewSizeGroups.forEach((g, i) => {
-    const isPromoted = promotedCategories.has(g.category);
-    const catTotal = categoryAllTimeTotals[g.category] || g.count;
+    const pcat = g.pendingCategoryId ? pendingCategoriesMap[g.pendingCategoryId] : null;
+    // 仮カテゴリに紐づかない（＝既存の正式カテゴリの新サイズ）場合と、
+    // 仮カテゴリが既に昇格済みの場合は、個別に「サイズ登録する」を出してよい
+    const isPromoted = !pcat || pcat.status === 'promoted';
+    const catTotal = pcat ? (pendingCategoryTotals[g.pendingCategoryId] || g.count) : 0;
 
-    // カテゴリが切り替わったタイミングで、未昇格カテゴリなら見出し＋昇格ボタンを差し込む
+    // カテゴリが切り替わったタイミングで、未昇格の仮カテゴリなら見出し＋昇格ボタンを差し込む
     if(g.category !== prevCategory){
       prevCategory = g.category;
-      if(!isPromoted){
+      if(pcat && pcat.status !== 'promoted'){
         const canPromote = catTotal >= newCategoryThreshold;
         html += `
         <div class="mrow" style="background:${canPromote ? '#fff8e1' : '#f5f5f5'}">
           <div class="mrow-main">
             <b>${escapeHtml(g.category)}</b>（新カテゴリ・未反映）　累計${catTotal}件${canPromote ? '<span style="margin-left:6px;color:#856404;font-weight:bold">しきい値到達</span>' : `（あと${newCategoryThreshold - catTotal}件でカテゴリ一覧に昇格可能）`}
           </div>
-          ${canPromote ? `<div class="mrow-btns"><button class="btn-approve" onclick="promoteCategory('${escapeHtml(g.category).replace(/'/g, "\\'")}')">「${escapeHtml(g.category)}」をカテゴリ一覧に昇格する</button></div>` : ''}
+          ${canPromote ? `<div class="mrow-btns"><button class="btn-approve" onclick="promoteCategory('${g.pendingCategoryId}')">「${escapeHtml(g.category)}」をカテゴリ一覧に昇格する</button></div>` : ''}
         </div>`;
       }
     }
@@ -1079,7 +1082,6 @@ function renderNewSizeQueue(){
     const sizeTxt = `${g.size_l ?? ''}×${g.size_w ?? ''}×${g.size_h ?? ''}`;
     html += `
     <div class="mrow">
-      <input type="checkbox" class="ncat-check" data-idx="${i}" style="width:auto;margin-right:8px">
       <div class="mrow-main">${escapeHtml(g.category)}　${escapeHtml(sizeTxt)}<br><span class="mrow-sub">${g.count}件の依頼で使用</span></div>
       <div class="mrow-btns">
         ${isPromoted ? `<button class="btn-approve" onclick="approveNewSize(${i})">サイズ登録する</button>` : ''}
@@ -1091,10 +1093,11 @@ function renderNewSizeQueue(){
   listEl.innerHTML = html;
 }
 
-// しきい値に到達した未昇格カテゴリを、そのカテゴリの未承認サイズをすべて一括でsize_masterへ登録する
-async function promoteCategory(categoryName){
-  const targetGroups = lastNewSizeGroups.filter(g => g.category === categoryName);
+// しきい値に到達した未昇格の仮カテゴリを、その未承認サイズをすべて一括でsize_masterへ登録する
+async function promoteCategory(pendingCategoryId){
+  const targetGroups = lastNewSizeGroups.filter(g => g.pendingCategoryId === pendingCategoryId);
   if(!targetGroups.length) return;
+  const categoryName = targetGroups[0].category;
   if(!confirm(`「${categoryName}」の未承認サイズ${targetGroups.length}件をまとめてカテゴリ一覧に登録します。よろしいですか？`)) return;
 
   for(const g of targetGroups){
@@ -1118,30 +1121,14 @@ async function promoteCategory(categoryName){
     if(updErr){ alert('承認処理に失敗しました：' + updErr.message); return; }
   }
 
+  const { error: statusErr } = await sbClient
+    .from('pending_categories')
+    .update({ status: 'promoted' })
+    .eq('id', pendingCategoryId);
+  if(statusErr){ alert('昇格状態の更新に失敗しました：' + statusErr.message); return; }
+
   loadedTabs.delete('size');
   await loadNewSizeQueue();
-}
-
-// チェックを入れた複数グループを、似た候補として1つにまとめる（先頭に選んだものの名前・サイズを代表として残す）
-function mergeSelectedNewSizeGroups(){
-  const checks = [...document.querySelectorAll('.ncat-check:checked')];
-  if(checks.length < 2){ alert('まとめる項目を2つ以上選択してください。'); return; }
-
-  const idxList = checks.map(c => parseInt(c.dataset.idx, 10)).sort((a, b) => a - b);
-  const groupsToMerge = idxList.map(i => lastNewSizeGroups[i]);
-  const base = groupsToMerge[0];
-  const merged = {
-    category: base.category,
-    size_l: base.size_l,
-    size_w: base.size_w,
-    size_h: base.size_h,
-    ids: groupsToMerge.flatMap(g => g.ids),
-    count: groupsToMerge.reduce((sum, g) => sum + g.count, 0)
-  };
-
-  lastNewSizeGroups = lastNewSizeGroups.filter((_, i) => !idxList.includes(i));
-  lastNewSizeGroups.unshift(merged);
-  renderNewSizeQueue();
 }
 
 async function approveNewSize(idx){
