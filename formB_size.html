@@ -582,7 +582,8 @@ function populateSizeSorted(id, list){
 function populateSize(id, arr){
   const sel=document.getElementById(`item-sel-${id}`);
   sel.innerHTML='<option value="">-- 選択 --</option>';
-  arr.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+  // 「該当なし」は登録サイズが1件も無いことを示す内部用の目印であり、選択肢としては表示しない
+  arr.filter(v=>v!=='該当なし').forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
   // 「自由入力」を末尾に追加
   const o=document.createElement('option'); o.value='__other__'; o.textContent='その他（直接入力）'; sel.appendChild(o);
 }
