@@ -221,6 +221,9 @@ let itemData = {};
 // ★仮カテゴリ（新カテゴリ・承認待ち）一覧。loadMasters内でpending_categoriesから取得する
 let PENDING_CATEGORIES = [];
 
+// ★依頼者ごとの「よく使うサイズ」一覧。loadMasters内でfavorite_sizesから取得する
+let FAVORITES = [];
+
 // サイズ→カテゴリ逆引き用インデックス（全カテゴリ横断・完全一致検索用）
 // ★Supabaseからのデータ読み込み完了後（loadMasters内）に構築する
 const FLAT_SIZE_INDEX = [];
@@ -368,6 +371,11 @@ function addItem(data){
       </div>
       <div id="sizesearch-results-${id}" style="margin-top:6px"></div>
     </div>
+    ${FAVORITES.length ? `
+    <div class="form-group">
+      <button type="button" class="btn-free" onclick="toggleFavList(${id})">★ よく使うサイズ（${FAVORITES.length}件）</button>
+      <div id="fav-list-${id}" style="display:none;margin-top:6px"></div>
+    </div>` : ''}
     <div class="form-group">
       <label>カテゴリ<span class="req">*</span></label>
       <select id="cat-${id}" onchange="onCatChange(${id})">
@@ -477,6 +485,64 @@ function showFreeSizeInput(id, restoreFn){
   document.getElementById(`daimoku-group-${id}`).style.display='';
   updateDaimokuStyle(id);
   applyPendingSizeCarry(id);
+}
+
+function toggleFavList(id){
+  const el = document.getElementById(`fav-list-${id}`);
+  if(!el) return;
+  const show = el.style.display === 'none';
+  el.style.display = show ? 'block' : 'none';
+  if(show) renderFavList(id);
+}
+
+function renderFavList(id){
+  const listEl = document.getElementById(`fav-list-${id}`);
+  if(!listEl) return;
+  if(!FAVORITES.length){
+    listEl.innerHTML = '<div style="font-size:12px;color:#999">登録されているお気に入りはありません</div>';
+    return;
+  }
+  listEl.innerHTML = FAVORITES.map(f=>{
+    const label = `${f.category}　${f.size}${f.daimoku_lift ? '（台木リフトあり）' : ''}`;
+    return `<button type="button" class="btn-free" style="display:block;width:100%;margin-bottom:4px;text-align:left" onclick="applyFavorite(${id},'${f.id}')">${escapeHtml(label)}</button>`;
+  }).join('');
+}
+
+// お気に入りの内容を、指定した品目ブロックへ一括反映する
+function applyFavorite(id, favId){
+  const f = FAVORITES.find(x=>String(x.id)===String(favId));
+  if(!f) return;
+  const catSel = document.getElementById(`cat-${id}`);
+  const isKoki = f.category.startsWith('工機_');
+  const catValueToCheck = isKoki ? '工機' : f.category;
+  const optionExists = [...catSel.options].some(o=>o.value===catValueToCheck);
+  if(!optionExists){
+    alert('このお気に入りは現在選択できません（カテゴリ一覧が変更された可能性があります）。');
+    return;
+  }
+
+  if(isKoki){
+    const sub = f.category.slice('工機_'.length);
+    catSel.value = '工機';
+    onCatChange(id);
+    const subSel = document.getElementById(`subcat-${id}`);
+    subSel.value = sub;
+    onSubCatChange(id);
+  } else {
+    catSel.value = f.category;
+    onCatChange(id);
+  }
+
+  const sizeSel = document.getElementById(`item-sel-${id}`);
+  sizeSel.value = f.size;
+  onSizeSelChange(id);
+
+  const daimokuVal = f.daimoku_lift ? 'あり' : 'なし';
+  const radio = document.querySelector(`input[name="daimoku-${id}"][value="${daimokuVal}"]`);
+  if(radio){ radio.checked = true; updateDaimokuStyle(id); }
+
+  const listEl = document.getElementById(`fav-list-${id}`);
+  if(listEl) listEl.style.display = 'none';
 }
 
 function onCatChange(id){
@@ -1001,6 +1067,26 @@ async function submitForm(){
     {
       let html='<p style="text-align:center;font-size:16px;color:#276749;padding:30px 30px 10px">✅ 送信が完了しました！（受付番号：' + reqRow.receipt_no + '）</p>';
 
+      // 新サイズ（仕組オーダーシート対象）を除いた品目に、よく使うサイズ登録用の星ボタンを表示する
+      const favEligibleItems = items
+        .map((it, i) => ({ ...it, requestItemId: insertedItems[i].id }))
+        .filter(it => !it.isNew);
+      window._favEligibleItems = favEligibleItems;
+      if(favEligibleItems.length){
+        const rowsHtml = favEligibleItems.map((it, idx) => {
+          const isFav = FAVORITES.some(f => f.category === it.cat && f.size === it.size && f.daimoku_lift === (it.daimoku === 'あり'));
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid #eee;font-size:13px">
+            <span>${escapeHtml(it.cat)}　${escapeHtml(it.size)}${it.daimoku==='あり' ? '（台木リフトあり）' : ''}</span>
+            <button type="button" id="fav-star-${idx}" onclick="toggleFavoriteFromResult(${idx})" style="border:none;background:none;font-size:20px;cursor:pointer;color:${isFav ? '#f6ad55' : '#ccc'}">★</button>
+          </div>`;
+        }).join('');
+        html += `
+          <div class="card">
+            <div style="font-size:13px;font-weight:bold;color:#555;margin-bottom:6px">よく使うサイズに登録する</div>
+            ${rowsHtml}
+          </div>`;
+      }
+
       const newItemsWithId = items
         .map((it, i) => ({ ...it, requestItemId: insertedItems[i].id }))
         .filter(it => it.isNew);
@@ -1045,6 +1131,80 @@ async function submitForm(){
     document.getElementById('msg2').textContent='❌ 送信に失敗しました。もう一度お試しください。（' + (err && err.message ? err.message : '') + '）';
     btn.disabled=false; btn.textContent='送信する';
   }
+}
+
+// 送信完了画面の星ボタン：タップで即時登録／解除する
+async function toggleFavoriteFromResult(idx){
+  const it = window._favEligibleItems && window._favEligibleItems[idx];
+  if(!it) return;
+  const btn = document.getElementById(`fav-star-${idx}`);
+  const daimoku_lift = it.daimoku === 'あり';
+  const existing = FAVORITES.find(f => f.category === it.cat && f.size === it.size && f.daimoku_lift === daimoku_lift);
+
+  if(existing){
+    const { error } = await sbClient.from('favorite_sizes').delete().eq('id', existing.id);
+    if(error){ alert('解除に失敗しました：' + error.message); return; }
+    FAVORITES = FAVORITES.filter(f => f.id !== existing.id);
+    if(btn) btn.style.color = '#ccc';
+    return;
+  }
+
+  if(FAVORITES.length >= 10){
+    showFavoriteLimitPicker(idx);
+    return;
+  }
+
+  const { data, error } = await sbClient
+    .from('favorite_sizes')
+    .insert({ requester_email: currentUser.email, category: it.cat, size: it.size, daimoku_lift })
+    .select('id, category, size, daimoku_lift')
+    .single();
+  if(error){ alert('登録に失敗しました：' + error.message); return; }
+  FAVORITES.push(data);
+  if(btn) btn.style.color = '#f6ad55';
+}
+
+// 上限10件に達している場合、現在の10件を一覧表示し、どれを外すか選ばせる
+function showFavoriteLimitPicker(idx){
+  const overlay = document.createElement('div');
+  overlay.id = 'fav-limit-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px';
+  const listHtml = FAVORITES.map(f => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee;font-size:13px">
+      <span>${escapeHtml(f.category)}　${escapeHtml(f.size)}${f.daimoku_lift ? '（台木リフトあり）' : ''}</span>
+      <button type="button" class="btn-free" onclick="replaceFavorite('${f.id}', ${idx})">これを外す</button>
+    </div>`).join('');
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:8px;padding:18px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto">
+      <div style="font-weight:bold;margin-bottom:10px;font-size:14px">よく使うサイズは10件までです。外すものを選んでください</div>
+      ${listHtml}
+      <button type="button" class="btn-back" style="margin-top:10px;width:100%" onclick="document.getElementById('fav-limit-overlay').remove()">キャンセル</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+// 選んだお気に入りを外し、代わりに今回の品目を登録する
+async function replaceFavorite(removeId, idx){
+  const it = window._favEligibleItems && window._favEligibleItems[idx];
+  if(!it) return;
+
+  const { error: delErr } = await sbClient.from('favorite_sizes').delete().eq('id', removeId);
+  if(delErr){ alert('削除に失敗しました：' + delErr.message); return; }
+  FAVORITES = FAVORITES.filter(f => f.id !== removeId);
+
+  const daimoku_lift = it.daimoku === 'あり';
+  const { data, error: insErr } = await sbClient
+    .from('favorite_sizes')
+    .insert({ requester_email: currentUser.email, category: it.cat, size: it.size, daimoku_lift })
+    .select('id, category, size, daimoku_lift')
+    .single();
+  if(insErr){ alert('登録に失敗しました：' + insErr.message); return; }
+  FAVORITES.push(data);
+
+  const overlay = document.getElementById('fav-limit-overlay');
+  if(overlay) overlay.remove();
+  const btn = document.getElementById(`fav-star-${idx}`);
+  if(btn) btn.style.color = '#f6ad55';
 }
 
 function continueForm(){
@@ -1142,6 +1302,15 @@ async function loadMasters(){
     .order('category_name');
   if(!pendingErr && pendingRows){
     PENDING_CATEGORIES = pendingRows;
+  }
+
+  const { data: favRows, error: favErr } = await sbClient
+    .from('favorite_sizes')
+    .select('id, category, size, daimoku_lift')
+    .eq('requester_email', currentUser.email)
+    .order('created_at');
+  if(!favErr && favRows){
+    FAVORITES = favRows;
   }
 }
 
