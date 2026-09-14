@@ -48,7 +48,7 @@ body{
 .back-icon svg{ width:16px; height:16px; }
 .login-name-bar{ font-size:9.5px; color:var(--ink-faint); padding:0 18px 4px; }
 
-.app-content{ flex:1 1 auto; min-height:0; padding:4px 16px 8px; display:flex; flex-direction:column; gap:10px; overflow-y:auto; }
+.app-content{ flex:1 1 auto; min-height:0; padding:4px 16px calc(78px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:10px; overflow-y:visible; }
 
 .action-banner{ display:none; flex:0 0 auto; align-items:center; gap:10px; background:linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%); color:#fff; border-radius:16px; padding:12px 14px; box-shadow:0 8px 18px rgba(30,55,102,0.28); }
 .action-banner.show{ display:flex; }
@@ -110,7 +110,7 @@ body{
 .notif-toggle input:checked + .track{ background:var(--accent, #2F6FED); }
 .notif-toggle input:checked + .track::before{ transform:translateX(18px); }
 
-.tabbar{ flex:0 0 auto; display:flex; border-top:1px solid var(--line); background:rgba(255,255,255,0.92); padding:7px 4px 13px; }
+.tabbar{ position:fixed; left:0; right:0; bottom:0; z-index:40; display:flex; border-top:1px solid var(--line); background:rgba(255,255,255,0.96); backdrop-filter:blur(6px); padding:7px 4px calc(13px + env(safe-area-inset-bottom)); }
 .tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; color:var(--ink-faint); text-decoration:none; cursor:pointer; background:none; border:none; font-family:inherit; }
 .tab svg{ width:20px; height:20px; }
 .tab .tlabel{ font-size:9px; font-weight:700; }
