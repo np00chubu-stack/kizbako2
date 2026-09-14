@@ -705,12 +705,15 @@ async function submitStockItem(){
   const btn = document.getElementById('btn-stock-add');
   btn.disabled = true; btn.textContent = '登録中...';
 
+  const maxOrder = lastStockRows.reduce((m, r) => Math.max(m, r.sort_order ?? 0), 0);
+
   const { error } = await sbClient.from('stock_items').insert({
     item_type: 'common',
     item_name: name,
     stock_qty: 0,
     min_line: 0,
-    is_hidden: false
+    is_hidden: false,
+    sort_order: maxOrder + 1
   });
 
   btn.disabled = false; btn.textContent = '登録する';
@@ -741,11 +744,30 @@ async function unhideStockItem(id){
   await loadStockMaster();
 }
 
+async function moveStockItem(id, direction){
+  const visible = lastStockRows.filter(r => !r.is_hidden)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const idx = visible.findIndex(r => r.id === id);
+  const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if(idx === -1 || targetIdx < 0 || targetIdx >= visible.length) return;
+
+  const rowA = visible[idx];
+  const rowB = visible[targetIdx];
+  const orderA = rowA.sort_order ?? 0;
+  const orderB = rowB.sort_order ?? 0;
+
+  const { error: errA } = await sbClient.from('stock_items').update({ sort_order: orderB }).eq('id', rowA.id);
+  const { error: errB } = await sbClient.from('stock_items').update({ sort_order: orderA }).eq('id', rowB.id);
+  if(errA || errB){ alert('並び替えに失敗しました：' + (errA || errB).message); return; }
+  await loadStockMaster();
+}
+
 async function loadStockMaster(){
   const { data, error } = await sbClient
     .from('stock_items')
-    .select('id, item_name, stock_qty, min_line, is_hidden')
+    .select('id, item_name, stock_qty, min_line, is_hidden, sort_order')
     .eq('item_type', 'common')
+    .order('sort_order')
     .order('item_name');
 
   const errEl = document.getElementById('stock-load-error');
@@ -786,7 +808,7 @@ function renderStockMasterList(){
   const visible = lastStockRows.filter(r => !r.is_hidden);
   const hidden = lastStockRows.filter(r => r.is_hidden);
 
-  visEl.innerHTML = visible.length ? visible.map(row => `
+  visEl.innerHTML = visible.length ? visible.map((row, idx) => `
     <div class="mrow">
       <div class="mrow-main">${escapeHtml(row.item_name)}<br><span class="mrow-sub">在庫数：${row.stock_qty ?? 0}</span>
         <div class="minline-edit">
@@ -796,7 +818,11 @@ function renderStockMasterList(){
           <span id="minline-msg-${row.id}" class="minline-msg"></span>
         </div>
       </div>
-      <button class="btn-delete" onclick="hideStockItem('${row.id}', ${row.stock_qty ?? 0})">非表示にする</button>
+      <div class="mrow-btns">
+        <button class="btn-small" onclick="moveStockItem('${row.id}','up')" ${idx === 0 ? 'disabled' : ''}>↑</button>
+        <button class="btn-small" onclick="moveStockItem('${row.id}','down')" ${idx === visible.length - 1 ? 'disabled' : ''}>↓</button>
+        <button class="btn-delete" onclick="hideStockItem('${row.id}', ${row.stock_qty ?? 0})">非表示にする</button>
+      </div>
     </div>`).join('') : '<div class="empty-msg">表示中の品目はありません</div>';
 
   hidEl.innerHTML = hidden.length ? hidden.map(row => `
@@ -880,6 +906,24 @@ async function saveTeamAbbr(id){
   if(row) row.team_abbr = newVal;
 }
 
+async function moveTeam(id, direction){
+  const visible = lastTeamRows.filter(r => !r.is_hidden)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const idx = visible.findIndex(r => r.id === id);
+  const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if(idx === -1 || targetIdx < 0 || targetIdx >= visible.length) return;
+
+  const rowA = visible[idx];
+  const rowB = visible[targetIdx];
+  const orderA = rowA.sort_order ?? 0;
+  const orderB = rowB.sort_order ?? 0;
+
+  const { error: errA } = await sbClient.from('team_master').update({ sort_order: orderB }).eq('id', rowA.id);
+  const { error: errB } = await sbClient.from('team_master').update({ sort_order: orderA }).eq('id', rowB.id);
+  if(errA || errB){ alert('並び替えに失敗しました：' + (errA || errB).message); return; }
+  await loadTeamMaster();
+}
+
 async function loadTeamMaster(){
   const { data, error } = await sbClient
     .from('team_master')
@@ -903,7 +947,7 @@ function renderTeamMasterList(){
   const visible = lastTeamRows.filter(r => !r.is_hidden);
   const hidden = lastTeamRows.filter(r => r.is_hidden);
 
-  visEl.innerHTML = visible.length ? visible.map(row => `
+  visEl.innerHTML = visible.length ? visible.map((row, idx) => `
     <div class="mrow">
       <div class="mrow-main">${escapeHtml(row.team_name)}
         <div class="minline-edit">
@@ -913,7 +957,11 @@ function renderTeamMasterList(){
           <span id="team-abbr-msg-${row.id}" class="minline-msg"></span>
         </div>
       </div>
-      <button class="btn-delete" onclick="hideTeam('${row.id}')">非表示にする</button>
+      <div class="mrow-btns">
+        <button class="btn-small" onclick="moveTeam('${row.id}','up')" ${idx === 0 ? 'disabled' : ''}>↑</button>
+        <button class="btn-small" onclick="moveTeam('${row.id}','down')" ${idx === visible.length - 1 ? 'disabled' : ''}>↓</button>
+        <button class="btn-delete" onclick="hideTeam('${row.id}')">非表示にする</button>
+      </div>
     </div>`).join('') : '<div class="empty-msg">表示中の班はありません</div>';
 
   hidEl.innerHTML = hidden.length ? hidden.map(row => `
