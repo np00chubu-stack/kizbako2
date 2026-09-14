@@ -44,6 +44,11 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .empty-msg{text-align:center;color:#999;font-size:13px;padding:30px 0}
 #load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
 </style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a3a5c">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
 <div class="container">
@@ -280,6 +285,13 @@ async function initAuth(){
 }
 
 initAuth();
+</script>
+<script>
+if("serviceWorker" in navigator){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("service-worker.js").catch(function(){});
+  });
+}
 </script>
 </body>
 </html>
