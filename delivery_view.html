@@ -50,6 +50,11 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .sheet-msg{font-size:12px;color:#c53030;margin-top:8px;text-align:center}
 .view-only-note{font-size:12px;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:8px 10px;margin-top:10px;text-align:center}
 </style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a3a5c">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
 <div class="container">
@@ -497,6 +502,13 @@ function renderFooterNav(role, activeKey){
 }
 
 initAuth();
+</script>
+<script>
+if("serviceWorker" in navigator){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("service-worker.js").catch(function(){});
+  });
+}
 </script>
 </body>
 </html>
