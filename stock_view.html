@@ -28,6 +28,9 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .notif-toggle input:checked + .track{background:#2A4B8D}
 .notif-toggle input:checked + .track::before{transform:translateX(18px)}
 
+.order-field{position:relative}
+.first-wave-badge{position:absolute;top:2px;right:2px;background:#2A4B8D;color:#fff;font-size:9px;font-weight:bold;line-height:1;border-radius:3px;padding:2px 3px}
+
 /* ---- PC幅（管理者がPCで開いた時のみ）：共通品・個人依頼品を横並びに ---- */
 .stock-section{min-width:0}
 @media (min-width:900px){
@@ -103,6 +106,8 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
   width:100%;padding:7px 9px;border:1px solid #ccc;border-radius:4px;font-size:13px;font-family:inherit;background:#fff;
 }
 .sheet-btns{display:flex;gap:8px;margin-top:14px}
+.first-wave-check{display:flex;align-items:center;gap:8px;font-size:13px;color:#333;padding:8px 0;border-top:1px solid #eee;margin-top:4px}
+.first-wave-check input{width:18px;height:18px}
 .btn-sheet-submit{flex:1;padding:10px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer}
 .btn-sheet-cancel{padding:10px 14px;background:#fff;border:1px solid #999;color:#555;border-radius:6px;font-size:13px;cursor:pointer}
 .btn-cancel-order-link{width:100%;margin-top:8px;padding:9px;background:#fff;border:1px solid #c53030;color:#c53030;border-radius:6px;font-size:12.5px;font-weight:bold;cursor:pointer}
@@ -382,6 +387,7 @@ function renderIndividualTable(rows){
           : (order.mode === '日付' ? (order.desired_date ? order.desired_date.slice(5).replace('-', '/') : '日') : '○'))
       : 'ー';
     const fieldContent = isCircle ? '<span class="order-circle-dot"></span>' : escapeHtml(String(fieldLabel));
+    const firstWaveBadge = (order && order.is_first_wave) ? '<span class="first-wave-badge">1便</span>' : '';
     const disabledClass = clickable ? '' : 'disabled';
     const onclickAttr = clickable
       ? (deliveryModeActive ? `onclick="cycleDeliveryMark('${row.id}','individual')"` : `onclick="openOrderSheet('${row.id}','individual')"`)
@@ -390,7 +396,7 @@ function renderIndividualTable(rows){
 
     return `
       <div class="indiv-row" data-stock-item-id="${row.id}">
-        <div class="ir-cell"><button class="order-field ${fieldClass} ${disabledClass} ${markClass}" data-mark-key="individual" ${onclickAttr}>${fieldContent}</button></div>
+        <div class="ir-cell"><button class="order-field ${fieldClass} ${disabledClass} ${markClass}" data-mark-key="individual" ${onclickAttr}>${fieldContent}${firstWaveBadge}</button></div>
         <div class="ir-date">${escapeHtml(dateText)}</div>
         <div class="ir-main">
           <div class="ir-name">${dateInfo && dateInfo.team_abbr ? `<span class="ir-team">${escapeHtml(dateInfo.team_abbr)}</span>` : ''}${escapeHtml(displayItemName(row.item_name))}${urgentTag}</div>
@@ -450,12 +456,13 @@ function renderCommonTable(rows){
       const isCircle = order && order.mode === '○';
       const fieldLabel = order ? (order.mode === '数量' ? order.qty : (order.mode === '日付' ? (order.desired_date ? order.desired_date.slice(5).replace('-', '/') : '日') : '○')) : 'ー';
       const fieldContent = isCircle ? '<span class="order-circle-dot"></span>' : escapeHtml(String(fieldLabel));
+      const firstWaveBadge = (order && order.is_first_wave) ? '<span class="first-wave-badge">1便</span>' : '';
       const disabledClass = canOperate ? '' : 'disabled';
       const onclickAttr = canOperate
         ? (deliveryModeActive ? `onclick="cycleDeliveryMark('${row.id}','${team.id}')"` : `onclick="openOrderSheet('${row.id}','common','${team.id}')"`)
         : '';
       const markClass = mark ? `mark-${mark}` : '';
-      return `<div class="cm-cell"><button class="order-field ${fieldClass} ${disabledClass} ${markClass}" data-mark-key="${team.id}" ${onclickAttr}>${fieldContent}</button></div>`;
+      return `<div class="cm-cell"><button class="order-field ${fieldClass} ${disabledClass} ${markClass}" data-mark-key="${team.id}" ${onclickAttr}>${fieldContent}${firstWaveBadge}</button></div>`;
     }).join('');
 
     const minLineEditBtn = currentUser.role === '管理者'
@@ -535,21 +542,29 @@ function openOrderSheet(stockItemId, itemType, teamId){
     const stockQty = row.stock_qty ?? 0;
     let qtyMax = orderSheetState.totalQty ? (orderSheetState.totalQty - qtyBase) : Infinity;
     if(itemType === 'common'){
-      const othersQty = (ordersCache[stockItemId] || [])
-        .filter(o => o.team_id !== teamId && o.mode === '数量')
-        .reduce((sum, o) => sum + (o.qty || 0), 0);
-      qtyMax = Math.min(qtyMax, Math.max(0, stockQty - othersQty));
+      // 共通品はstock_qtyが既にリアルタイムの残数（他班の発注分を反映済み）なので、
+      // 自班が今持っている分を足し戻した数までが入力可能な上限になる
+      const ownQty = orderSheetState.existingQty || 0;
+      qtyMax = Math.max(0, stockQty + ownQty);
     } else {
       qtyMax = Math.min(qtyMax, Math.max(0, stockQty - qtyBase));
     }
     qtyMax = Number.isFinite(qtyMax) ? qtyMax : '';
-    document.getElementById('order-sheet-form').innerHTML = `
-      <div class="mode-row" id="order-mode-row">
+    const isCommon = itemType === 'common';
+    const modeRowHtml = isCommon
+      ? `<div class="mode-row" id="order-mode-row">
+        <label class="selected" id="mode-lbl-qty"><input type="radio" name="order-mode" value="数量" checked onchange="onOrderModeChange()"> 数量</label>
+        <label id="mode-lbl-date"><input type="radio" name="order-mode" value="日付" onchange="onOrderModeChange()"> 日付</label>
+      </div>`
+      : `<div class="mode-row" id="order-mode-row">
         <label class="selected" id="mode-lbl-circle"><input type="radio" name="order-mode" value="○" checked onchange="onOrderModeChange()"> ○</label>
         <label id="mode-lbl-qty"><input type="radio" name="order-mode" value="数量" onchange="onOrderModeChange()"> 数量</label>
         <label id="mode-lbl-date"><input type="radio" name="order-mode" value="日付" onchange="onOrderModeChange()"> 日付</label>
-      </div>
-      <div class="field-group" id="order-qty-group" style="display:none">
+      </div>`;
+    const firstWaveChecked = existing && existing.is_first_wave ? 'checked' : '';
+    document.getElementById('order-sheet-form').innerHTML = `
+      ${modeRowHtml}
+      <div class="field-group" id="order-qty-group" style="display:${isCommon ? '' : 'none'}">
         <label class="field-label">数量</label>
         <input type="number" id="order-qty-input" min="1" max="${qtyMax}">
       </div>
@@ -557,6 +572,10 @@ function openOrderSheet(stockItemId, itemType, teamId){
         <label class="field-label">希望日</label>
         <input type="date" id="order-date-input">
       </div>
+      <label class="first-wave-check">
+        <input type="checkbox" id="order-first-wave-input" ${firstWaveChecked}>
+        本日の1便でどうしても欲しい
+      </label>
       <div class="sheet-btns">
         <button class="btn-sheet-submit" onclick="submitOrder()">この内容で発注する</button>
         <button class="btn-sheet-cancel" onclick="closeOrderSheet()">やめる</button>
@@ -582,11 +601,21 @@ function closeOrderSheet(e){
 
 function onOrderModeChange(){
   const mode = document.querySelector('input[name="order-mode"]:checked').value;
-  ['circle','qty','date'].forEach(k => document.getElementById(`mode-lbl-${k}`).classList.remove('selected'));
+  const isCommon = orderSheetState.itemType === 'common';
+  ['circle','qty','date'].forEach(k => {
+    const el = document.getElementById(`mode-lbl-${k}`);
+    if(el) el.classList.remove('selected');
+  });
   const map = {'○':'circle','数量':'qty','日付':'date'};
   document.getElementById(`mode-lbl-${map[mode]}`).classList.add('selected');
-  document.getElementById('order-qty-group').style.display = (mode==='数量') ? '' : 'none';
-  document.getElementById('order-date-group').style.display = (mode==='日付') ? '' : 'none';
+  if(isCommon){
+    // 共通品は○がなく、日付モードでも数量を必須で入力してもらう
+    document.getElementById('order-qty-group').style.display = '';
+    document.getElementById('order-date-group').style.display = (mode==='日付') ? '' : 'none';
+  } else {
+    document.getElementById('order-qty-group').style.display = (mode==='数量') ? '' : 'none';
+    document.getElementById('order-date-group').style.display = (mode==='日付') ? '' : 'none';
+  }
 }
 
 async function submitOrder(){
@@ -595,12 +624,15 @@ async function submitOrder(){
     return;
   }
 
+  const { stockItemId, itemType, teamId, existingOrderId, existingMode, existingQty, dateRowId, totalQty } = orderSheetState;
+  const isCommon = itemType === 'common';
   const mode = document.querySelector('input[name="order-mode"]:checked').value;
   const msgEl = document.getElementById('order-sheet-msg');
   msgEl.textContent = '';
 
   let qty = null, desiredDate = null;
-  if(mode === '数量'){
+  const needsQty = isCommon ? true : (mode === '数量');
+  if(needsQty){
     qty = parseInt(document.getElementById('order-qty-input').value, 10);
     if(!qty || qty < 1){ msgEl.textContent = '数量を入力してください。'; return; }
   }
@@ -608,14 +640,14 @@ async function submitOrder(){
     desiredDate = document.getElementById('order-date-input').value;
     if(!desiredDate){ msgEl.textContent = '希望日を入力してください。'; return; }
   }
+  const isFirstWave = document.getElementById('order-first-wave-input').checked;
 
-  const { stockItemId, itemType, teamId, existingOrderId, existingMode, existingQty, dateRowId, totalQty } = orderSheetState;
   const stockRow = stockItemsCache.find(r => r.id === stockItemId);
   const isSelfItem = itemType === 'individual' && stockRow && stockRow.requester_name === currentUser.name;
   const isProxy = itemType === 'individual' ? !isSelfItem : false;
   const exOrder = historyExtras(stockRow);
 
-  if(mode === '数量' && totalQty){
+  if(mode === '数量' && !isCommon && totalQty){
     const baseQty = (existingMode === '数量') ? existingQty : 0;
     if(baseQty + qty > totalQty){
       msgEl.textContent = `発注数が残数（${totalQty - baseQty}個）を超えています。`;
@@ -623,22 +655,23 @@ async function submitOrder(){
     }
   }
 
-  if(mode === '数量'){
+  // 共通品：数量・日付どちらのモードでも必ず数量を伴うため、今の在庫数(=既に他班分反映済みのリアルタイムな残数)を
+  // その場で見て判定する。個人依頼品はstock_qtyが「依頼された合計数」のため、この減算対象には含めない。
+  let commonStockDelta = 0;
+  if(isCommon){
     const stockQty = stockRow?.stock_qty ?? 0;
-    if(itemType === 'common'){
-      const othersQty = (ordersCache[stockItemId] || [])
-        .filter(o => o.team_id !== teamId && o.mode === '数量')
-        .reduce((sum, o) => sum + (o.qty || 0), 0);
-      if(othersQty + qty > stockQty){
-        msgEl.textContent = `在庫数（${stockQty}個）を超えています（他班分：${othersQty}個含む）。`;
-        return;
-      }
-    } else {
-      const baseQty = (existingMode === '数量') ? existingQty : 0;
-      if(baseQty + qty > stockQty){
-        msgEl.textContent = `在庫数（${stockQty}個）を超えています。`;
-        return;
-      }
+    const baseQtyForStock = existingOrderId ? (existingQty || 0) : 0;
+    commonStockDelta = qty - baseQtyForStock;
+    if(commonStockDelta > stockQty){
+      msgEl.textContent = `在庫数（${stockQty}個）を超えています。`;
+      return;
+    }
+  } else if(mode === '数量'){
+    const stockQty = stockRow?.stock_qty ?? 0;
+    const baseQty = (existingMode === '数量') ? existingQty : 0;
+    if(baseQty + qty > stockQty){
+      msgEl.textContent = `在庫数（${stockQty}個）を超えています。`;
+      return;
     }
   }
 
@@ -647,7 +680,7 @@ async function submitOrder(){
   if(mode === '数量' && existingOrderId && existingMode === '数量'){
     // 既存の数量発注に積み増す（部分発注）
     cumulativeQty = existingQty + qty;
-    const { error: updErr } = await sbClient.from('stock_orders').update({ qty: cumulativeQty }).eq('id', existingOrderId);
+    const { error: updErr } = await sbClient.from('stock_orders').update({ qty: cumulativeQty, is_first_wave: isFirstWave }).eq('id', existingOrderId);
     if(updErr){
       msgEl.textContent = '発注に失敗しました：' + updErr.message;
       return;
@@ -665,7 +698,8 @@ async function submitOrder(){
       qty: qty,
       desired_date: desiredDate,
       is_proxy: isProxy,
-      is_canceled: false
+      is_canceled: false,
+      is_first_wave: isFirstWave
     };
 
     const { data: insertedOrder, error } = await sbClient.from('stock_orders').insert(payload).select('id').single();
@@ -686,6 +720,12 @@ async function submitOrder(){
       }
       await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockRow?.item_name, undefined, undefined, exOrder.requesterName, exOrder.deliveryDate, exOrder.sizeTxt);
     }
+  }
+
+  // 共通品は発注確定と同時に在庫を引当減算する（画面表示の残数もその場で減る）
+  if(isCommon && commonStockDelta !== 0){
+    const newStock = Math.max(0, (stockRow?.stock_qty ?? 0) - commonStockDelta);
+    await sbClient.from('stock_items').update({ stock_qty: newStock }).eq('id', stockItemId);
   }
 
   // 個人品・数量モードは、依頼の合計数量に達するまで依頼側を「発注可能」のまま残す（部分発注）
@@ -723,6 +763,12 @@ async function cancelOrder(){
 
   const exCancel = historyExtras(stockRowCheck);
   await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockItemsCache.find(r => r.id === orderSheetState.stockItemId)?.item_name, undefined, undefined, exCancel.requesterName, exCancel.deliveryDate, exCancel.sizeTxt);
+
+  // 共通品は発注時に引当減算しているため、取消時は在庫を戻す
+  if(itemType === 'common' && orderSheetState.existingQty){
+    const restoredStock = (stockRowCheck?.stock_qty ?? 0) + orderSheetState.existingQty;
+    await sbClient.from('stock_items').update({ stock_qty: restoredStock }).eq('id', stockItemId);
+  }
 
   // 個人品の場合、依頼側のステータスを「発注可能」に戻す（マイページに反映させるため）
   if(itemType === 'individual' && stockRowCheck && stockRowCheck.request_item_date_id){
@@ -842,6 +888,12 @@ async function loadTeams(){
 // 共通品は在庫を正式に減算、個人依頼品は発注時点で既に在庫反映済みのため
 // フラグのみ更新する。カラム単位の更新のみ行う。
 // =============================================
+// =============================================
+// 15時解除時の一括処理：配送済み・未確定の発注を確定させる
+// 在庫の減算は発注確定時（submitOrder）に引当として既に行っているため、
+// ここでは発注の確定フラグ更新と、配送済み(グレー)表示の解除のみを行う。
+// カラム単位の更新のみ行う。
+// =============================================
 async function performFinalization(){
   if(!lockSettings.end) return false;
   const now = new Date();
@@ -850,7 +902,7 @@ async function performFinalization(){
 
   const { data: items, error } = await sbClient
     .from('stock_items')
-    .select('id, item_type, stock_qty, delivery_marks');
+    .select('id, delivery_marks');
 
   if(error || !items || !items.length) return false;
 
@@ -869,22 +921,14 @@ async function performFinalization(){
 
     let orderQuery = sbClient
       .from('stock_orders')
-      .select('id, mode, qty')
+      .select('id')
       .eq('stock_item_id', item.id)
       .eq('is_canceled', false)
       .eq('is_finalized', false);
     orderQuery = teamId ? orderQuery.eq('team_id', teamId) : orderQuery.is('team_id', null);
     const { data: orderRows } = await orderQuery;
 
-    // 対応する発注が残っていれば、在庫確定減算＋発注の確定フラグ更新
     for(const o of (orderRows || [])){
-      if(item.item_type === 'common'){
-        const currentStock = item.stock_qty ?? 0;
-        const deduct = o.mode === '数量' ? (o.qty || 0) : currentStock;
-        const newStock = Math.max(0, currentStock - deduct);
-        await sbClient.from('stock_items').update({ stock_qty: newStock }).eq('id', item.id);
-        item.stock_qty = newStock;
-      }
       await sbClient.from('stock_orders').update({ is_finalized: true, finalized_at: new Date().toISOString() }).eq('id', o.id);
       await logChange('stock_orders', o.id, 'is_finalized', false, true, null, 'システム（自動確定）', null);
     }
@@ -940,7 +984,7 @@ async function loadStockItems(){
 
   const { data: orders, error: ordersErr } = await sbClient
     .from('stock_orders')
-    .select('id, stock_item_id, team_id, operated_by_email, operated_by_name, destination, mode, qty, desired_date, is_proxy')
+    .select('id, stock_item_id, team_id, operated_by_email, operated_by_name, destination, mode, qty, desired_date, is_proxy, is_first_wave')
     .eq('is_canceled', false)
     .eq('is_finalized', false)
     .order('created_at', { ascending: true });
