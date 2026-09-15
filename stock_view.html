@@ -848,47 +848,52 @@ async function performFinalization(){
   const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
   if(nowStr < lockSettings.end) return false;
 
-  const { data: candidates, error } = await sbClient
-    .from('stock_orders')
-    .select('id, mode, qty, team_id, stock_item_id, stock_items ( item_type, stock_qty, delivery_marks )')
-    .eq('is_canceled', false)
-    .eq('is_finalized', false);
+  const { data: items, error } = await sbClient
+    .from('stock_items')
+    .select('id, item_type, stock_qty, delivery_marks');
 
-  if(error || !candidates || !candidates.length) return false;
+  if(error || !items || !items.length) return false;
 
-  // 対象は「発注欄が配送済み(グレー)になっている」ものだけ
-  const targets = candidates.filter(o => {
-    const item = o.stock_items;
-    if(!item) return false;
-    const markKey = o.team_id || 'individual';
-    return (item.delivery_marks || {})[markKey] === 'delivered';
+  // 配送済み(グレー)になっているキー（個人依頼品はindividual、共通品は班ID）を洗い出す
+  const targets = [];
+  items.forEach(item => {
+    const marks = item.delivery_marks || {};
+    Object.keys(marks).forEach(key => {
+      if(marks[key] === 'delivered') targets.push({ item, key });
+    });
   });
   if(!targets.length) return false;
 
-  const markUpdates = {}; // stock_item_id -> 更新後のdelivery_marks
+  for(const { item, key } of targets){
+    const teamId = key === 'individual' ? null : key;
 
-  for(const o of targets){
-    const item = o.stock_items;
-    const markKey = o.team_id || 'individual';
+    let orderQuery = sbClient
+      .from('stock_orders')
+      .select('id, mode, qty')
+      .eq('stock_item_id', item.id)
+      .eq('is_canceled', false)
+      .eq('is_finalized', false);
+    orderQuery = teamId ? orderQuery.eq('team_id', teamId) : orderQuery.is('team_id', null);
+    const { data: orderRows } = await orderQuery;
 
-    if(item.item_type === 'common'){
-      const currentStock = item.stock_qty ?? 0;
-      const deduct = o.mode === '数量' ? (o.qty || 0) : currentStock;
-      const newStock = Math.max(0, currentStock - deduct);
-      await sbClient.from('stock_items').update({ stock_qty: newStock }).eq('id', o.stock_item_id);
-      item.stock_qty = newStock;
+    // 対応する発注が残っていれば、在庫確定減算＋発注の確定フラグ更新
+    for(const o of (orderRows || [])){
+      if(item.item_type === 'common'){
+        const currentStock = item.stock_qty ?? 0;
+        const deduct = o.mode === '数量' ? (o.qty || 0) : currentStock;
+        const newStock = Math.max(0, currentStock - deduct);
+        await sbClient.from('stock_items').update({ stock_qty: newStock }).eq('id', item.id);
+        item.stock_qty = newStock;
+      }
+      await sbClient.from('stock_orders').update({ is_finalized: true, finalized_at: new Date().toISOString() }).eq('id', o.id);
+      await logChange('stock_orders', o.id, 'is_finalized', false, true, null, 'システム（自動確定）', null);
     }
-    await sbClient.from('stock_orders').update({ is_finalized: true, finalized_at: new Date().toISOString() }).eq('id', o.id);
-    await logChange('stock_orders', o.id, 'is_finalized', false, true, null, 'システム（自動確定）', null);
 
-    const base = markUpdates[o.stock_item_id] || { ...(item.delivery_marks || {}) };
-    delete base[markKey];
-    markUpdates[o.stock_item_id] = base;
-  }
-
-  // 確定済みになった発注欄のグレー表示を解除（削除ではなくキー単位の更新）
-  for(const stockItemId of Object.keys(markUpdates)){
-    await sbClient.from('stock_items').update({ delivery_marks: markUpdates[stockItemId] }).eq('id', stockItemId);
+    // 対応する発注が無い場合も含め、グレー表示は解除する（キー単位の更新）
+    const newMarks = { ...(item.delivery_marks || {}) };
+    delete newMarks[key];
+    await sbClient.from('stock_items').update({ delivery_marks: newMarks }).eq('id', item.id);
+    item.delivery_marks = newMarks;
   }
 
   return true;
