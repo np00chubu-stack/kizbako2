@@ -28,6 +28,13 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .notif-toggle input:checked + .track{background:#2A4B8D}
 .notif-toggle input:checked + .track::before{transform:translateX(18px)}
 
+/* ---- PC幅（管理者がPCで開いた時のみ）：共通品・個人依頼品を横並びに ---- */
+.stock-section{min-width:0}
+@media (min-width:900px){
+  .container{max-width:1200px}
+  .stock-sections-wrap{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+}
+
 .section-label{font-size:13px;font-weight:bold;color:#1a3a5c;margin:18px 0 8px}
 .section-label:first-of-type{margin-top:0}
 
@@ -152,11 +159,16 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
     </label>
   </div>
 
-  <div class="section-label">共通品</div>
-  <div class="common-table-wrap" id="common-table-wrap"></div>
-
-  <div class="section-label">個人依頼品</div>
-  <div id="individual-table-wrap"></div>
+  <div class="stock-sections-wrap">
+    <div class="stock-section">
+      <div class="section-label">共通品</div>
+      <div class="common-table-wrap" id="common-table-wrap"></div>
+    </div>
+    <div class="stock-section">
+      <div class="section-label">個人依頼品</div>
+      <div id="individual-table-wrap"></div>
+    </div>
+  </div>
 
   <div id="load-error" style="display:none"></div>
 </div>
