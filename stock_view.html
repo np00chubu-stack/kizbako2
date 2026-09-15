@@ -20,6 +20,14 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .lock-banner{font-size:13px;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 12px;margin-bottom:14px;text-align:center;display:none}
 .lock-banner.show{display:block}
 
+.delivery-mode-row{display:none;align-items:center;justify-content:space-between;background:#eef3f8;border-radius:8px;padding:9px 12px;margin-bottom:14px;font-size:13px;font-weight:bold;color:#1a3a5c}
+.notif-toggle{position:relative;width:40px;height:22px;flex-shrink:0;display:inline-block}
+.notif-toggle input{opacity:0;width:0;height:0}
+.notif-toggle .track{position:absolute;inset:0;background:#D8DCE1;border-radius:999px;transition:.15s;cursor:pointer}
+.notif-toggle .track::before{content:'';position:absolute;width:18px;height:18px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.notif-toggle input:checked + .track{background:#2A4B8D}
+.notif-toggle input:checked + .track::before{transform:translateX(18px)}
+
 .section-label{font-size:13px;font-weight:bold;color:#1a3a5c;margin:18px 0 8px}
 .section-label:first-of-type{margin-top:0}
 
@@ -136,6 +144,14 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 
   <div class="lock-banner" id="lock-banner">ただいま発注欄はロック中です</div>
 
+  <div class="delivery-mode-row" id="delivery-mode-row">
+    <span>配送済み入力モード</span>
+    <label class="notif-toggle">
+      <input type="checkbox" id="delivery-mode-toggle" onchange="toggleDeliveryMode(this.checked)">
+      <span class="track"></span>
+    </label>
+  </div>
+
   <div class="section-label">共通品</div>
   <div class="common-table-wrap" id="common-table-wrap"></div>
 
@@ -212,7 +228,20 @@ const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let currentUser = { email: '', name: '', role: '' };
+let currentUser = { email: '', name: '', role: '', can_mark_delivery: false };
+let deliveryModeOn = false;
+
+function canMarkDelivery(){
+  return currentUser.role === '管理者' || currentUser.can_mark_delivery === true;
+}
+
+function toggleDeliveryMode(checked){
+  deliveryModeOn = checked;
+  const individualRows = stockItemsCache.filter(r => r.item_type === 'individual');
+  const commonRows = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
+  renderIndividualTable(individualRows);
+  renderCommonTable(commonRows);
+}
 
 async function logChange(tableName, recordId, fieldName, oldValue, newValue, itemLabel, byName, byEmail, requesterName, deliveryDate, sizeTxt){
   await sbClient.from('change_history').insert({
@@ -330,7 +359,8 @@ function renderIndividualTable(rows){
     const blocked = isOrderingBlocked();
     const mark = (row.delivery_marks || {}).individual || '';
     const deliveredLocked = mark === 'delivered' && currentUser.role !== '管理者';
-    const clickable = canOperate && (isSelfItem || currentUser.role === '管理者') && !blocked && !deliveredLocked;
+    const deliveryModeActive = deliveryModeOn && canMarkDelivery();
+    const clickable = deliveryModeActive || (canOperate && (isSelfItem || currentUser.role === '管理者') && !blocked && !deliveredLocked);
 
     const fieldClass = order ? '' : 'empty';
     const isCircle = order && order.mode === '○';
@@ -341,7 +371,9 @@ function renderIndividualTable(rows){
       : 'ー';
     const fieldContent = isCircle ? '<span class="order-circle-dot"></span>' : escapeHtml(String(fieldLabel));
     const disabledClass = clickable ? '' : 'disabled';
-    const onclickAttr = clickable ? `onclick="openOrderSheet('${row.id}','individual')"` : '';
+    const onclickAttr = clickable
+      ? (deliveryModeActive ? `onclick="cycleDeliveryMark('${row.id}','individual')"` : `onclick="openOrderSheet('${row.id}','individual')"`)
+      : '';
     const markClass = mark ? `mark-${mark}` : '';
 
     return `
@@ -400,13 +432,16 @@ function renderCommonTable(rows){
       const blocked = isOrderingBlocked();
       const mark = (row.delivery_marks || {})[team.id] || '';
       const deliveredLocked = mark === 'delivered' && currentUser.role !== '管理者';
-      const canOperate = (currentUser.role === '依頼者' || currentUser.role === '管理者') && !blocked && !deliveredLocked;
+      const deliveryModeActive = deliveryModeOn && canMarkDelivery();
+      const canOperate = deliveryModeActive || ((currentUser.role === '依頼者' || currentUser.role === '管理者') && !blocked && !deliveredLocked);
       const fieldClass = order ? '' : 'empty';
       const isCircle = order && order.mode === '○';
       const fieldLabel = order ? (order.mode === '数量' ? order.qty : (order.mode === '日付' ? (order.desired_date ? order.desired_date.slice(5).replace('-', '/') : '日') : '○')) : 'ー';
       const fieldContent = isCircle ? '<span class="order-circle-dot"></span>' : escapeHtml(String(fieldLabel));
       const disabledClass = canOperate ? '' : 'disabled';
-      const onclickAttr = canOperate ? `onclick="openOrderSheet('${row.id}','common','${team.id}')"` : '';
+      const onclickAttr = canOperate
+        ? (deliveryModeActive ? `onclick="cycleDeliveryMark('${row.id}','${team.id}')"` : `onclick="openOrderSheet('${row.id}','common','${team.id}')"`)
+        : '';
       const markClass = mark ? `mark-${mark}` : '';
       return `<div class="cm-cell"><button class="order-field ${fieldClass} ${disabledClass} ${markClass}" data-mark-key="${team.id}" ${onclickAttr}>${fieldContent}</button></div>`;
     }).join('');
@@ -425,7 +460,7 @@ function renderCommonTable(rows){
 
   wrap.innerHTML = `<div class="ledger-table">${headHtml}${rowsHtml}</div>`;
 
-  bindOrderFieldLongPress('common-table-wrap');
+
 }
 
 // =============================================
@@ -901,39 +936,29 @@ function bindIndividualLongPress(){
   if(!root) return;
   if(currentUser.role !== '管理者') return;
 
-  // 発注欄マス目を長押し → 準備/配送済み/通常マーク切替
   // 発注欄以外（行全体）を長押し → 削除確認シート（誤って完成にした時の取消用）
+  // 発注欄マス目は対象外（タップ操作は各セルのonclickに任せる）
   root.onpointerdown = (e) => {
     const field = e.target.closest ? e.target.closest('.order-field') : null;
+    if(field) return;
     const row = e.target.closest ? e.target.closest('.indiv-row') : null;
     if(!row) return;
     indLongPressFired = false;
     indPressStartXY = { x:e.clientX, y:e.clientY };
     clearTimeout(indPressTimer);
 
-    if(field){
-      field.classList.add('pressing-mark');
-      indPressTimer = setTimeout(() => {
-        indLongPressFired = true;
-        field.classList.remove('pressing-mark');
-        cycleDeliveryMark(row.dataset.stockItemId, field.dataset.markKey);
-      }, 600);
-    } else {
-      row.classList.add('pressing');
-      indPressTimer = setTimeout(() => {
-        indLongPressFired = true;
-        row.classList.remove('pressing');
-        openDeleteSheet(row.dataset.stockItemId);
-      }, 600);
-    }
+    row.classList.add('pressing');
+    indPressTimer = setTimeout(() => {
+      indLongPressFired = true;
+      row.classList.remove('pressing');
+      openDeleteSheet(row.dataset.stockItemId);
+    }, 600);
   };
   ['pointerup','pointerleave','pointercancel'].forEach(evt => {
     root.addEventListener(evt, (e) => {
       clearTimeout(indPressTimer);
       const row = e.target.closest ? e.target.closest('.indiv-row') : null;
       if(row) row.classList.remove('pressing');
-      const field = e.target.closest ? e.target.closest('.order-field') : null;
-      if(field) field.classList.remove('pressing-mark');
     });
   });
   root.addEventListener('pointermove', (e) => {
@@ -950,56 +975,6 @@ function bindIndividualLongPress(){
   }, true);
 }
 
-// =============================================
-// 発注欄：長押し（管理者のみ）→ 準備(薄ピンク)／配送済み(グレー)／通常 を巡回
-// ○や数量の記入有無に関わらず、すべての発注欄マスが対象
-// =============================================
-const markPressState = {};
-
-function bindOrderFieldLongPress(wrapId){
-  const root = document.getElementById(wrapId);
-  if(!root) return;
-  if(currentUser.role !== '管理者') return;
-
-  const state = markPressState[wrapId] || (markPressState[wrapId] = { timer:null, longPressFired:false, startXY:null });
-
-  root.onpointerdown = (e) => {
-    const field = e.target.closest ? e.target.closest('.order-field') : null;
-    if(!field) return;
-    state.longPressFired = false;
-    state.startXY = { x:e.clientX, y:e.clientY };
-    clearTimeout(state.timer);
-    field.classList.add('pressing-mark');
-    state.timer = setTimeout(() => {
-      state.longPressFired = true;
-      field.classList.remove('pressing-mark');
-      const row = field.closest('[data-stock-item-id]');
-      if(!row) return;
-      const stockItemId = row.dataset.stockItemId;
-      const markKey = field.dataset.markKey;
-      cycleDeliveryMark(stockItemId, markKey);
-    }, 600);
-  };
-  ['pointerup','pointerleave','pointercancel'].forEach(evt => {
-    root.addEventListener(evt, (e) => {
-      clearTimeout(state.timer);
-      const field = e.target.closest ? e.target.closest('.order-field') : null;
-      if(field) field.classList.remove('pressing-mark');
-    });
-  });
-  root.addEventListener('pointermove', (e) => {
-    if(!state.startXY) return;
-    const dx = Math.abs(e.clientX - state.startXY.x), dy = Math.abs(e.clientY - state.startXY.y);
-    if(dx > 10 || dy > 10) clearTimeout(state.timer);
-  });
-  root.addEventListener('click', (e) => {
-    if(state.longPressFired){
-      state.longPressFired = false;
-      e.stopPropagation();
-      e.preventDefault();
-    }
-  }, true);
-}
 
 async function cycleDeliveryMark(stockItemId, markKey){
   const row = stockItemsCache.find(r => r.id === stockItemId);
@@ -1121,7 +1096,7 @@ async function initAuth(){
 
   const { data: allowRow, error: allowErr } = await sbClient
     .from('users_allowlist')
-    .select('name, role')
+    .select('name, role, can_mark_delivery')
     .eq('email', user.email)
     .maybeSingle();
 
@@ -1134,10 +1109,12 @@ async function initAuth(){
   currentUser.email = user.email;
   currentUser.name = allowRow.name;
   currentUser.role = allowRow.role;
+  currentUser.can_mark_delivery = allowRow.can_mark_delivery === true;
 
   document.getElementById('login-name-display').textContent = currentUser.name;
   document.getElementById('auth-loading').style.display='none';
   document.getElementById('app-content').style.display='block';
+  document.getElementById('delivery-mode-row').style.display = canMarkDelivery() ? 'flex' : 'none';
 
   await loadStockItems();
   subscribeRealtime();
