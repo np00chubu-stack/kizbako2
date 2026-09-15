@@ -28,8 +28,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .notif-toggle input:checked + .track{background:#2A4B8D}
 .notif-toggle input:checked + .track::before{transform:translateX(18px)}
 
-.order-field{position:relative}
-.first-wave-badge{position:absolute;top:2px;right:2px;background:#2A4B8D;color:#fff;font-size:9px;font-weight:bold;line-height:1;border-radius:3px;padding:2px 3px}
+.first-wave-badge{display:block;background:#2A4B8D;color:#fff;font-size:9px;font-weight:bold;line-height:1;border-radius:3px;padding:2px 4px}
 
 /* ---- PC幅（管理者がPCで開いた時のみ）：共通品・個人依頼品を横並びに ---- */
 .stock-section{min-width:0}
@@ -60,7 +59,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .ir-size{font-size:11px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ir-qty{font-size:14px;font-weight:bold;text-align:center;color:#1a3a5c}
 .ir-requester{font-size:10px;color:#666;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ir-cell{display:flex;justify-content:center}
+.ir-cell{display:flex;flex-direction:column;align-items:center;gap:2px}
 
 /* 共通品：品目/在庫/班ごと */
 .common-table-wrap{overflow-x:auto}
@@ -72,7 +71,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .cm-stock{font-size:12px;text-align:center;color:#555}
 .cm-stock.low{color:#c53030;font-weight:bold}
 .cm-stock.clickable{cursor:pointer;text-decoration:underline dotted}
-.cm-cell{display:flex;justify-content:center}
+.cm-cell{display:flex;flex-direction:column;align-items:center;gap:2px}
 
 /* 発注欄フィールド */
 .order-field{appearance:none;cursor:pointer;font-weight:bold;border-radius:8px;padding:5px 9px;font-size:15px;min-width:34px;text-align:center;background:#fff;border:2px solid #b8b8b8;color:#1a3a5c;display:flex;align-items:center;justify-content:center;line-height:1.3}
@@ -396,7 +395,7 @@ function renderIndividualTable(rows){
 
     return `
       <div class="indiv-row" data-stock-item-id="${row.id}">
-        <div class="ir-cell"><button class="order-field ${fieldClass} ${disabledClass} ${markClass}" data-mark-key="individual" ${onclickAttr}>${fieldContent}${firstWaveBadge}</button></div>
+        <div class="ir-cell"><button class="order-field ${fieldClass} ${disabledClass} ${markClass}" data-mark-key="individual" ${onclickAttr}>${fieldContent}</button>${firstWaveBadge}</div>
         <div class="ir-date">${escapeHtml(dateText)}</div>
         <div class="ir-main">
           <div class="ir-name">${dateInfo && dateInfo.team_abbr ? `<span class="ir-team">${escapeHtml(dateInfo.team_abbr)}</span>` : ''}${escapeHtml(displayItemName(row.item_name))}${urgentTag}</div>
@@ -462,7 +461,7 @@ function renderCommonTable(rows){
         ? (deliveryModeActive ? `onclick="cycleDeliveryMark('${row.id}','${team.id}')"` : `onclick="openOrderSheet('${row.id}','common','${team.id}')"`)
         : '';
       const markClass = mark ? `mark-${mark}` : '';
-      return `<div class="cm-cell"><button class="order-field ${fieldClass} ${disabledClass} ${markClass}" data-mark-key="${team.id}" ${onclickAttr}>${fieldContent}${firstWaveBadge}</button></div>`;
+      return `<div class="cm-cell"><button class="order-field ${fieldClass} ${disabledClass} ${markClass}" data-mark-key="${team.id}" ${onclickAttr}>${fieldContent}</button>${firstWaveBadge}</div>`;
     }).join('');
 
     const minLineEditBtn = currentUser.role === '管理者'
