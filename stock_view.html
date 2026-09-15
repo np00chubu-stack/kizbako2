@@ -893,11 +893,52 @@ async function loadTeams(){
 // ここでは発注の確定フラグ更新と、配送済み(グレー)表示の解除のみを行う。
 // カラム単位の更新のみ行う。
 // =============================================
+// 1件分の「発注を確定させ、グレー表示を解除する」処理（一括処理・個別処理の両方から使う）
+async function finalizeAndClearOne(item, key){
+  const teamId = key === 'individual' ? null : key;
+
+  let orderQuery = sbClient
+    .from('stock_orders')
+    .select('id')
+    .eq('stock_item_id', item.id)
+    .eq('is_canceled', false)
+    .eq('is_finalized', false);
+  orderQuery = teamId ? orderQuery.eq('team_id', teamId) : orderQuery.is('team_id', null);
+  const { data: orderRows } = await orderQuery;
+
+  for(const o of (orderRows || [])){
+    await sbClient.from('stock_orders').update({ is_finalized: true, finalized_at: new Date().toISOString() }).eq('id', o.id);
+    await logChange('stock_orders', o.id, 'is_finalized', false, true, null, 'システム（自動確定）', null);
+  }
+
+  // 対応する発注が無い場合も含め、グレー表示は解除する（キー単位の更新）
+  const newMarks = { ...(item.delivery_marks || {}) };
+  delete newMarks[key];
+  await sbClient.from('stock_items').update({ delivery_marks: newMarks }).eq('id', item.id);
+  item.delivery_marks = newMarks;
+}
+
+function todayYmdLocal(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
 async function performFinalization(){
   if(!lockSettings.end) return false;
   const now = new Date();
   const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
   if(nowStr < lockSettings.end) return false;
+
+  const todayStr = todayYmdLocal();
+
+  // 15時の一括処理は1日1回だけ。既に今日実行済みなら、以降にグレーにした分は
+  // cycleDeliveryMark側で都度その場で個別処理するため、ここでは何もしない
+  const { data: settingsRow } = await sbClient
+    .from('business_settings')
+    .select('id, finalization_last_date')
+    .limit(1)
+    .maybeSingle();
+  if(settingsRow && settingsRow.finalization_last_date === todayStr) return false;
 
   const { data: items, error } = await sbClient
     .from('stock_items')
@@ -913,30 +954,13 @@ async function performFinalization(){
       if(marks[key] === 'delivered') targets.push({ item, key });
     });
   });
-  if(!targets.length) return false;
 
   for(const { item, key } of targets){
-    const teamId = key === 'individual' ? null : key;
+    await finalizeAndClearOne(item, key);
+  }
 
-    let orderQuery = sbClient
-      .from('stock_orders')
-      .select('id')
-      .eq('stock_item_id', item.id)
-      .eq('is_canceled', false)
-      .eq('is_finalized', false);
-    orderQuery = teamId ? orderQuery.eq('team_id', teamId) : orderQuery.is('team_id', null);
-    const { data: orderRows } = await orderQuery;
-
-    for(const o of (orderRows || [])){
-      await sbClient.from('stock_orders').update({ is_finalized: true, finalized_at: new Date().toISOString() }).eq('id', o.id);
-      await logChange('stock_orders', o.id, 'is_finalized', false, true, null, 'システム（自動確定）', null);
-    }
-
-    // 対応する発注が無い場合も含め、グレー表示は解除する（キー単位の更新）
-    const newMarks = { ...(item.delivery_marks || {}) };
-    delete newMarks[key];
-    await sbClient.from('stock_items').update({ delivery_marks: newMarks }).eq('id', item.id);
-    item.delivery_marks = newMarks;
+  if(settingsRow){
+    await sbClient.from('business_settings').update({ finalization_last_date: todayStr }).eq('id', settingsRow.id);
   }
 
   return true;
@@ -1078,6 +1102,27 @@ async function cycleDeliveryMark(stockItemId, markKey){
   }
   const exMark = historyExtras(row);
   await logChange('stock_items', stockItemId, `delivery_marks.${markKey}`, current, next, row.item_name, undefined, undefined, exMark.requesterName, exMark.deliveryDate, exMark.sizeTxt);
+
+  // 15時の一括処理が既に今日実行済みの後で新たに配送済みにした場合（臨時便など）は、
+  // 次の一括処理を待たず、その場ですぐ個別に確定・グレー解除する
+  if(next === 'delivered' && lockSettings.end){
+    const now = new Date();
+    const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
+    if(nowStr >= lockSettings.end){
+      const { data: settingsRow } = await sbClient
+        .from('business_settings')
+        .select('id, finalization_last_date')
+        .limit(1)
+        .maybeSingle();
+      if(settingsRow && settingsRow.finalization_last_date === todayYmdLocal()){
+        await finalizeAndClearOne(row, markKey);
+        const individualRows2 = stockItemsCache.filter(r => r.item_type === 'individual');
+        const commonRows2 = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
+        renderIndividualTable(individualRows2);
+        renderCommonTable(commonRows2);
+      }
+    }
+  }
 }
 
 function openDeleteSheet(stockItemId){
