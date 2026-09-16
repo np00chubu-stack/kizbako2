@@ -253,7 +253,7 @@ function canMarkDelivery(){
 
 function toggleDeliveryMode(checked){
   deliveryModeOn = checked;
-  const individualRows = stockItemsCache.filter(r => r.item_type === 'individual');
+  const individualRows = stockItemsCache.filter(r => r.item_type === 'individual' && !r.is_hidden);
   const commonRows = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
   renderIndividualTable(individualRows);
   renderCommonTable(commonRows);
@@ -916,6 +916,14 @@ async function finalizeAndClearOne(item, key){
   delete newMarks[key];
   await sbClient.from('stock_items').update({ delivery_marks: newMarks }).eq('id', item.id);
   item.delivery_marks = newMarks;
+
+  // 個人依頼品で、配送済み確定と同時に在庫数が0になっているものは、
+  // データは残したまま一覧表示からのみ外す（非表示化）。カラム単位の更新のみ行う。
+  if(key === 'individual' && item.item_type === 'individual' && (item.stock_qty ?? 0) === 0){
+    await sbClient.from('stock_items').update({ is_hidden: true }).eq('id', item.id);
+    await logChange('stock_items', item.id, 'is_hidden', false, true, item.item_name, 'システム（自動確定）', null);
+    item.is_hidden = true;
+  }
 }
 
 function todayYmdLocal(){
@@ -942,7 +950,7 @@ async function performFinalization(){
 
   const { data: items, error } = await sbClient
     .from('stock_items')
-    .select('id, delivery_marks');
+    .select('id, item_type, item_name, stock_qty, delivery_marks');
 
   if(error || !items || !items.length) return false;
 
@@ -1020,7 +1028,7 @@ async function loadStockItems(){
     });
   }
 
-  const individualRows = stockItemsCache.filter(r => r.item_type === 'individual');
+  const individualRows = stockItemsCache.filter(r => r.item_type === 'individual' && !r.is_hidden);
   const commonRows = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
 
   renderIndividualTable(individualRows);
@@ -1090,7 +1098,7 @@ async function cycleDeliveryMark(stockItemId, markKey){
   if(next === null) delete marks[markKey]; else marks[markKey] = next;
 
   row.delivery_marks = marks;
-  const individualRows = stockItemsCache.filter(r => r.item_type === 'individual');
+  const individualRows = stockItemsCache.filter(r => r.item_type === 'individual' && !r.is_hidden);
   const commonRows = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
   renderIndividualTable(individualRows);
   renderCommonTable(commonRows);
@@ -1116,7 +1124,7 @@ async function cycleDeliveryMark(stockItemId, markKey){
         .maybeSingle();
       if(settingsRow && settingsRow.finalization_last_date === todayYmdLocal()){
         await finalizeAndClearOne(row, markKey);
-        const individualRows2 = stockItemsCache.filter(r => r.item_type === 'individual');
+        const individualRows2 = stockItemsCache.filter(r => r.item_type === 'individual' && !r.is_hidden);
         const commonRows2 = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
         renderIndividualTable(individualRows2);
         renderCommonTable(commonRows2);
