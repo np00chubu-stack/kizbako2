@@ -744,10 +744,12 @@ async function submitOrder(){
     }
   }
 
-  // 共通品は発注確定と同時に在庫を引当減算する（画面表示の残数もその場で減る）
+  // 共通品は発注確定と同時に在庫を引当減算する（DB側の関数で安全に引き算する）
   if(isCommon && commonStockDelta !== 0){
-    const newStock = Math.max(0, (stockRow?.stock_qty ?? 0) - commonStockDelta);
-    await sbClient.from('stock_items').update({ stock_qty: newStock }).eq('id', stockItemId);
+    const { error: stockErr } = await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: commonStockDelta });
+    if(stockErr){
+      msgEl.textContent = '発注は登録されましたが、在庫の更新に失敗しました（在庫が変動した可能性があります）。画面を更新して在庫数をご確認ください。';
+    }
   }
 
   // 個人品・数量モードは、依頼の合計数量に達するまで依頼側を「発注可能」のまま残す（部分発注）
@@ -786,10 +788,9 @@ async function cancelOrder(){
   const exCancel = historyExtras(stockRowCheck);
   await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockItemsCache.find(r => r.id === orderSheetState.stockItemId)?.item_name, undefined, undefined, exCancel.requesterName, exCancel.deliveryDate, exCancel.sizeTxt);
 
-  // 共通品は発注時に引当減算しているため、取消時は在庫を戻す
+  // 共通品は発注時に引当減算しているため、取消時は在庫を戻す（DB側の関数で安全に足し戻す）
   if(itemType === 'common' && orderSheetState.existingQty){
-    const restoredStock = (stockRowCheck?.stock_qty ?? 0) + orderSheetState.existingQty;
-    await sbClient.from('stock_items').update({ stock_qty: restoredStock }).eq('id', stockItemId);
+    await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: -orderSheetState.existingQty });
   }
 
   // 個人品の場合、依頼側のステータスを「発注可能」に戻す（マイページに反映させるため）
@@ -840,8 +841,7 @@ async function submitReplenish(){
   const stockRow = stockItemsCache.find(r => r.id === stockItemId);
   if(!stockRow) return;
 
-  const newQty = (stockRow.stock_qty ?? 0) + qty;
-  const { error } = await sbClient.from('stock_items').update({ stock_qty: newQty }).eq('id', stockItemId);
+  const { error } = await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: -qty });
   if(error){
     document.getElementById('replenish-msg').textContent = '補充に失敗しました：' + error.message;
     return;
