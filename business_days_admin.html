@@ -1348,7 +1348,8 @@ const HIST_FIELD_LABELS = {
   reflected_to_stock: '在庫反映状態',
   stage1_done: '工程A',
   stage2_done: '工程B',
-  order: '発注内容'
+  order: '発注内容',
+  is_hidden: '表示状態'
 };
 
 function histFieldLabel(field){
@@ -1357,10 +1358,16 @@ function histFieldLabel(field){
   return field || '項目';
 }
 
+const HIST_MARK_LABELS = {
+  prep: '準備中',
+  delivered: '配送済み'
+};
+
 function histValueText(field, val){
   if(val === null || val === undefined || val === '') return 'なし';
   if(val === 'true') return 'あり';
   if(val === 'false') return 'なし';
+  if(field && field.startsWith('delivery_marks.') && HIST_MARK_LABELS[val]) return HIST_MARK_LABELS[val];
   return val;
 }
 
