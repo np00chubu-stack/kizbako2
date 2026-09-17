@@ -3,7 +3,7 @@
 // 各ページ（HTML）と最低限の静的ファイルだけを端末に保存し、
 // 電波が無い時は直前に取得できた画面をそのまま表示する。
 
-const CACHE_NAME = 'kizabako-shell-v2';
+const CACHE_NAME = 'kizabako-shell-v3';
 const PRECACHE_URLS = [
   './home.html',
   './formB_size.html',
