@@ -51,6 +51,8 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .indiv-row{display:grid;grid-template-columns:52px 40px 1fr 46px 56px;align-items:center;gap:4px;padding:9px 8px;border-top:1px solid #eef0f3}
 .indiv-row:first-of-type{border-top:none}
 .indiv-row.is-cancelled{opacity:.55}
+.indiv-row.hidden-item{background:#fff4e5}
+.hidden-badge{display:inline-block;margin-left:6px;font-size:11px;font-weight:bold;color:#a15c00;background:#ffe1b3;border-radius:4px;padding:1px 5px}
 .ir-date{font-size:10px;color:#777;text-align:center}
 .ir-main{min-width:0}
 .ir-name{font-size:12px;font-weight:bold;color:#1a3a5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -163,6 +165,14 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
     </label>
   </div>
 
+  <div class="delivery-mode-row" id="show-hidden-row" style="display:none">
+    <span>非表示項目を表示（在庫0調査用）</span>
+    <label class="notif-toggle">
+      <input type="checkbox" id="show-hidden-toggle" onchange="toggleShowHiddenIndividual(this.checked)">
+      <span class="track"></span>
+    </label>
+  </div>
+
   <div class="stock-sections-wrap">
     <div class="stock-section">
       <div class="section-label">共通品</div>
@@ -246,6 +256,17 @@ const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '', role: '', can_mark_delivery: false };
 let deliveryModeOn = false;
+let showHiddenIndividual = false;
+
+function individualVisibleFilter(r){
+  return r.item_type === 'individual' && (!r.is_hidden || showHiddenIndividual);
+}
+
+function toggleShowHiddenIndividual(checked){
+  showHiddenIndividual = checked;
+  const individualRows = stockItemsCache.filter(individualVisibleFilter);
+  renderIndividualTable(individualRows);
+}
 
 function canMarkDelivery(){
   return currentUser.role === '管理者' || currentUser.can_mark_delivery === true;
@@ -253,7 +274,7 @@ function canMarkDelivery(){
 
 function toggleDeliveryMode(checked){
   deliveryModeOn = checked;
-  const individualRows = stockItemsCache.filter(r => r.item_type === 'individual' && !r.is_hidden);
+  const individualRows = stockItemsCache.filter(individualVisibleFilter);
   const commonRows = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
   renderIndividualTable(individualRows);
   renderCommonTable(commonRows);
@@ -392,13 +413,15 @@ function renderIndividualTable(rows){
       ? (deliveryModeActive ? `onclick="cycleDeliveryMark('${row.id}','individual')"` : `onclick="openOrderSheet('${row.id}','individual')"`)
       : '';
     const markClass = mark ? `mark-${mark}` : '';
+    const hiddenClass = row.is_hidden ? 'hidden-item' : '';
+    const hiddenBadge = row.is_hidden ? '<span class="hidden-badge">非表示中</span>' : '';
 
     return `
-      <div class="indiv-row" data-stock-item-id="${row.id}">
+      <div class="indiv-row ${hiddenClass}" data-stock-item-id="${row.id}">
         <div class="ir-cell"><button class="order-field ${fieldClass} ${disabledClass} ${markClass}" data-mark-key="individual" ${onclickAttr}>${fieldContent}</button>${firstWaveBadge}</div>
         <div class="ir-date">${escapeHtml(dateText)}</div>
         <div class="ir-main">
-          <div class="ir-name">${dateInfo && dateInfo.team_abbr ? `<span class="ir-team">${escapeHtml(dateInfo.team_abbr)}</span>` : ''}${escapeHtml(displayItemName(row.item_name))}${urgentTag}</div>
+          <div class="ir-name">${dateInfo && dateInfo.team_abbr ? `<span class="ir-team">${escapeHtml(dateInfo.team_abbr)}</span>` : ''}${escapeHtml(displayItemName(row.item_name))}${urgentTag}${hiddenBadge}</div>
           <div class="ir-size">${escapeHtml(sizeText)}</div>
         </div>
         <div class="ir-qty">${row.stock_qty ?? 0}</div>
@@ -1028,7 +1051,7 @@ async function loadStockItems(){
     });
   }
 
-  const individualRows = stockItemsCache.filter(r => r.item_type === 'individual' && !r.is_hidden);
+  const individualRows = stockItemsCache.filter(individualVisibleFilter);
   const commonRows = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
 
   renderIndividualTable(individualRows);
@@ -1098,7 +1121,7 @@ async function cycleDeliveryMark(stockItemId, markKey){
   if(next === null) delete marks[markKey]; else marks[markKey] = next;
 
   row.delivery_marks = marks;
-  const individualRows = stockItemsCache.filter(r => r.item_type === 'individual' && !r.is_hidden);
+  const individualRows = stockItemsCache.filter(individualVisibleFilter);
   const commonRows = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
   renderIndividualTable(individualRows);
   renderCommonTable(commonRows);
@@ -1112,7 +1135,7 @@ async function cycleDeliveryMark(stockItemId, markKey){
   await logChange('stock_items', stockItemId, `delivery_marks.${markKey}`, current, next, row.item_name, undefined, undefined, exMark.requesterName, exMark.deliveryDate, exMark.sizeTxt);
 
   // 15時の一括処理が既に今日実行済みの後で新たに配送済みにした場合（臨時便など）は、
-  // 次の一括処理を待たず、その場ですぐ個別に確定・グレー解除する
+  // 自動では確定させず、管理者に確認したうえで手動で確定させる
   if(next === 'delivered' && lockSettings.end){
     const now = new Date();
     const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
@@ -1123,11 +1146,14 @@ async function cycleDeliveryMark(stockItemId, markKey){
         .limit(1)
         .maybeSingle();
       if(settingsRow && settingsRow.finalization_last_date === todayYmdLocal()){
-        await finalizeAndClearOne(row, markKey);
-        const individualRows2 = stockItemsCache.filter(r => r.item_type === 'individual' && !r.is_hidden);
-        const commonRows2 = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
-        renderIndividualTable(individualRows2);
-        renderCommonTable(commonRows2);
+        const doFinalize = confirm('本日の一括処理はすでに完了しています。この分を今すぐ確定させますか？\n（「キャンセル」を選ぶと、グレー表示のまま次回の一括処理まで待機します）');
+        if(doFinalize){
+          await finalizeAndClearOne(row, markKey);
+          const individualRows2 = stockItemsCache.filter(individualVisibleFilter);
+          const commonRows2 = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
+          renderIndividualTable(individualRows2);
+          renderCommonTable(commonRows2);
+        }
       }
     }
   }
@@ -1248,6 +1274,7 @@ async function initAuth(){
   document.getElementById('auth-loading').style.display='none';
   document.getElementById('app-content').style.display='block';
   document.getElementById('delivery-mode-row').style.display = canMarkDelivery() ? 'flex' : 'none';
+  document.getElementById('show-hidden-row').style.display = currentUser.role === '管理者' ? 'flex' : 'none';
 
   await loadStockItems();
   subscribeRealtime();
