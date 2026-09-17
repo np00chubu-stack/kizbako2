@@ -206,14 +206,18 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 <div class="sheet-overlay" id="replenish-overlay" onclick="closeReplenishSheet(event)">
   <div class="sheet" onclick="event.stopPropagation()">
     <h2 id="replenish-title"></h2>
-    <div class="sheet-sub">補充する数量を入力してください</div>
+    <div class="sheet-sub" id="replenish-sub">補充する数量を入力してください</div>
     <div class="repl-current" id="replenish-current"></div>
+    <div class="mode-row" id="replenish-mode-row">
+      <label class="selected" id="repl-mode-lbl-add"><input type="radio" name="replenish-mode" value="add" checked onchange="onReplenishModeChange()"> 補充する（＋）</label>
+      <label id="repl-mode-lbl-sub"><input type="radio" name="replenish-mode" value="sub" onchange="onReplenishModeChange()"> 数を減らす（実数調整）</label>
+    </div>
     <div class="qty-stepper">
       <button type="button" onclick="adjustReplenishQty(-1)">−</button>
       <div class="qs-val" id="replenish-qty-val">1</div>
       <button type="button" onclick="adjustReplenishQty(1)">＋</button>
     </div>
-    <button class="btn-sheet-submit" style="width:100%" onclick="submitReplenish()">この数を補充する</button>
+    <button class="btn-sheet-submit" id="replenish-submit-btn" style="width:100%" onclick="submitReplenish()">この数を補充する</button>
     <div class="sheet-msg" id="replenish-msg"></div>
     <button class="btn-close-sheet" onclick="closeReplenishSheet()">閉じる</button>
   </div>
@@ -316,6 +320,20 @@ let teams = [];             // team_master 全件（sort_order順）
 
 let lockSettings = { start: null, end: null };
 let isLocked = false;
+let serverTimeOffsetMs = 0; // サーバー時刻 - 端末時刻（この端末の時計のズレを吸収するための補正値）
+
+async function syncServerTime(){
+  const localBefore = Date.now();
+  const { data, error } = await sbClient.rpc('get_server_time');
+  if(error || !data) return;
+  const localAfter = Date.now();
+  const localMid = (localBefore + localAfter) / 2; // 通信にかかった時間の分だけ中間時刻で近似
+  serverTimeOffsetMs = new Date(data).getTime() - localMid;
+}
+
+function getAdjustedNow(){
+  return new Date(Date.now() + serverTimeOffsetMs);
+}
 
 function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -343,7 +361,7 @@ async function loadLockSettings(){
   lockSettings.start = data.lock_start_time;
   lockSettings.end = data.lock_end_time;
 
-  const now = new Date();
+  const now = getAdjustedNow();
   const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
   isLocked = (nowStr >= lockSettings.start && nowStr < lockSettings.end);
 }
@@ -397,7 +415,7 @@ function renderIndividualTable(rows){
     const mark = (row.delivery_marks || {}).individual || '';
     const deliveredLocked = mark === 'delivered' && currentUser.role !== '管理者';
     const deliveryModeActive = deliveryModeOn && canMarkDelivery();
-    const clickable = deliveryModeActive || (canOperate && (isSelfItem || currentUser.role === '管理者') && !blocked && !deliveredLocked);
+    const clickable = deliveryModeActive ? !!(order || mark) : (canOperate && (isSelfItem || currentUser.role === '管理者') && !blocked && !deliveredLocked);
 
     const fieldClass = order ? '' : 'empty';
     const isCircle = order && order.mode === '○';
@@ -473,7 +491,7 @@ function renderCommonTable(rows){
       const mark = (row.delivery_marks || {})[team.id] || '';
       const deliveredLocked = mark === 'delivered' && currentUser.role !== '管理者';
       const deliveryModeActive = deliveryModeOn && canMarkDelivery();
-      const canOperate = deliveryModeActive || ((currentUser.role === '依頼者' || currentUser.role === '管理者') && !blocked && !deliveredLocked);
+      const canOperate = deliveryModeActive ? !!(order || mark) : ((currentUser.role === '依頼者' || currentUser.role === '管理者') && !blocked && !deliveredLocked);
       const fieldClass = order ? '' : 'empty';
       const isCircle = order && order.mode === '○';
       const fieldLabel = order ? (order.mode === '数量' ? order.qty : (order.mode === '日付' ? (order.desired_date ? order.desired_date.slice(5).replace('-', '/') : '日') : '○')) : 'ー';
@@ -573,26 +591,34 @@ function openOrderSheet(stockItemId, itemType, teamId){
     }
     qtyMax = Number.isFinite(qtyMax) ? qtyMax : '';
     const isCommon = itemType === 'common';
+    // 既存発注があれば、そのモード・入力値をフォームの初期状態に反映する
+    const initialMode = existing ? existing.mode : (isCommon ? '数量' : '○');
+    const selCls = (m) => initialMode === m ? 'selected' : '';
+    const chkAttr = (m) => initialMode === m ? 'checked' : '';
     const modeRowHtml = isCommon
       ? `<div class="mode-row" id="order-mode-row">
-        <label class="selected" id="mode-lbl-qty"><input type="radio" name="order-mode" value="数量" checked onchange="onOrderModeChange()"> 数量</label>
-        <label id="mode-lbl-date"><input type="radio" name="order-mode" value="日付" onchange="onOrderModeChange()"> 日付</label>
+        <label class="${selCls('数量')}" id="mode-lbl-qty"><input type="radio" name="order-mode" value="数量" ${chkAttr('数量')} onchange="onOrderModeChange()"> 数量</label>
+        <label class="${selCls('日付')}" id="mode-lbl-date"><input type="radio" name="order-mode" value="日付" ${chkAttr('日付')} onchange="onOrderModeChange()"> 日付</label>
       </div>`
       : `<div class="mode-row" id="order-mode-row">
-        <label class="selected" id="mode-lbl-circle"><input type="radio" name="order-mode" value="○" checked onchange="onOrderModeChange()"> ○</label>
-        <label id="mode-lbl-qty"><input type="radio" name="order-mode" value="数量" onchange="onOrderModeChange()"> 数量</label>
-        <label id="mode-lbl-date"><input type="radio" name="order-mode" value="日付" onchange="onOrderModeChange()"> 日付</label>
+        <label class="${selCls('○')}" id="mode-lbl-circle"><input type="radio" name="order-mode" value="○" ${chkAttr('○')} onchange="onOrderModeChange()"> ○</label>
+        <label class="${selCls('数量')}" id="mode-lbl-qty"><input type="radio" name="order-mode" value="数量" ${chkAttr('数量')} onchange="onOrderModeChange()"> 数量</label>
+        <label class="${selCls('日付')}" id="mode-lbl-date"><input type="radio" name="order-mode" value="日付" ${chkAttr('日付')} onchange="onOrderModeChange()"> 日付</label>
       </div>`;
+    const qtyGroupVisible = isCommon ? true : (initialMode === '数量');
+    const dateGroupVisible = initialMode === '日付';
+    const qtyInitialVal = (existing && existing.mode === '数量') ? existing.qty : '';
+    const dateInitialVal = (existing && existing.mode === '日付' && existing.desired_date) ? existing.desired_date : '';
     const firstWaveChecked = existing && existing.is_first_wave ? 'checked' : '';
     document.getElementById('order-sheet-form').innerHTML = `
       ${modeRowHtml}
-      <div class="field-group" id="order-qty-group" style="display:${isCommon ? '' : 'none'}">
+      <div class="field-group" id="order-qty-group" style="display:${qtyGroupVisible ? '' : 'none'}">
         <label class="field-label">数量</label>
-        <input type="number" id="order-qty-input" min="1" max="${qtyMax}">
+        <input type="number" id="order-qty-input" min="1" max="${qtyMax}" value="${qtyInitialVal}">
       </div>
-      <div class="field-group" id="order-date-group" style="display:none">
+      <div class="field-group" id="order-date-group" style="display:${dateGroupVisible ? '' : 'none'}">
         <label class="field-label">希望日</label>
-        <input type="date" id="order-date-input">
+        <input type="date" id="order-date-input" value="${dateInitialVal}">
       </div>
       <label class="first-wave-check">
         <input type="checkbox" id="order-first-wave-input" ${firstWaveChecked}>
@@ -788,6 +814,13 @@ async function cancelOrder(){
   const exCancel = historyExtras(stockRowCheck);
   await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockItemsCache.find(r => r.id === orderSheetState.stockItemId)?.item_name, undefined, undefined, exCancel.requesterName, exCancel.deliveryDate, exCancel.sizeTxt);
 
+  // 発注を取消したら、対応する配送済み(グレー)表示も一緒に消す（キー単位の更新）
+  if(markCheck){
+    const newMarks = { ...(stockRowCheck?.delivery_marks || {}) };
+    delete newMarks[markKeyCheck];
+    await sbClient.from('stock_items').update({ delivery_marks: newMarks }).eq('id', stockItemId);
+  }
+
   // 共通品は発注時に引当減算しているため、取消時は在庫を戻す（DB側の関数で安全に足し戻す）
   if(itemType === 'common' && orderSheetState.existingQty){
     await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: -orderSheetState.existingQty });
@@ -812,18 +845,42 @@ async function cancelOrder(){
 // =============================================
 // 補充シート（共通品・作業者/管理者のみ）
 // =============================================
-let replenishState = { stockItemId: null, qty: 1 };
+let replenishState = { stockItemId: null, qty: 1, mode: 'add' };
 
 function openReplenishSheet(stockItemId){
   const row = stockItemsCache.find(r => r.id === stockItemId);
   if(!row) return;
-  replenishState = { stockItemId, qty: 1 };
+  replenishState = { stockItemId, qty: 1, mode: 'add' };
 
   document.getElementById('replenish-title').textContent = displayItemName(row.item_name);
-  document.getElementById('replenish-current').innerHTML = `現在の在庫 <b>${row.stock_qty ?? 0}</b>　↓ この数だけ追加します`;
+  document.getElementById('replenish-current').innerHTML = `現在の在庫 <b>${row.stock_qty ?? 0}</b>`;
   document.getElementById('replenish-qty-val').textContent = '1';
   document.getElementById('replenish-msg').textContent = '';
+  document.getElementById('repl-mode-lbl-add').classList.add('selected');
+  document.getElementById('repl-mode-lbl-sub').classList.remove('selected');
+  document.querySelector('input[name="replenish-mode"][value="add"]').checked = true;
+  updateReplenishSubText();
   document.getElementById('replenish-overlay').classList.add('show');
+}
+
+function updateReplenishSubText(){
+  const sub = document.getElementById('replenish-sub');
+  const btn = document.getElementById('replenish-submit-btn');
+  if(replenishState.mode === 'add'){
+    sub.textContent = '補充する数量を入力してください';
+    btn.textContent = 'この数を補充する';
+  } else {
+    sub.textContent = '実数に合わせて減らす数量を入力してください';
+    btn.textContent = 'この数だけ減らす';
+  }
+}
+
+function onReplenishModeChange(){
+  const mode = document.querySelector('input[name="replenish-mode"]:checked').value;
+  replenishState.mode = mode;
+  document.getElementById('repl-mode-lbl-add').classList.toggle('selected', mode === 'add');
+  document.getElementById('repl-mode-lbl-sub').classList.toggle('selected', mode === 'sub');
+  updateReplenishSubText();
 }
 
 function closeReplenishSheet(e){
@@ -837,13 +894,14 @@ function adjustReplenishQty(delta){
 }
 
 async function submitReplenish(){
-  const { stockItemId, qty } = replenishState;
+  const { stockItemId, qty, mode } = replenishState;
   const stockRow = stockItemsCache.find(r => r.id === stockItemId);
   if(!stockRow) return;
 
-  const { error } = await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: -qty });
+  const delta = mode === 'add' ? -qty : qty; // adjust_stock_qtyはp_deltaを引く仕様のため、増やす時はマイナスで渡す
+  const { error } = await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: delta });
   if(error){
-    document.getElementById('replenish-msg').textContent = '補充に失敗しました：' + error.message;
+    document.getElementById('replenish-msg').textContent = (mode === 'add' ? '補充' : '調整') + 'に失敗しました：' + error.message;
     return;
   }
 
@@ -917,7 +975,8 @@ async function loadTeams(){
 // カラム単位の更新のみ行う。
 // =============================================
 // 1件分の「発注を確定させ、グレー表示を解除する」処理（一括処理・個別処理の両方から使う）
-async function finalizeAndClearOne(item, key){
+async function finalizeAndClearOne(item, key, byName){
+  const actorName = byName || 'システム（自動確定）';
   const teamId = key === 'individual' ? null : key;
 
   let orderQuery = sbClient
@@ -931,7 +990,7 @@ async function finalizeAndClearOne(item, key){
 
   for(const o of (orderRows || [])){
     await sbClient.from('stock_orders').update({ is_finalized: true, finalized_at: new Date().toISOString() }).eq('id', o.id);
-    await logChange('stock_orders', o.id, 'is_finalized', false, true, null, 'システム（自動確定）', null);
+    await logChange('stock_orders', o.id, 'is_finalized', false, true, null, actorName, null);
   }
 
   // 対応する発注が無い場合も含め、グレー表示は解除する（キー単位の更新）
@@ -944,19 +1003,19 @@ async function finalizeAndClearOne(item, key){
   // データは残したまま一覧表示からのみ外す（非表示化）。カラム単位の更新のみ行う。
   if(key === 'individual' && item.item_type === 'individual' && (item.stock_qty ?? 0) === 0){
     await sbClient.from('stock_items').update({ is_hidden: true }).eq('id', item.id);
-    await logChange('stock_items', item.id, 'is_hidden', false, true, item.item_name, 'システム（自動確定）', null);
+    await logChange('stock_items', item.id, 'is_hidden', false, true, item.item_name, actorName, null);
     item.is_hidden = true;
   }
 }
 
 function todayYmdLocal(){
-  const d = new Date();
+  const d = getAdjustedNow();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
 async function performFinalization(){
   if(!lockSettings.end) return false;
-  const now = new Date();
+  const now = getAdjustedNow();
   const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
   if(nowStr < lockSettings.end) return false;
 
@@ -1137,7 +1196,7 @@ async function cycleDeliveryMark(stockItemId, markKey){
   // 15時の一括処理が既に今日実行済みの後で新たに配送済みにした場合（臨時便など）は、
   // 自動では確定させず、管理者に確認したうえで手動で確定させる
   if(next === 'delivered' && lockSettings.end){
-    const now = new Date();
+    const now = getAdjustedNow();
     const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
     if(nowStr >= lockSettings.end){
       const { data: settingsRow } = await sbClient
@@ -1148,7 +1207,7 @@ async function cycleDeliveryMark(stockItemId, markKey){
       if(settingsRow && settingsRow.finalization_last_date === todayYmdLocal()){
         const doFinalize = confirm('本日の一括処理はすでに完了しています。この分を今すぐ確定させますか？\n（「キャンセル」を選ぶと、グレー表示のまま次回の一括処理まで待機します）');
         if(doFinalize){
-          await finalizeAndClearOne(row, markKey);
+          await finalizeAndClearOne(row, markKey, currentUser.name);
           const individualRows2 = stockItemsCache.filter(individualVisibleFilter);
           const commonRows2 = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
           renderIndividualTable(individualRows2);
@@ -1276,8 +1335,8 @@ async function initAuth(){
   document.getElementById('delivery-mode-row').style.display = canMarkDelivery() ? 'flex' : 'none';
   document.getElementById('show-hidden-row').style.display = currentUser.role === '管理者' ? 'flex' : 'none';
 
+  await syncServerTime();
   await loadStockItems();
-  subscribeRealtime();
   renderFooterNav(currentUser.role, 'stock');
 }
 
@@ -1314,6 +1373,7 @@ function subscribeRealtime(){
   setInterval(async () => {
     if(isAnySheetOpen()) return;
     const wasLocked = isLocked;
+    await syncServerTime();
     await loadLockSettings();
     updateLockBanner();
     const changed = await performFinalization();
