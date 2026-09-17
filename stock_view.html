@@ -699,8 +699,8 @@ async function submitOrder(){
 
   let cumulativeQty = qty;
 
-  if(mode === '数量' && existingOrderId && existingMode === '数量'){
-    // 既存の数量発注に積み増す（部分発注）
+  if(mode === '数量' && existingOrderId && existingMode === '数量' && !isCommon){
+    // 既存の数量発注に積み増す（部分発注・個人依頼品のみ）
     cumulativeQty = existingQty + qty;
     const { error: updErr } = await sbClient.from('stock_orders').update({ qty: cumulativeQty, is_first_wave: isFirstWave }).eq('id', existingOrderId);
     if(updErr){
