@@ -129,33 +129,53 @@ body{
 /* ログイン中バー(スマホ用ヘッダーの下に出す簡易表示) */
 .login-name-bar{ font-size:9.5px; color:var(--ink-faint); text-align:center; padding:4px 0 0; }
 
-/* ================= PC WINDOW (管理者) ================= */
-.pc-window{ width:100%; max-width:720px; margin:0 auto; background:var(--white); border-radius:14px; border:1px solid var(--line); box-shadow:0 24px 50px rgba(20,22,26,0.14); overflow:hidden; }
-.pc-titlebar{ display:flex; align-items:center; gap:6px; padding:10px 14px; background:#F3F4F6; border-bottom:1px solid var(--line); }
-.tl-dot{ width:10px; height:10px; border-radius:50%; }
-.pc-addr{ margin-left:10px; font-size:11px; color:var(--ink-faint); }
+/* ================= ADMIN SHELL (管理者・PC左メニュー方式) ================= */
+.admin-shell{ width:100%; display:flex; min-height:100vh; align-items:stretch; }
+.admin-sidebar{ width:80px; flex:0 0 auto; background:var(--accent-deep); display:flex; flex-direction:column; align-items:center; padding:20px 0 12px; }
+.admin-sidebar .as-logo{ color:#fff; font-size:21px; margin-bottom:20px; }
+.as-nav{ display:flex; flex-direction:column; gap:5px; width:100%; align-items:center; }
+.as-item{ display:flex; flex-direction:column; align-items:center; gap:3px; padding:9px 3px; color:rgba(255,255,255,0.6); cursor:pointer; border-radius:11px; width:64px; }
+.as-item svg{ width:18px; height:18px; }
+.as-item .as-label{ font-size:8.3px; font-weight:700; text-align:center; line-height:1.25; }
+.as-item:hover{ background:rgba(255,255,255,0.09); color:#fff; }
+.as-item.active{ background:rgba(255,255,255,0.18); color:#fff; }
 
-.pc-body{ padding:24px 26px 28px; }
-.pc-head{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
-.pc-head h2{ margin:0; font-size:19px; font-weight:800; }
-.pc-head .pc-date{ font-size:12px; color:var(--ink-soft); margin-top:3px; }
-.pc-badge{ font-size:11px; font-weight:700; color:var(--ink-soft); background:var(--bg-page); padding:5px 11px; border-radius:999px; }
+.admin-main{ flex:1 1 auto; min-width:0; background:var(--bg-page); padding:24px 30px 48px; }
+.admin-topbar{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+.admin-topbar h2{ margin:0; font-size:20px; font-weight:800; }
+.admin-topbar .pc-date{ font-size:12px; color:var(--ink-soft); margin-top:3px; }
 
-.pc-stats{ display:flex; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
-.pc-stat{ background:var(--bg-page); border-radius:12px; padding:12px 14px; min-width:150px; }
-.pc-stat .num{ font-size:22px; font-weight:800; }
-.pc-stat.alert .num{ color:var(--alert); }
-.pc-stat .lbl{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+.admin-stats{ display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap; }
 
-.pc-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-.pc-tile{ position:relative; border:1px solid var(--line); border-radius:14px; padding:16px 14px 14px; display:flex; flex-direction:column; gap:8px; cursor:pointer; transition:box-shadow .15s ease, transform .15s ease; }
+.admin-group{ margin-bottom:26px; }
+.admin-group-label{ font-size:11.5px; font-weight:800; color:var(--ink-soft); letter-spacing:.03em; margin-bottom:10px; padding-left:2px; }
+.admin-group-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; }
+.admin-group-grid.compact{ grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
+
+.pc-tile{ position:relative; border:1px solid var(--line); background:var(--white); border-radius:14px; padding:16px 14px 14px; display:flex; flex-direction:column; gap:8px; cursor:pointer; transition:box-shadow .15s ease, transform .15s ease; }
 .pc-tile:hover{ box-shadow:0 10px 20px rgba(20,22,26,0.08); transform:translateY(-2px); }
 .pc-tile.disabled{ opacity:.55; }
+.pc-tile.large{ padding:22px 18px 18px; }
+.pc-tile.large .icon{ width:46px; height:46px; border-radius:13px; }
+.pc-tile.large .icon svg{ width:23px; height:23px; }
+.pc-tile.large .name{ font-size:16px; }
 .pc-tile .icon{ width:38px; height:38px; border-radius:11px; background:var(--accent-soft); color:var(--accent-deep); display:flex; align-items:center; justify-content:center; }
 .pc-tile .icon svg{ width:19px; height:19px; }
 .pc-tile .name{ font-size:14px; font-weight:800; }
 .pc-tile .desc{ font-size:11px; color:var(--ink-soft); line-height:1.5; }
 .pc-tile .pc-badge2{ position:absolute; top:14px; right:14px; font-size:10.5px; font-weight:800; color:var(--alert); background:var(--alert-soft); padding:2px 8px; border-radius:999px; }
+.pc-tile.settings-row{ flex-direction:row; align-items:center; padding:12px 14px; gap:12px; }
+.pc-tile.settings-row .icon{ width:32px; height:32px; border-radius:9px; flex-shrink:0; }
+.pc-tile.settings-row .icon svg{ width:16px; height:16px; }
+.pc-tile.settings-row .name{ font-size:13px; }
+.pc-tile.settings-row .desc{ font-size:10.5px; }
+
+.pc-stats{ display:flex; gap:12px; flex-wrap:wrap; }
+.pc-stat{ background:var(--white); border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-width:150px; }
+.pc-stat .num{ font-size:22px; font-weight:800; }
+.pc-stat.alert .num{ color:var(--alert); }
+.pc-stat .lbl{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+.pc-badge{ font-size:11px; font-weight:700; color:var(--ink-soft); background:var(--white); border:1px solid var(--line); padding:5px 11px; border-radius:999px; }
 
 /* 通知ベル */
 .notif-bell{ position:relative; width:32px; height:32px; border-radius:50%; background:var(--bg-page); display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0; border:none; cursor:pointer; }
@@ -177,8 +197,10 @@ body{
 .notif-item .notif-time{ font-size:11px; color:var(--ink-faint); margin-top:3px; font-weight:400; }
 .notif-empty{ font-size:13px; color:var(--ink-faint); text-align:center; padding:20px 0; }
 
-@media (max-width:520px){
-  .pc-grid{ grid-template-columns:1fr 1fr; }
+@media (max-width:640px){
+  .admin-sidebar{ width:60px; }
+  .as-item{ width:48px; }
+  .admin-main{ padding:18px 14px 40px; }
 }
 </style>
 <link rel="manifest" href="manifest.json">
@@ -224,17 +246,15 @@ body{
   </div>
 </div>
 
-<!-- 管理者向け(PC枠) -->
-<div id="admin-content" class="page-wrap" style="display:none">
-  <div class="pc-window">
-    <div class="pc-titlebar">
-      <span class="tl-dot" style="background:#FF5F57"></span>
-      <span class="tl-dot" style="background:#FEBC2E"></span>
-      <span class="tl-dot" style="background:#28C840"></span>
-      <span class="pc-addr mono">依頼管理システム</span>
+<!-- 管理者向け(PC・左メニュー方式) -->
+<div id="admin-content" style="display:none">
+  <div class="admin-shell">
+    <div class="admin-sidebar">
+      <div class="as-logo">🪵</div>
+      <div class="as-nav" id="adminSidebarNav"></div>
     </div>
-    <div class="pc-body">
-      <div class="pc-head">
+    <div class="admin-main">
+      <div class="admin-topbar">
         <div>
           <h2>管理者ダッシュボード</h2>
           <div class="pc-date" id="pcDate"></div>
@@ -247,8 +267,8 @@ body{
           <div class="pc-badge">ログイン中：<span id="login-name-display-admin"></span> さん</div>
         </div>
       </div>
-      <div class="pc-stats" id="pcStats"></div>
-      <div class="pc-grid" id="admin-body"></div>
+      <div class="pc-stats admin-stats" id="pcStats"></div>
+      <div id="admin-body"></div>
     </div>
   </div>
 </div>
@@ -511,18 +531,54 @@ function renderWorkerHome(){
 }
 
 // =============================================
-// 管理者ホーム(PC)
+// 管理者ホーム(PC・左メニュー方式)
 // =============================================
+function sidebarNavItem(iconName, label, url, active){
+  const onclickAttr = active ? '' : `onclick="goto('${url}')"`;
+  return `<div class="as-item ${active ? 'active' : ''}" ${onclickAttr}>${icon(iconName,'stroke-width="1.8"')}<div class="as-label">${label}</div></div>`;
+}
+
+function renderAdminSidebar(activeKey){
+  const items = [
+    ['home','home','ホーム', URLS.home],
+    ['reqCal','calendar','依頼<br>カレンダー', URLS.requestCalendar],
+    ['workCal','truck','作業<br>カレンダー', URLS.workCalendar],
+    ['log','doc','受付<br>日報', URLS.receptionLog],
+    ['stock','stock','在庫表', URLS.stock],
+    ['settings','gear','設定', URLS.settings]
+  ];
+  document.getElementById('adminSidebarNav').innerHTML = items
+    .map(([key, iconName, label, url]) => sidebarNavItem(iconName, label, url, key === activeKey))
+    .join('');
+}
+
 function renderAdminHome(){
+  renderAdminSidebar('home');
+
   const body = document.getElementById('admin-body');
   body.innerHTML = `
-    <div class="pc-tile" onclick="goto(URLS.requestCalendar)"><div class="icon">${icon('calendar','stroke-width="1.8"')}</div><div class="name">依頼カレンダー</div><div class="desc">全依頼の一覧を確認する</div></div>
-    <div class="pc-tile disabled" onclick="comingSoon()"><div class="icon">${icon('wrench','stroke-width="1.8"')}</div><div class="name">作業工程</div><div class="desc">全依頼明細の進捗を一覧管理（準備中）</div></div>
-    <div class="pc-tile" onclick="goto(URLS.workCalendar)"><div class="icon">${icon('calendar','stroke-width="1.8"')}</div><div class="name">作業カレンダー</div><div class="desc">未完成の依頼を管理する</div></div>
-    <div class="pc-tile" onclick="goto(URLS.receptionLog)"><div class="icon">${icon('doc','stroke-width="1.8"')}</div><div class="name">受付日報</div><div class="desc">受付順の一覧・その日の進捗状況</div></div>
-    <div class="pc-tile disabled" onclick="comingSoon()"><div class="icon">${icon('doc','stroke-width="1.8"')}</div><div class="name">手順書</div><div class="desc">登録・修正・自動生成（準備中）</div></div>
-    <div class="pc-tile" onclick="goto(URLS.stock)"><div class="icon">${icon('stock','stroke-width="1.8"')}</div><div class="name">在庫表</div><div class="desc">最低数ライン変更を含む全操作（配送済み操作も含む）</div></div>
-    <div class="pc-tile" onclick="goto(URLS.settings)"><div class="icon">${icon('gear','stroke-width="1.8"')}</div><div class="name">設定</div><div class="desc">営業日の例外設定</div></div>`;
+    <div class="admin-group">
+      <div class="admin-group-label">受注・進捗</div>
+      <div class="admin-group-grid">
+        <div class="pc-tile large" onclick="goto(URLS.requestCalendar)"><div class="icon">${icon('calendar','stroke-width="1.8"')}</div><div class="name">依頼カレンダー</div><div class="desc">全依頼の一覧を確認する</div></div>
+        <div class="pc-tile large" onclick="goto(URLS.workCalendar)"><div class="icon">${icon('truck','stroke-width="1.8"')}</div><div class="name">作業カレンダー</div><div class="desc">未完成の依頼を管理する</div></div>
+        <div class="pc-tile disabled" onclick="comingSoon()"><div class="icon">${icon('wrench','stroke-width="1.8"')}</div><div class="name">作業工程</div><div class="desc">全依頼明細の進捗を一覧管理（準備中）</div></div>
+        <div class="pc-tile" onclick="goto(URLS.receptionLog)"><div class="icon">${icon('doc','stroke-width="1.8"')}</div><div class="name">受付日報</div><div class="desc">受付順の一覧・その日の進捗状況</div></div>
+      </div>
+    </div>
+    <div class="admin-group">
+      <div class="admin-group-label">在庫・仕組み</div>
+      <div class="admin-group-grid">
+        <div class="pc-tile large" onclick="goto(URLS.stock)"><div class="icon">${icon('stock','stroke-width="1.8"')}</div><div class="name">在庫表</div><div class="desc">最低数ライン変更を含む全操作（配送済み操作も含む）</div></div>
+        <div class="pc-tile disabled" onclick="comingSoon()"><div class="icon">${icon('doc','stroke-width="1.8"')}</div><div class="name">手順書</div><div class="desc">登録・修正・自動生成（準備中）</div></div>
+      </div>
+    </div>
+    <div class="admin-group">
+      <div class="admin-group-label">設定</div>
+      <div class="admin-group-grid compact">
+        <div class="pc-tile settings-row" onclick="goto(URLS.settings)"><div class="icon">${icon('gear','stroke-width="1.8"')}</div><div><div class="name">設定</div><div class="desc">営業日の例外設定</div></div></div>
+      </div>
+    </div>`;
 }
 
 async function loadAdminStats(){
