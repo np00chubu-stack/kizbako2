@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
-.container{max-width:1100px;margin:24px auto;padding:0 12px 80px}
+.container{max-width:1600px;margin:24px auto;padding:0 20px 80px}
 h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
 
 .login-box{max-width:360px;margin:80px auto;text-align:center}
@@ -33,14 +33,11 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 /* 週ブロック */
 .week-block{margin-bottom:22px}
 .week-label{font-size:12px;font-weight:bold;color:#1a3a5c;margin-bottom:6px}
-.week-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:8px;overflow-x:auto}
-@media (max-width:900px){
-  .week-grid{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:78%}
-}
+.week-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:8px}
 
 .day-col{display:flex;flex-direction:column;background:#fff;border:1.5px solid #a9b3c1;border-radius:6px;overflow:hidden;min-height:120px}
 .day-head{display:flex;align-items:baseline;justify-content:space-between;padding:8px 9px 6px;border-bottom:1.5px solid #a9b3c1;background:#eef1f6}
-.day-head .dh-date{font-size:14px;font-weight:bold;color:#1a3a5c}
+.day-head .dh-date{font-size:14px;font-weight:bold;color:#0f2947}
 .day-head .dh-dow{font-size:10px;color:#888;margin-left:3px}
 .day-head .dh-total{font-size:10px;font-weight:bold;color:#1a3a5c;background:#e6ecf7;padding:2px 7px;border-radius:4px;white-space:nowrap}
 .day-head .dh-total.zero{background:#f0f0f0;color:#aaa}
@@ -59,7 +56,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .rq-line{display:flex;align-items:flex-start;gap:5px}
 .rq-name{font-size:11px;font-weight:bold;white-space:normal;word-break:break-word;min-width:0}
 .urgent-tag{font-size:8px;font-weight:bold;color:#fff;background:#c4531f;padding:1.5px 5.5px;border-radius:3px;margin-left:4px}
-.rq-size{font-size:9.5px;color:#888;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.rq-size{font-size:9.5px;color:#555;font-weight:600;white-space:nowrap;flex-shrink:0;margin-top:1px}
 .rq-row{display:flex;align-items:center;justify-content:space-between;margin-top:3px}
 .rq-qty{font-weight:bold;font-size:10.5px;color:#1a3a5c;background:#e6ecf7;padding:1px 7px;border-radius:4px}
 .rq-qtyteam{display:inline-flex;align-items:center;gap:4px}
@@ -113,6 +110,28 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .btn-save-qty{width:100%;padding:10px;background:#1a3a5c;color:#fff;border:none;border-radius:5px;font-size:13.5px;font-weight:bold;cursor:pointer}
 
 .btn-close-sheet{width:100%;padding:10px;background:#fff;border:1px solid #999;color:#555;border-radius:5px;font-size:14px;cursor:pointer;margin-top:14px}
+
+/* PC幅：余白を活かして全体を大きく表示 */
+@media (min-width:1200px){
+  h1{font-size:22px}
+  .legend-row{font-size:13px;gap:18px}
+  .legend-dot{width:14px;height:14px}
+  .week-label{font-size:14px}
+  .week-grid{gap:12px}
+  .day-col{min-height:150px}
+  .day-head{padding:11px 13px 9px}
+  .day-head .dh-date{font-size:17px}
+  .day-head .dh-dow{font-size:12px}
+  .day-head .dh-total{font-size:12px;padding:3px 9px}
+  .day-body{padding:10px;gap:8px}
+  .req-card{padding:9px 11px 8px}
+  .rq-name{font-size:13.5px}
+  .rq-size{font-size:11.5px}
+  .rq-qty{font-size:12.5px;padding:2px 9px}
+  .rq-team{font-size:11.5px;padding:2px 8px}
+  .rq-requester{font-size:11px}
+  .urgent-tag{font-size:9.5px}
+}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a3a5c">
