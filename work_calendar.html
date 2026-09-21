@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <title>作業カレンダー</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -30,14 +30,48 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 #load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
 .empty-note{text-align:center;color:#999;font-size:13px;padding:30px 0}
 
+/* カレンダーコンテナ（この領域だけ横スクロール可能） */
+#calendar-content{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+
 /* 週ブロック */
 .week-block{margin-bottom:22px}
 .week-label{font-size:12px;font-weight:bold;color:#1a3a5c;margin-bottom:6px}
 .week-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:8px}
 
+/* モバイル向けスタイル調整（5列が潰れすぎないよう確保し、はみ出す文字は省略表示） */
+@media (max-width:600px){
+  .week-grid{grid-template-columns:repeat(5, minmax(110px, 1fr));gap:4px}
+
+  .day-head{padding:4px 5px}
+  .day-head .dh-date{font-size:10.5px}
+  .day-head .dh-dow{font-size:8px}
+  .day-head .dh-total{font-size:8px;padding:1px 4px}
+  .day-body{padding:3px;gap:3px}
+
+  .req-card{padding:3px 4px;overflow:hidden}
+  .rq-line{display:flex;flex-direction:column;gap:0}
+
+  .rq-name{font-size:8.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .rq-size{font-size:7.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .rq-qty{font-size:8px;padding:0 4px}
+  .rq-team{font-size:6.5px;padding:0 4px}
+  .rq-requester{font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .urgent-tag{font-size:6.5px;padding:0 3px;margin-left:2px}
+}
+
+/* ピンチアウト（ズームイン）時、またはPC幅では省略を解除して全容を表示 */
+@media (max-width:600px) and (min-resolution:1.2dppx), (min-width:601px){
+  .rq-name,.rq-size,.rq-requester,.rq-team{
+    white-space:normal !important;
+    word-break:break-word !important;
+    overflow:visible !important;
+    text-overflow:clip !important;
+  }
+}
+
 .day-col{display:flex;flex-direction:column;background:#fff;border:1.5px solid #a9b3c1;border-radius:6px;overflow:hidden;min-height:120px}
 .day-head{display:flex;align-items:baseline;justify-content:space-between;padding:8px 9px 6px;border-bottom:1.5px solid #a9b3c1;background:#eef1f6}
-.day-head .dh-date{font-size:14px;font-weight:bold;color:#0f2947}
+.day-head .dh-date{font-size:14px;font-weight:bold;color:#04101c}
 .day-head .dh-dow{font-size:10px;color:#888;margin-left:3px}
 .day-head .dh-total{font-size:10px;font-weight:bold;color:#1a3a5c;background:#e6ecf7;padding:2px 7px;border-radius:4px;white-space:nowrap}
 .day-head .dh-total.zero{background:#f0f0f0;color:#aaa}
@@ -126,7 +160,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
   .day-body{padding:10px;gap:8px}
   .req-card{padding:9px 11px 8px}
   .rq-name{font-size:13.5px}
-  .rq-size{font-size:11.5px}
+  .rq-size{font-size:13px}
   .rq-qty{font-size:12.5px;padding:2px 9px}
   .rq-team{font-size:11.5px;padding:2px 8px}
   .rq-requester{font-size:11px}
