@@ -7,8 +7,8 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
-.container{max-width:1600px;margin:24px auto;padding:0 20px 80px}
-h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
+.container{max-width:1800px;margin:24px auto;padding:0 20px 80px}
+h1{font-size:22px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
 
 .login-box{max-width:360px;margin:80px auto;text-align:center}
 .login-box h1{border:none;margin-bottom:20px}
@@ -18,9 +18,9 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:4px;margin-bottom:14px}
 
 /* 凡例 */
-.legend-row{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px;font-size:11px;color:#666}
+.legend-row{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:16px;font-size:13px;color:#666}
 .legend-item{display:flex;align-items:center;gap:5px}
-.legend-dot{width:12px;height:12px;border-radius:2px;border:1px solid #ccc;flex-shrink:0}
+.legend-dot{width:14px;height:14px;border-radius:2px;border:1px solid #ccc;flex-shrink:0}
 .legend-dot.st-none{background:#fff}
 .legend-dot.st-pink{background:#e4f3e8;border-color:#2f7d4f}
 .legend-dot.st-blue{background:#e3eefb;border-color:#2e6ba6}
@@ -30,55 +30,21 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 #load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
 .empty-note{text-align:center;color:#999;font-size:13px;padding:30px 0}
 
-/* カレンダーコンテナ（この領域だけ横スクロール可能） */
-#calendar-content{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
-
 /* 週ブロック */
 .week-block{margin-bottom:22px}
-.week-label{font-size:12px;font-weight:bold;color:#1a3a5c;margin-bottom:6px}
-.week-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:8px}
+.week-label{font-size:14px;font-weight:bold;color:#1a3a5c;margin-bottom:6px}
+.week-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:12px}
 
-/* モバイル向けスタイル調整（5列が潰れすぎないよう確保し、はみ出す文字は省略表示） */
-@media (max-width:600px){
-  .week-grid{grid-template-columns:repeat(5, minmax(110px, 1fr));gap:4px}
-
-  .day-head{padding:4px 5px}
-  .day-head .dh-date{font-size:10.5px}
-  .day-head .dh-dow{font-size:8px}
-  .day-head .dh-total{font-size:8px;padding:1px 4px}
-  .day-body{padding:3px;gap:3px}
-
-  .req-card{padding:3px 4px;overflow:hidden}
-  .rq-line{display:flex;flex-direction:column;gap:0}
-
-  .rq-name{font-size:8.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
-  .rq-size{font-size:7.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
-  .rq-qty{font-size:8px;padding:0 4px}
-  .rq-team{font-size:6.5px;padding:0 4px}
-  .rq-requester{font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .urgent-tag{font-size:6.5px;padding:0 3px;margin-left:2px}
-}
-
-/* ピンチアウト（ズームイン）時、またはPC幅では省略を解除して全容を表示 */
-@media (max-width:600px) and (min-resolution:1.2dppx), (min-width:601px){
-  .rq-name,.rq-size,.rq-requester,.rq-team{
-    white-space:normal !important;
-    word-break:break-word !important;
-    overflow:visible !important;
-    text-overflow:clip !important;
-  }
-}
-
-.day-col{display:flex;flex-direction:column;background:#fff;border:1.5px solid #a9b3c1;border-radius:6px;overflow:hidden;min-height:120px}
-.day-head{display:flex;align-items:baseline;justify-content:space-between;padding:8px 9px 6px;border-bottom:1.5px solid #a9b3c1;background:#eef1f6}
-.day-head .dh-date{font-size:14px;font-weight:bold;color:#04101c}
-.day-head .dh-dow{font-size:10px;color:#888;margin-left:3px}
-.day-head .dh-total{font-size:10px;font-weight:bold;color:#1a3a5c;background:#e6ecf7;padding:2px 7px;border-radius:4px;white-space:nowrap}
+.day-col{display:flex;flex-direction:column;background:#fff;border:1.5px solid #a9b3c1;border-radius:6px;overflow:hidden;min-height:150px}
+.day-head{display:flex;align-items:baseline;justify-content:space-between;padding:11px 13px 9px;border-bottom:1.5px solid #a9b3c1;background:#eef1f6}
+.day-head .dh-date{font-size:17px;font-weight:bold;color:#04101c}
+.day-head .dh-dow{font-size:12px;color:#888;margin-left:3px}
+.day-head .dh-total{font-size:12px;font-weight:bold;color:#1a3a5c;background:#e6ecf7;padding:3px 9px;border-radius:4px;white-space:nowrap}
 .day-head .dh-total.zero{background:#f0f0f0;color:#aaa}
-.day-body{padding:7px;display:flex;flex-direction:column;gap:5px}
+.day-body{padding:10px;display:flex;flex-direction:column;gap:8px}
 .day-empty{font-size:10px;color:#bbb;text-align:center;padding:10px 4px}
 
-.req-card{position:relative;background:#fff;border:1px solid #b6bfca;border-radius:5px;padding:6px 8px 5px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:box-shadow .15s ease}
+.req-card{position:relative;background:#fff;border:1px solid #b6bfca;border-radius:5px;padding:9px 11px 8px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:box-shadow .15s ease}
 .req-card.st-pink{background:#e4f3e8}
 .req-card.st-blue{background:#e3eefb}
 .req-card.st-ready{background:#fbe7ee}
@@ -88,14 +54,14 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .req-card.is-cancelled .rq-name,.req-card.is-cancelled .rq-size{text-decoration:line-through}
 
 .rq-line{display:flex;align-items:flex-start;gap:5px}
-.rq-name{font-size:11px;font-weight:bold;white-space:normal;word-break:break-word;min-width:0}
-.urgent-tag{font-size:8px;font-weight:bold;color:#fff;background:#c4531f;padding:1.5px 5.5px;border-radius:3px;margin-left:4px}
-.rq-size{font-size:9.5px;color:#555;font-weight:600;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.rq-name{font-size:13.5px;font-weight:bold;white-space:normal;word-break:break-word;min-width:0}
+.urgent-tag{font-size:9.5px;font-weight:bold;color:#fff;background:#c4531f;padding:1.5px 5.5px;border-radius:3px;margin-left:4px}
+.rq-size{font-size:13px;color:#555;font-weight:600;white-space:nowrap;flex-shrink:0;margin-top:1px}
 .rq-row{display:flex;align-items:center;justify-content:space-between;margin-top:3px}
-.rq-qty{font-weight:bold;font-size:10.5px;color:#1a3a5c;background:#e6ecf7;padding:1px 7px;border-radius:4px}
+.rq-qty{font-weight:bold;font-size:12.5px;color:#1a3a5c;background:#e6ecf7;padding:2px 9px;border-radius:4px}
 .rq-qtyteam{display:inline-flex;align-items:center;gap:4px}
-.rq-team{font-weight:bold;font-size:9.5px;color:#fff;background:#d9822b;padding:1px 6px;border-radius:3px}
-.rq-requester{font-size:9px;color:#999}
+.rq-team{font-weight:bold;font-size:11.5px;color:#fff;background:#d9822b;padding:2px 8px;border-radius:3px}
+.rq-requester{font-size:11px;color:#999}
 
 /* 土曜帯 */
 .sat-strip{margin-top:6px}
@@ -144,28 +110,6 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .btn-save-qty{width:100%;padding:10px;background:#1a3a5c;color:#fff;border:none;border-radius:5px;font-size:13.5px;font-weight:bold;cursor:pointer}
 
 .btn-close-sheet{width:100%;padding:10px;background:#fff;border:1px solid #999;color:#555;border-radius:5px;font-size:14px;cursor:pointer;margin-top:14px}
-
-/* PC幅：余白を活かして全体を大きく表示 */
-@media (min-width:1200px){
-  h1{font-size:22px}
-  .legend-row{font-size:13px;gap:18px}
-  .legend-dot{width:14px;height:14px}
-  .week-label{font-size:14px}
-  .week-grid{gap:12px}
-  .day-col{min-height:150px}
-  .day-head{padding:11px 13px 9px}
-  .day-head .dh-date{font-size:17px}
-  .day-head .dh-dow{font-size:12px}
-  .day-head .dh-total{font-size:12px;padding:3px 9px}
-  .day-body{padding:10px;gap:8px}
-  .req-card{padding:9px 11px 8px}
-  .rq-name{font-size:13.5px}
-  .rq-size{font-size:13px}
-  .rq-qty{font-size:12.5px;padding:2px 9px}
-  .rq-team{font-size:11.5px;padding:2px 8px}
-  .rq-requester{font-size:11px}
-  .urgent-tag{font-size:9.5px}
-}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a3a5c">
@@ -327,7 +271,7 @@ async function loadCalendarItems(){
   const { data, error } = await sbClient
     .from('request_item_dates')
     .select(`
-      id, request_item_id, delivery_date, qty, status, canceled_at,
+      id, request_item_id, delivery_date, qty, status, canceled_at, created_at,
       stage1_done, stage1_done_by, stage1_done_at,
       stage2_done, stage2_done_by, stage2_done_at,
       completed, completed_by, completed_at,
@@ -335,7 +279,9 @@ async function loadCalendarItems(){
       request_items ( id, category, item_name, size_l, size_w, size_h, is_urgent, request_id, requests ( requester_name, requester_email ), team_master ( team_abbr ) )
     `)
     .gte('delivery_date', mondayStr)
-    .order('delivery_date', { ascending: true });
+    .order('delivery_date', { ascending: true })
+    .order('created_at', { ascending: true });
+
 
   if(error){
     document.getElementById('load-error').style.display = 'block';
@@ -354,6 +300,7 @@ async function loadCalendarItems(){
       qty: row.qty,
       status: row.status,
       canceled_at: row.canceled_at,
+      created_at: row.created_at,
       stage1_done: row.stage1_done,
       stage2_done: row.stage2_done,
       completed: row.completed,
