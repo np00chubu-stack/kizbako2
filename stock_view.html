@@ -817,9 +817,14 @@ async function cancelOrder(){
 
   // 発注を取消したら、対応する配送済み(グレー)表示も一緒に消す（キー単位の更新）
   if(markCheck){
-    const newMarks = { ...(stockRowCheck?.delivery_marks || {}) };
-    delete newMarks[markKeyCheck];
-    await sbClient.from('stock_items').update({ delivery_marks: newMarks }).eq('id', stockItemId);
+    const { error: markErr } = await sbClient.rpc('update_delivery_mark', { p_stock_item_id: stockItemId, p_mark_key: markKeyCheck, p_mark_value: null });
+    if(markErr){
+      console.error('[delivery_marks] 更新失敗:', markErr.message);
+    } else if(stockRowCheck){
+      const newMarks = { ...(stockRowCheck.delivery_marks || {}) };
+      delete newMarks[markKeyCheck];
+      stockRowCheck.delivery_marks = newMarks;
+    }
   }
 
   // 共通品は発注時に引当減算しているため、取消時は在庫を戻す（DB側の関数で安全に足し戻す）
