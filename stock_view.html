@@ -775,6 +775,7 @@ async function submitOrder(){
     const { error: stockErr } = await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: commonStockDelta });
     if(stockErr){
       msgEl.textContent = '発注は登録されましたが、在庫の更新に失敗しました（在庫が変動した可能性があります）。画面を更新して在庫数をご確認ください。';
+      return;
     }
   }
 
@@ -978,6 +979,7 @@ async function loadTeams(){
 async function finalizeAndClearOne(item, key, byName){
   const actorName = byName || 'システム（自動確定）';
   const teamId = key === 'individual' ? null : key;
+  const errors = [];
 
   let orderQuery = sbClient
     .from('stock_orders')
@@ -989,23 +991,37 @@ async function finalizeAndClearOne(item, key, byName){
   const { data: orderRows } = await orderQuery;
 
   for(const o of (orderRows || [])){
-    await sbClient.from('stock_orders').update({ is_finalized: true, finalized_at: new Date().toISOString() }).eq('id', o.id);
+    const { error: finErr } = await sbClient.from('stock_orders').update({ is_finalized: true, finalized_at: new Date().toISOString() }).eq('id', o.id);
+    if(finErr){
+      errors.push(`${item.item_name || ''}：発注確定処理に失敗しました（${finErr.message}）`);
+      continue;
+    }
     await logChange('stock_orders', o.id, 'is_finalized', false, true, null, actorName, null);
   }
 
   // 対応する発注が無い場合も含め、グレー表示は解除する（キー単位の更新）
-  const newMarks = { ...(item.delivery_marks || {}) };
-  delete newMarks[key];
-  await sbClient.from('stock_items').update({ delivery_marks: newMarks }).eq('id', item.id);
-  item.delivery_marks = newMarks;
+  const { error: markErr } = await sbClient.rpc('update_delivery_mark', { p_stock_item_id: item.id, p_mark_key: key, p_mark_value: null });
+  if(markErr){
+    errors.push(`${item.item_name || ''}：配送済み表示の解除に失敗しました（${markErr.message}）`);
+  } else {
+    const newMarks = { ...(item.delivery_marks || {}) };
+    delete newMarks[key];
+    item.delivery_marks = newMarks;
+  }
 
   // 個人依頼品で、配送済み確定と同時に在庫数が0になっているものは、
   // データは残したまま一覧表示からのみ外す（非表示化）。カラム単位の更新のみ行う。
   if(key === 'individual' && item.item_type === 'individual' && (item.stock_qty ?? 0) === 0){
-    await sbClient.from('stock_items').update({ is_hidden: true }).eq('id', item.id);
-    await logChange('stock_items', item.id, 'is_hidden', false, true, item.item_name, actorName, null);
-    item.is_hidden = true;
+    const { error: hideErr } = await sbClient.from('stock_items').update({ is_hidden: true }).eq('id', item.id);
+    if(hideErr){
+      errors.push(`${item.item_name || ''}：非表示化に失敗しました（${hideErr.message}）`);
+    } else {
+      await logChange('stock_items', item.id, 'is_hidden', false, true, item.item_name, actorName, null);
+      item.is_hidden = true;
+    }
   }
+
+  return errors;
 }
 
 function todayYmdLocal(){
@@ -1032,7 +1048,8 @@ async function performFinalization(){
 
   const { data: items, error } = await sbClient
     .from('stock_items')
-    .select('id, item_type, item_name, stock_qty, delivery_marks');
+    .select('id, item_type, item_name, stock_qty, delivery_marks')
+    .eq('is_deleted', false);
 
   if(error || !items || !items.length) return false;
 
@@ -1045,12 +1062,19 @@ async function performFinalization(){
     });
   });
 
+  const allErrors = [];
   for(const { item, key } of targets){
-    await finalizeAndClearOne(item, key);
+    const errs = await finalizeAndClearOne(item, key);
+    allErrors.push(...errs);
   }
 
   if(settingsRow){
     await sbClient.from('business_settings').update({ finalization_last_date: todayStr }).eq('id', settingsRow.id);
+  }
+
+  if(allErrors.length){
+    console.error('[一括確定処理] 失敗:', allErrors);
+    alert(`一括確定処理で${allErrors.length}件失敗しました。管理者にご確認ください。\n` + allErrors.join('\n'));
   }
 
   return true;
@@ -1065,6 +1089,7 @@ async function loadStockItems(){
   const { data: items, error: itemsErr } = await sbClient
     .from('stock_items')
     .select('id, item_type, item_name, size_l, size_w, size_h, requester_name, stock_qty, min_line, request_item_date_id, delivery_marks, is_hidden')
+    .eq('is_deleted', false)
     .order('sort_order', { ascending: true })
     .order('item_name', { ascending: true });
 
@@ -1174,7 +1199,8 @@ async function cycleDeliveryMark(stockItemId, markKey){
   const row = stockItemsCache.find(r => r.id === stockItemId);
   if(!row) return;
 
-  const marks = { ...(row.delivery_marks || {}) };
+  const previousMarks = { ...(row.delivery_marks || {}) };
+  const marks = { ...previousMarks };
   const current = marks[markKey] || null;
   const next = current === null ? 'prep' : (current === 'prep' ? 'delivered' : null);
   if(next === null) delete marks[markKey]; else marks[markKey] = next;
@@ -1185,9 +1211,15 @@ async function cycleDeliveryMark(stockItemId, markKey){
   renderIndividualTable(individualRows);
   renderCommonTable(commonRows);
 
-  const { error } = await sbClient.from('stock_items').update({ delivery_marks: marks }).eq('id', stockItemId);
+  const { error } = await sbClient.rpc('update_delivery_mark', { p_stock_item_id: stockItemId, p_mark_key: markKey, p_mark_value: next });
   if(error){
     console.error('[delivery_marks] 更新失敗:', error.message);
+    row.delivery_marks = previousMarks;
+    const individualRowsRb = stockItemsCache.filter(individualVisibleFilter);
+    const commonRowsRb = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
+    renderIndividualTable(individualRowsRb);
+    renderCommonTable(commonRowsRb);
+    alert('配送済みマークの更新に失敗しました。もう一度お試しください。');
     return;
   }
   const exMark = historyExtras(row);
@@ -1207,7 +1239,10 @@ async function cycleDeliveryMark(stockItemId, markKey){
       if(settingsRow && settingsRow.finalization_last_date === todayYmdLocal()){
         const doFinalize = confirm('本日の一括処理はすでに完了しています。この分を今すぐ確定させますか？\n（「キャンセル」を選ぶと、グレー表示のまま次回の一括処理まで待機します）');
         if(doFinalize){
-          await finalizeAndClearOne(row, markKey, currentUser.name);
+          const errs = await finalizeAndClearOne(row, markKey, currentUser.name);
+          if(errs.length){
+            alert('確定処理に失敗しました：\n' + errs.join('\n'));
+          }
           const individualRows2 = stockItemsCache.filter(individualVisibleFilter);
           const commonRows2 = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
           renderIndividualTable(individualRows2);
@@ -1265,7 +1300,7 @@ async function confirmDeleteStockItem(){
     return;
   }
 
-  const { error: delErr } = await sbClient.from('stock_items').delete().eq('id', deleteTargetStockItemId);
+  const { error: delErr } = await sbClient.from('stock_items').update({ is_deleted: true, request_item_date_id: null }).eq('id', deleteTargetStockItemId);
   if(delErr){
     msgEl.textContent = '削除に失敗しました：' + delErr.message;
     return;
