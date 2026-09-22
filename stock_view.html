@@ -6,7 +6,7 @@
 <title>在庫表</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+body{font-family:-apple-system,'Hiragino Kaku Gothic ProN','Yu Gothic',YuGothic,sans-serif;background:#e2e6ec;color:#333;min-height:100vh}
 .container{max-width:720px;margin:24px auto;padding:0 12px 40px}
 h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
 
@@ -41,36 +41,36 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .section-label:first-of-type{margin-top:0}
 
 /* ---- 台帳テーブル共通 ---- */
-.ledger-table{background:#fff;border:1px solid #e2e6ec;border-radius:10px;overflow:hidden}
-.ledger-head{display:grid;align-items:center;padding:8px 10px;background:#e6ecf7;font-size:10px;font-weight:bold;color:#1a3a5c}
+.ledger-table{background:#fff;border:2px solid #2b3a4a;border-radius:10px;overflow:hidden}
+.ledger-head{display:grid;align-items:center;padding:8px 10px;background:#d7e0f2;font-size:10px;font-weight:bold;color:#1a3a5c}
 .ledger-head span{text-align:center}
 .ledger-head span:first-child{text-align:left}
 
 /* 個人依頼品：発注/日付/品目(サイズ)/数量/依頼者 */
 .ledger-head.indiv-head{grid-template-columns:52px 40px 1fr 46px 56px}
-.indiv-row{display:grid;grid-template-columns:52px 40px 1fr 46px 56px;align-items:center;gap:4px;padding:9px 8px;border-top:1px solid #eef0f3}
+.indiv-row{display:grid;grid-template-columns:52px 40px 1fr 46px 56px;align-items:center;gap:4px;padding:9px 8px;border-top:1px solid #ccd3dc}
 .indiv-row:first-of-type{border-top:none}
 .indiv-row.is-cancelled{opacity:.55}
 .indiv-row.hidden-item{background:#fff4e5}
 .hidden-badge{display:inline-block;margin-left:6px;font-size:11px;font-weight:bold;color:#a15c00;background:#ffe1b3;border-radius:4px;padding:1px 5px}
-.ir-date{font-size:10px;color:#777;text-align:center}
+.ir-date{font-size:10.5px;color:#4a4a4a;text-align:center}
 .ir-main{min-width:0}
 .ir-name{font-size:12px;font-weight:bold;color:#1a3a5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ir-team{font-weight:bold;font-size:9.5px;color:#fff;background:#d9822b;padding:1px 6px;border-radius:999px;margin-right:4px;display:inline-block}
 .urgent-tag{font-size:8px;font-weight:bold;color:#fff;background:#c4531f;padding:1.5px 5.5px;border-radius:999px;margin-left:4px}
-.ir-size{font-size:11px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ir-size{font-size:12.5px;font-weight:600;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ir-qty{font-size:14px;font-weight:bold;text-align:center;color:#1a3a5c}
-.ir-requester{font-size:10px;color:#666;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ir-requester{font-size:10.5px;color:#444;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ir-cell{display:flex;flex-direction:column;align-items:center;gap:2px}
 
 /* 共通品：品目/在庫/班ごと */
 .common-table-wrap{overflow-x:auto}
-.ledger-row.common{display:grid;align-items:center;gap:4px;padding:9px 10px;border-top:1px solid #eef0f3}
+.ledger-row.common{display:grid;align-items:center;gap:4px;padding:9px 10px;border-top:1px solid #ccd3dc}
 .ledger-row.common:first-of-type{border-top:none}
 .cm-name{font-size:12px;font-weight:bold;color:#1a3a5c;display:flex;align-items:center;gap:5px}
 .min-line-edit-btn{appearance:none;border:1px solid #ccc;background:#fff;color:#888;border-radius:5px;width:18px;height:18px;font-size:10px;line-height:1;cursor:pointer;flex-shrink:0;padding:0}
 .min-line-edit-btn:active{background:#eef3f8}
-.cm-stock{font-size:12px;text-align:center;color:#555}
+.cm-stock{font-size:13.5px;font-weight:600;text-align:center;color:#222}
 .cm-stock.low{color:#c53030;font-weight:bold}
 .cm-stock.clickable{cursor:pointer;text-decoration:underline dotted}
 .cm-cell{display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -1443,11 +1443,12 @@ function subscribeRealtime(){
 (function(){
   const style = document.createElement('style');
   style.textContent = `
-.footer-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;background:rgba(255,255,255,0.96);backdrop-filter:blur(6px);border-top:1px solid #E4E7EC;padding:7px 4px calc(13px + env(safe-area-inset-bottom));font-family:'M PLUS Rounded 1c',sans-serif;}
+.footer-tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;background:rgba(255,255,255,0.96);backdrop-filter:blur(6px);border-top:1px solid #7c8798;padding:7px 4px calc(13px + env(safe-area-inset-bottom));font-family:-apple-system,'Hiragino Kaku Gothic ProN','Yu Gothic',YuGothic,sans-serif;}
 .footer-tabbar .ftab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;color:#A2A8B3;text-decoration:none;font-size:9px;font-weight:700;cursor:pointer;background:none;border:none;font-family:inherit;}
 .footer-tabbar .ftab svg{width:20px;height:20px;}
 .footer-tabbar .ftab.active{color:#1E3766;}
-.footer-back-link{position:fixed;top:14px;left:14px;z-index:40;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #E4E7EC;border-radius:999px;padding:7px 14px 7px 10px;font-size:12px;font-weight:700;color:#1E3766;text-decoration:none;box-shadow:0 6px 14px rgba(20,22,26,0.08);font-family:'M PLUS Rounded 1c',sans-serif;}
+.footer-back-link{position:fixed;top:14px;left:14px;z-index:40;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #7c8798;border-radius:999px;padding:7px 14px 7px 10px;font-size:12px;font-weight:700;color:#1E3766;text-decoration:none;white-space:nowrap;box-shadow:0 6px 14px rgba(20,22,26,0.08);font-family:-apple-system,'Hiragino Kaku Gothic ProN','Yu Gothic',YuGothic,sans-serif;}
+.footer-back-link svg{width:16px;height:16px;flex-shrink:0}
 `;
   document.head.appendChild(style);
 })();
