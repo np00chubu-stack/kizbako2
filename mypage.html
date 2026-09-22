@@ -554,11 +554,19 @@ async function cancelOrderFromDetailSheet(){
     return;
   }
 
-  const { error: cancelOrderErr } = await sbClient
+  const { data: activeOrderRow, error: activeOrderErr } = await sbClient
     .from('stock_orders')
-    .update({ is_canceled: true })
+    .select('id')
     .eq('stock_item_id', stockRow.id)
-    .eq('is_canceled', false);
+    .eq('is_canceled', false)
+    .maybeSingle();
+
+  if(activeOrderErr || !activeOrderRow){
+    document.getElementById('sheet-cancel-msg').textContent = '発注データが見つかりませんでした。';
+    return;
+  }
+
+  const { error: cancelOrderErr } = await sbClient.rpc('cancel_stock_order', { order_id: activeOrderRow.id });
 
   if(cancelOrderErr){
     document.getElementById('sheet-cancel-msg').textContent = '取消に失敗しました：' + cancelOrderErr.message;
@@ -732,9 +740,7 @@ async function submitOrderFromMypage(){
     // 既存の数量発注に積み増す（部分発注）
     cumulativeQty = existingQty + qty;
     const { error: updErr } = await sbClient
-      .from('stock_orders')
-      .update({ qty: cumulativeQty })
-      .eq('id', existingOrderId);
+      .rpc('update_stock_order_qty', { p_order_id: existingOrderId, p_new_qty: cumulativeQty });
     if(updErr){
       msgEl.textContent = '発注に失敗しました：' + updErr.message;
       return;
@@ -760,7 +766,7 @@ async function submitOrderFromMypage(){
     }
 
     if(existingOrderId){
-      const { error: cancelErr } = await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId);
+      const { error: cancelErr } = await sbClient.rpc('cancel_stock_order', { order_id: existingOrderId });
       if(cancelErr){
         msgEl.textContent = '発注は完了しましたが、古い発注の取消に失敗しました：' + cancelErr.message;
         return;
