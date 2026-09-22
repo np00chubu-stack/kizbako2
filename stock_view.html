@@ -1393,6 +1393,7 @@ async function initAuth(){
   await syncServerTime();
   await loadStockItems();
   renderFooterNav(currentUser.role, 'stock');
+subscribeRealtime();
 }
 
 let realtimeReloadPending = false;
