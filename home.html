@@ -587,7 +587,8 @@ async function loadAdminStats(){
 
   const { data, error } = await sbClient
     .from('stock_items')
-    .select('id, stock_qty, min_line');
+    .select('id, stock_qty, min_line')
+    .eq('is_deleted', false);
 
   if(error || !data){
     statsEl.innerHTML = `<div class="pc-stat"><div class="num">-</div><div class="lbl">在庫僅少 品目</div></div>`;
