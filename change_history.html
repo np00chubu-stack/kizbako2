@@ -526,6 +526,7 @@ function groupByDate(list){
 }
 
 function isProxy(row){
+  if(rowType(row) !== 'order') return false;
   if(!row.requester_name || !row.changed_by_name) return false;
   if(row.requester_name === row.changed_by_name) return false;
   return roleByEmail.get(row.changed_by_email) === '管理者';
