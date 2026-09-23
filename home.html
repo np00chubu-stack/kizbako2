@@ -229,7 +229,6 @@ body{
   <div class="phone" id="phoneFrame">
     <div class="app-header">
       <div>
-        <div class="eyebrow">依頼管理システム</div>
         <div class="date mono" id="headerDate"></div>
         <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
       </div>
@@ -238,7 +237,6 @@ body{
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span class="notif-count hide" id="notifCountPhone">0</span>
         </button>
-        <div class="header-icon" id="headerIcon"></div>
       </div>
     </div>
     <div class="app-content" id="role-body"></div>
@@ -426,7 +424,6 @@ function statusClass(label){
 // 依頼者ホーム
 // =============================================
 async function renderRequesterHome(){
-  document.getElementById('headerIcon').innerHTML = icon('user','stroke-width="1.8"');
 
   const body = document.getElementById('role-body');
   body.innerHTML = `
@@ -501,8 +498,6 @@ async function loadRecentForRequester(){
 // 作業者ホーム
 // =============================================
 function renderWorkerHome(){
-  document.getElementById('headerIcon').innerHTML = icon('wrench','stroke-width="1.8"');
-
   const body = document.getElementById('role-body');
   body.innerHTML = `
     <div class="launcher-card" onclick="goto(URLS.workCalendar)">
