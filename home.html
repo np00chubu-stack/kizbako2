@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>依頼管理システム</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
   --ink:#1B2430;
@@ -33,7 +33,7 @@ body{
     radial-gradient(circle at 1px 1px, rgba(42,75,141,0.06) 1px, transparent 0) 0 0/22px 22px,
     var(--bg-page);
   color:var(--ink);
-  font-family:'M PLUS Rounded 1c', sans-serif;
+  font-family:-apple-system, "Hiragino Kaku Gothic ProN", "游ゴシック", YuGothic, sans-serif;
   min-height:100vh;
 }
 .mono{ font-family:'JetBrains Mono', monospace; }
@@ -41,7 +41,7 @@ body{
 /* ログイン画面 */
 .login-box{max-width:360px;margin:80px auto;text-align:center;padding:0 16px}
 .login-box h1{font-size:19px;font-weight:800;color:var(--ink);margin-bottom:22px}
-.btn-google{padding:13px 26px;background:var(--accent);color:#fff;border:none;border-radius:999px;font-size:14px;font-weight:800;font-family:'M PLUS Rounded 1c',sans-serif;cursor:pointer;box-shadow:0 8px 18px rgba(30,55,102,0.28)}
+.btn-google{padding:13px 26px;background:var(--accent);color:#fff;border:none;border-radius:999px;font-size:14px;font-weight:800;font-family:-apple-system, "Hiragino Kaku Gothic ProN", "游ゴシック", YuGothic, sans-serif;cursor:pointer;box-shadow:0 8px 18px rgba(30,55,102,0.28)}
 .btn-google:hover{background:var(--accent-deep)}
 #auth-loading{text-align:center;padding:80px 0;color:var(--ink-soft);font-size:14px}
 #auth-msg{margin-top:14px;font-size:13px;color:var(--alert)}
@@ -296,7 +296,8 @@ const URLS = {
   workCalendar: 'work_calendar.html',
   requestCalendar: 'request_calendar.html',
   receptionLog: 'reception_log.html',
-  settings: 'business_days_admin.html'
+  settings: 'business_days_admin.html',
+  changeHistory: 'change_history.html'
 };
 
 let currentUser = { email: '', name: '', role: '' };
@@ -403,7 +404,8 @@ const icons = {
   check: `<path d="M20 6L9 17l-5-5"/>`,
   dot: `<circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/>`,
   dash: `<path d="M6 12h12"/>`,
-  arrow: `<path d="M5 12h14M13 6l6 6-6 6"/>`
+  arrow: `<path d="M5 12h14M13 6l6 6-6 6"/>`,
+  history: `<path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/>`
 };
 function icon(name, extra=''){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" ${extra}>${icons[name]}</svg>`; }
 function statusIcon(cls){
@@ -540,6 +542,7 @@ function renderAdminSidebar(activeKey){
     ['workCal','truck','作業<br>カレンダー', URLS.workCalendar],
     ['log','doc','受付<br>日報', URLS.receptionLog],
     ['stock','stock','在庫表', URLS.stock],
+    ['history','history','変更<br>履歴', URLS.changeHistory],
     ['settings','gear','設定', URLS.settings]
   ];
   document.getElementById('adminSidebarNav').innerHTML = items
@@ -566,6 +569,12 @@ function renderAdminHome(){
       <div class="admin-group-grid">
         <div class="pc-tile large" onclick="goto(URLS.stock)"><div class="icon">${icon('stock','stroke-width="1.8"')}</div><div class="name">在庫表</div><div class="desc">最低数ライン変更を含む全操作（配送済み操作も含む）</div></div>
         <div class="pc-tile disabled" onclick="comingSoon()"><div class="icon">${icon('doc','stroke-width="1.8"')}</div><div class="name">手順書</div><div class="desc">登録・修正・自動生成（準備中）</div></div>
+      </div>
+    </div>
+    <div class="admin-group">
+      <div class="admin-group-label">履歴</div>
+      <div class="admin-group-grid compact">
+        <div class="pc-tile settings-row" onclick="goto(URLS.changeHistory)"><div class="icon">${icon('history','stroke-width="1.8"')}</div><div><div class="name">変更履歴</div><div class="desc">依頼・発注・進捗・在庫の操作ログ</div></div></div>
       </div>
     </div>
     <div class="admin-group">
