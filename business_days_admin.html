@@ -97,12 +97,6 @@ input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--a
 .btn-delete:hover{background:var(--alert-soft)}
 
 .empty-msg{text-align:center;color:var(--ink-faint);font-size:13px;padding:20px 0}
-.hist-row{background:var(--white);border-radius:12px;box-shadow:0 1px 4px rgba(20,22,26,.06);padding:10px 14px;margin-bottom:8px}
-.hist-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
-.hist-time{font-size:11px;color:var(--ink-faint)}
-.hist-by{font-size:12px;font-weight:800;color:var(--accent-deep)}
-.hist-item{font-size:12px;color:var(--ink-soft);margin-top:3px}
-.hist-detail{font-size:13px;color:var(--ink);margin-top:4px}
 .minline-edit{margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .minline-edit label{font-size:11px;color:var(--ink-faint)}
 .minline-edit input{width:60px;padding:4px 6px;border:1px solid var(--line);border-radius:8px;font-size:13px}
@@ -168,7 +162,6 @@ select.role-select{font-size:12px;padding:5px 6px;border:1px solid var(--line);b
     <button class="tab-btn" data-tab="newsize" onclick="switchTab('newsize')">新サイズ承認待ち<span id="newsize-badge" class="badge" style="display:none"></span></button>
     <button class="tab-btn" data-tab="locktime" onclick="switchTab('locktime')">ロック時間</button>
     <button class="tab-btn" data-tab="notif" onclick="switchTab('notif')">通知設定</button>
-    <button class="tab-btn" data-tab="history" onclick="switchTab('history')">変更履歴</button>
   </div>
 
   <div id="tab-holiday" class="tab-panel active">
@@ -312,12 +305,6 @@ select.role-select{font-size:12px;padding:5px 6px;border:1px solid var(--line);b
   <div id="locktime-load-error" style="display:none"></div>
   </div>
 
-  <div id="tab-history" class="tab-panel">
-  <p class="desc">直近100件の変更履歴です（新しいものが上）。</p>
-  <div id="history-list"></div>
-  <div id="history-load-error" style="display:none"></div>
-  </div>
-
   <div id="tab-notif" class="tab-panel">
   <p class="desc">自分（このアカウント）が受け取る通知の種類を選べます。</p>
   <div class="card">
@@ -374,7 +361,7 @@ function updateStatusStyle(){
 // =============================================
 // タブ切替
 // =============================================
-const TAB_LOADERS = { size: loadSizes, clients: loadClients, users: loadUsers, stock: loadStockMaster, team: loadTeamMaster, newsize: loadNewSizeQueue, locktime: loadLockTime, history: loadHistory, notif: loadAdminNotifPref };
+const TAB_LOADERS = { size: loadSizes, clients: loadClients, users: loadUsers, stock: loadStockMaster, team: loadTeamMaster, newsize: loadNewSizeQueue, locktime: loadLockTime, notif: loadAdminNotifPref };
 const loadedTabs = new Set(['holiday']);
 function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -1272,7 +1259,8 @@ const URLS = {
   workCalendar: 'work_calendar.html',
   requestCalendar: 'request_calendar.html',
   receptionLog: 'reception_log.html',
-  settings: 'business_days_admin.html'
+  settings: 'business_days_admin.html',
+  changeHistory: 'change_history.html'
 };
 const icons = {
   home: `<path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 001 1h10a1 1 0 001-1v-9"/>`,
@@ -1280,7 +1268,8 @@ const icons = {
   stock: `<path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v8l9 4 9-4V8M12 12v8"/>`,
   doc: `<path d="M6 3h9l4 4v14a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M14 3v5h5M8 13h3M8 16h6M8 10h2"/>`,
   gear: `<circle cx="12" cy="12" r="3"/><path d="M12 3v2.4M12 18.6V21M4.6 7.3l2 1.2M17.4 15.5l2 1.2M4.6 16.7l2-1.2M17.4 8.5l2-1.2M3 12h2.4M18.6 12H21"/>`,
-  truck: `<rect x="1" y="7" width="13" height="10" rx="1"/><path d="M14 10h4l3 3v4h-7z"/><circle cx="6" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/>`
+  truck: `<rect x="1" y="7" width="13" height="10" rx="1"/><path d="M14 10h4l3 3v4h-7z"/><circle cx="6" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/>`,
+  history: `<path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/>`
 };
 function icon(name, extra=''){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" ${extra}>${icons[name]}</svg>`; }
 function sidebarNavItem(iconName, label, url, active){
@@ -1293,6 +1282,7 @@ function renderAdminSidebar(){
     ['truck','作業<br>カレンダー', URLS.workCalendar, false],
     ['doc','受付<br>日報', URLS.receptionLog, false],
     ['stock','在庫表', URLS.stock, false],
+    ['history','変更<br>履歴', URLS.changeHistory, false],
     ['gear','設定', URLS.settings, true]
   ];
   document.getElementById('adminSidebarNav').innerHTML = items
@@ -1396,108 +1386,6 @@ async function submitLockTime(){
     return;
   }
   showMsg('locktime-msg', '保存しました。', 'ok');
-}
-
-// =============================================
-// 変更履歴（change_history）
-// =============================================
-const HIST_TABLE_LABELS = {
-  request_item_dates: '依頼',
-  stock_orders: '発注',
-  stock_items: '在庫'
-};
-
-const HIST_FIELD_LABELS = {
-  status: '状態',
-  canceled_at: '取消状態',
-  qty: '数量',
-  is_canceled: '取消状態',
-  is_finalized: '発注確定状態',
-  completed: '完成状態',
-  reflected_to_stock: '在庫反映状態',
-  stage1_done: '工程A',
-  stage2_done: '工程B',
-  order: '発注内容',
-  is_hidden: '表示状態'
-};
-
-function histFieldLabel(field){
-  if(HIST_FIELD_LABELS[field]) return HIST_FIELD_LABELS[field];
-  if(field && field.startsWith('delivery_marks.')) return '配送マーク（' + field.split('.')[1] + '）';
-  return field || '項目';
-}
-
-const HIST_MARK_LABELS = {
-  prep: '準備中',
-  delivered: '配送済み'
-};
-
-function histValueText(field, val){
-  if(val === null || val === undefined || val === '') return 'なし';
-  if(val === 'true') return 'あり';
-  if(val === 'false') return 'なし';
-  if(field && field.startsWith('delivery_marks.') && HIST_MARK_LABELS[val]) return HIST_MARK_LABELS[val];
-  return val;
-}
-
-function histLine(row){
-  const tableLabel = HIST_TABLE_LABELS[row.table_name] || row.table_name;
-  const fieldLabel = histFieldLabel(row.field_name);
-
-  if(row.field_name === 'order'){
-    return `${tableLabel}を登録：${row.new_value || ''}`;
-  }
-  if(row.field_name === 'canceled_at' && row.new_value === '取消'){
-    return `${tableLabel}を取消にした`;
-  }
-  return `${tableLabel}の${fieldLabel}を「${histValueText(row.field_name, row.old_value)}」→「${histValueText(row.field_name, row.new_value)}」に変更`;
-}
-
-function histTimeJST(iso){
-  if(!iso) return '';
-  const d = new Date(iso);
-  const fmt = new Intl.DateTimeFormat('ja-JP', {
-    timeZone: 'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit',
-    hour:'2-digit', minute:'2-digit', hour12:false
-  });
-  return fmt.format(d).replace(/\//g,'/');
-}
-
-async function loadHistory(){
-  const { data, error } = await sbClient
-    .from('change_history')
-    .select('id, table_name, record_id, field_name, old_value, new_value, item_label, requester_name, delivery_date, size_text, changed_by_name, changed_at')
-    .order('changed_at', { ascending: false })
-    .limit(100);
-
-  const listEl = document.getElementById('history-list');
-  const errEl = document.getElementById('history-load-error');
-
-  if(error){
-    errEl.style.display = 'block';
-    errEl.textContent = '履歴の取得に失敗しました：' + error.message;
-    return;
-  }
-  errEl.style.display = 'none';
-
-  if(!data || !data.length){
-    listEl.innerHTML = '<div class="empty-msg">履歴はまだありません</div>';
-    return;
-  }
-
-  listEl.innerHTML = data.map(row => {
-    const itemBits = [row.item_label, row.size_text, row.requester_name ? '依頼者：' + row.requester_name : null, row.delivery_date ? '納入日：' + row.delivery_date : null]
-      .filter(Boolean).join('／');
-    return `
-      <div class="hist-row">
-        <div class="hist-top">
-          <span class="hist-by">${escapeHtml(row.changed_by_name || '-')}</span>
-          <span class="hist-time">${escapeHtml(histTimeJST(row.changed_at))}</span>
-        </div>
-        ${itemBits ? `<div class="hist-item">${escapeHtml(itemBits)}</div>` : ''}
-        <div class="hist-detail">${escapeHtml(histLine(row))}</div>
-      </div>`;
-  }).join('');
 }
 
 initAuth();
