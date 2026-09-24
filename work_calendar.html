@@ -510,6 +510,10 @@ function positionSheetToView(overlayId){
     const bottomY = vv.offsetTop + vv.height;
     sheet.style.bottom = 'auto';
     sheet.style.top = Math.max(0, bottomY - sheet.offsetHeight) + 'px';
+
+    const centerX = vv.offsetLeft + vv.width / 2;
+    sheet.style.right = 'auto';
+    sheet.style.left = Math.max(0, centerX - sheet.offsetWidth / 2) + 'px';
   };
   apply();
   vv.addEventListener('resize', apply);
@@ -527,6 +531,8 @@ function clearSheetPosition(overlayId){
   }
   sheet.style.top = '';
   sheet.style.bottom = '';
+  sheet.style.left = '';
+  sheet.style.right = '';
 }
 
 function cardAt(target){ return target.closest ? target.closest('.req-card') : null; }
