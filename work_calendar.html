@@ -494,14 +494,6 @@ let pressTimer = null;
 let longPressFired = false;
 let pressStartXY = null;
 
-function resetPinchZoom(){
-  const vp = document.querySelector('meta[name="viewport"]');
-  if(!vp) return;
-  const original = vp.getAttribute('content');
-  vp.setAttribute('content', original + ', maximum-scale=1.0, user-scalable=no');
-  setTimeout(() => { vp.setAttribute('content', original); }, 50);
-}
-
 function positionSheetToView(overlayId){
   const sheet = document.querySelector('#' + overlayId + ' .sheet');
   if(!sheet || !window.visualViewport) return;
@@ -579,7 +571,6 @@ function bindCardEvents(){
 // 手順書ポップアップ（プレースホルダー）
 // =============================================
 function openProcSheet(item){
-  resetPinchZoom();
   activeProcId = item.id;
   document.getElementById('proc-name').textContent = displayCategory(item.category, item.item_name);
   document.getElementById('proc-detail').textContent = `サイズ：${item.sizeText || '-'}／数量 ${item.qty}／依頼者：${item.requester_name || '-'}`;
@@ -597,7 +588,6 @@ function closeProcSheet(e){
 // =============================================
 function openProgSheet(item){
   if(item.canceled_at) return;
-  resetPinchZoom();
   activeProgId = item.id;
   document.getElementById('prog-name').textContent = displayCategory(item.category, item.item_name);
   document.getElementById('prog-detail').textContent = `サイズ：${item.sizeText || '-'}／数量 ${item.qty}`;
