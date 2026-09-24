@@ -502,6 +502,33 @@ function resetPinchZoom(){
   setTimeout(() => { vp.setAttribute('content', original); }, 50);
 }
 
+function positionSheetToView(overlayId){
+  const sheet = document.querySelector('#' + overlayId + ' .sheet');
+  if(!sheet || !window.visualViewport) return;
+  const vv = window.visualViewport;
+  const apply = () => {
+    const bottomY = vv.offsetTop + vv.height;
+    sheet.style.bottom = 'auto';
+    sheet.style.top = Math.max(0, bottomY - sheet.offsetHeight) + 'px';
+  };
+  apply();
+  vv.addEventListener('resize', apply);
+  vv.addEventListener('scroll', apply);
+  sheet._vvApply = apply;
+}
+
+function clearSheetPosition(overlayId){
+  const sheet = document.querySelector('#' + overlayId + ' .sheet');
+  if(!sheet || !window.visualViewport) return;
+  if(sheet._vvApply){
+    window.visualViewport.removeEventListener('resize', sheet._vvApply);
+    window.visualViewport.removeEventListener('scroll', sheet._vvApply);
+    sheet._vvApply = null;
+  }
+  sheet.style.top = '';
+  sheet.style.bottom = '';
+}
+
 function cardAt(target){ return target.closest ? target.closest('.req-card') : null; }
 
 function bindCardEvents(){
@@ -551,10 +578,12 @@ function openProcSheet(item){
   document.getElementById('proc-name').textContent = displayCategory(item.category, item.item_name);
   document.getElementById('proc-detail').textContent = `サイズ：${item.sizeText || '-'}／数量 ${item.qty}／依頼者：${item.requester_name || '-'}`;
   document.getElementById('proc-overlay').classList.add('show');
+  positionSheetToView('proc-overlay');
 }
 function closeProcSheet(e){
   if(e && e.target !== e.currentTarget) return;
   document.getElementById('proc-overlay').classList.remove('show');
+  clearSheetPosition('proc-overlay');
 }
 
 // =============================================
@@ -568,10 +597,12 @@ function openProgSheet(item){
   document.getElementById('prog-detail').textContent = `サイズ：${item.sizeText || '-'}／数量 ${item.qty}`;
   renderProgSheet();
   document.getElementById('prog-overlay').classList.add('show');
+  positionSheetToView('prog-overlay');
 }
 function closeProgSheet(e){
   if(e && e.target !== e.currentTarget) return;
   document.getElementById('prog-overlay').classList.remove('show');
+  clearSheetPosition('prog-overlay');
 }
 
 function renderProgSheet(){
