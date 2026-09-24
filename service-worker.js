@@ -3,7 +3,7 @@
 // 各ページ（HTML）と最低限の静的ファイルだけを端末に保存し、
 // 電波が無い時は直前に取得できた画面をそのまま表示する。
 
-const CACHE_NAME = 'kizabako-shell-v4';
+const CACHE_NAME = 'kizabako-shell-v5';
 const PRECACHE_URLS = [
   './home.html',
   './formB_size.html',
@@ -58,5 +58,30 @@ self.addEventListener('fetch', (event) => {
   // アイコン等はキャッシュ優先
   event.respondWith(
     caches.match(req).then((cached) => cached || fetch(req))
+  );
+});
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) {}
+  const title = data.title || '木箱依頼システム';
+  const options = {
+    body: data.body || '',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+    data: { url: data.url || './home.html' }
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || './home.html';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsArr) => {
+      const existing = clientsArr.find((c) => c.url.includes(targetUrl.replace('./', '')));
+      if (existing) return existing.focus();
+      return self.clients.openWindow(targetUrl);
+    })
   );
 });
