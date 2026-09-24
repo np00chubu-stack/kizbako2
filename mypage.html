@@ -214,6 +214,10 @@ body{
           <span class="track"></span>
         </label>
       </div>
+      <div class="notif-setting-row">
+        <span id="push-permission-label">スマホへの通知</span>
+        <button id="push-permission-btn" class="sheet-cancel-link" style="padding:4px 10px" onclick="subscribeToPush()">許可する</button>
+      </div>
 
       <div class="spacer"></div>
     </div>
@@ -1014,6 +1018,69 @@ async function loadNotifPref(){
   document.getElementById('pref-completed').checked = allow;
 }
 
+const VAPID_PUBLIC_KEY = 'BGnoZHl5WI1rBujYV7HZRiwfedjFFdTrJWGRsSit6FPEq7lngQIk4Vyza_39PZpOzic12Vr66S7wP2dGSmjYQ54';
+
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+function updatePushButtonState(){
+  const btn = document.getElementById('push-permission-btn');
+  if(!btn) return;
+  if(!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)){
+    btn.textContent = '未対応';
+    btn.disabled = true;
+    return;
+  }
+  if(Notification.permission === 'granted'){
+    btn.textContent = '許可済み';
+    btn.disabled = true;
+  } else if(Notification.permission === 'denied'){
+    btn.textContent = 'ブロック中';
+    btn.disabled = true;
+  } else {
+    btn.textContent = '許可する';
+    btn.disabled = false;
+  }
+}
+
+async function subscribeToPush(){
+  try{
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+      alert('この端末・ブラウザは通知に対応していません');
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted'){
+      updatePushButtonState();
+      return;
+    }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    const json = sub.toJSON();
+    await sbClient.from('push_subscriptions').upsert({
+      email: currentUser.email,
+      endpoint: json.endpoint,
+      p256dh: json.keys.p256dh,
+      auth: json.keys.auth
+    }, { onConflict: 'endpoint' });
+    updatePushButtonState();
+  } catch(e){
+    alert('通知の許可に失敗しました');
+  }
+}
+
 async function saveNotifPref(){
   const allow = document.getElementById('pref-completed').checked;
   await sbClient.from('notification_prefs').upsert({
@@ -1099,6 +1166,7 @@ function subscribeRealtime(){
 }
 
 initAuth();
+updatePushButtonState();
 </script>
 <script>
 if("serviceWorker" in navigator){
