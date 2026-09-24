@@ -351,7 +351,7 @@ async function loadCalendarItems(){
 }
 
 // =============================================
-// 猶予期限切れの完成データを在庫反映する（システム的な巻き上げ処理）
+// 猶予期限切れの完成データを在庫反映する（表示上のみの更新。DBへの反映はSupabase側の自動処理が担当）
 // =============================================
 async function reflectExpiredGraceItems(items){
   const now = new Date();
@@ -361,16 +361,8 @@ async function reflectExpiredGraceItems(items){
   if(!targets.length) return;
 
   for(const it of targets){
-    const prevStatus = it.status;
-    const { error } = await sbClient
-      .from('request_item_dates')
-      .update({ status: '発注可能', reflected_to_stock: true })
-      .eq('id', it.id);
-    if(!error){
-      it.status = '発注可能';
-      it.reflected_to_stock = true;
-      await logChange('request_item_dates', it.id, 'status', prevStatus, '発注可能', it.category, 'システム（自動反映）', null);
-    }
+    it.status = '発注可能';
+    it.reflected_to_stock = true;
   }
 }
 
