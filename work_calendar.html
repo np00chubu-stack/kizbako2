@@ -647,7 +647,7 @@ function renderQtyEditArea(item){
       <div class="qty-edit-area">
         <div class="qe-title">数量変更（管理者操作）</div>
         <input type="number" id="prog-qty-input" min="1" value="${item.qty}">
-        <button class="btn-save-qty" onclick="saveQtyChange()">この数量に変更する</button>
+        <button class="btn-save-qty" id="prog-qty-save-btn" onclick="saveQtyChange()">この数量に変更する</button>
         <div id="prog-qty-msg" style="font-size:12px;color:#c53030;margin-top:6px"></div>
       </div>`;
   } else {
@@ -664,26 +664,33 @@ async function saveQtyChange(){
 
   if(!newQty || newQty < 1){ msgEl.textContent = '数量を入力してください。'; return; }
 
-  const { error } = await sbClient
-    .from('request_item_dates')
-    .update({
-      qty: newQty,
-      last_changed_by: currentUser.name,
-      last_changed_at: new Date().toISOString()
-    })
-    .eq('id', item.id);
+  const btn = document.getElementById('prog-qty-save-btn');
+  if(btn){ if(btn.disabled) return; btn.disabled = true; }
 
-  if(error){
-    msgEl.textContent = '変更に失敗しました：' + error.message;
-    return;
+  try{
+    const { error } = await sbClient
+      .from('request_item_dates')
+      .update({
+        qty: newQty,
+        last_changed_by: currentUser.name,
+        last_changed_at: new Date().toISOString()
+      })
+      .eq('id', item.id);
+
+    if(error){
+      msgEl.textContent = '変更に失敗しました：' + error.message;
+      return;
+    }
+
+    await logChange('request_item_dates', item.id, 'qty', item.qty, newQty, item.category);
+
+    item.qty = newQty;
+    renderProgSheet();
+    render();
+    toast(`${displayCategory(item.category, item.item_name)}：数量を${newQty}に変更しました`);
+  } finally {
+    if(btn) btn.disabled = false;
   }
-
-  await logChange('request_item_dates', item.id, 'qty', item.qty, newQty, item.category);
-
-  item.qty = newQty;
-  renderProgSheet();
-  render();
-  toast(`${displayCategory(item.category, item.item_name)}：数量を${newQty}に変更しました`);
 }
 
 document.getElementById('prog-p1-btn').addEventListener('click', () => toggleStage(1));
@@ -692,71 +699,88 @@ document.getElementById('prog-p2-btn').addEventListener('click', () => toggleSta
 async function toggleStage(n){
   const item = findItem(activeProgId);
   if(!item || item.completed) return;
-  const field = `stage${n}_done`;
-  const byField = `stage${n}_done_by`;
-  const atField = `stage${n}_done_at`;
-  const otherField = n === 1 ? 'stage2_done' : 'stage1_done';
-  const newVal = !item[field];
 
-  const payload = newVal
-    ? { [field]: true, [byField]: currentUser.name, [atField]: new Date().toISOString() }
-    : { [field]: false, [byField]: null, [atField]: null };
+  const p1btn = document.getElementById('prog-p1-btn');
+  const p2btn = document.getElementById('prog-p2-btn');
+  if((p1btn && p1btn.disabled) && (p2btn && p2btn.disabled)) return; // 処理中の二重送信を防止
+  if(p1btn) p1btn.disabled = true;
+  if(p2btn) p2btn.disabled = true;
 
-  // 工程A・Bのどちらかが完了した時点で「受付済み」→「作業中」に、
-  // 両方とも未完了に戻った場合は「作業中」→「受付済み」に連動させる
-  // （行全体の上書きではなく、statusカラムのみ追加で送る）
-  let newStatus = item.status;
-  if(newVal && item.status === '受付済み'){
-    newStatus = '作業中';
-    payload.status = newStatus;
-  } else if(!newVal && !item[otherField] && item.status === '作業中'){
-    newStatus = '受付済み';
-    payload.status = newStatus;
+  try{
+    const field = `stage${n}_done`;
+    const byField = `stage${n}_done_by`;
+    const atField = `stage${n}_done_at`;
+    const otherField = n === 1 ? 'stage2_done' : 'stage1_done';
+    const newVal = !item[field];
+
+    const payload = newVal
+      ? { [field]: true, [byField]: currentUser.name, [atField]: new Date().toISOString() }
+      : { [field]: false, [byField]: null, [atField]: null };
+
+    // 工程A・Bのどちらかが完了した時点で「受付済み」→「作業中」に、
+    // 両方とも未完了に戻った場合は「作業中」→「受付済み」に連動させる
+    // （行全体の上書きではなく、statusカラムのみ追加で送る）
+    let newStatus = item.status;
+    if(newVal && item.status === '受付済み'){
+      newStatus = '作業中';
+      payload.status = newStatus;
+    } else if(!newVal && !item[otherField] && item.status === '作業中'){
+      newStatus = '受付済み';
+      payload.status = newStatus;
+    }
+
+    const { error } = await sbClient.from('request_item_dates').update(payload).eq('id', item.id);
+    if(error){ toast('更新に失敗しました：' + error.message, true); return; }
+
+    await logChange('request_item_dates', item.id, field, item[field], newVal, item.category);
+    if(newStatus !== item.status){
+      await logChange('request_item_dates', item.id, 'status', item.status, newStatus, item.category);
+    }
+
+    item[field] = newVal;
+    item.status = newStatus;
+  } finally {
+    renderProgSheet(); // 成功・失敗いずれの場合も、ここでボタンの有効／無効を現在の状態に合わせて再設定する
+    render();
   }
-
-  const { error } = await sbClient.from('request_item_dates').update(payload).eq('id', item.id);
-  if(error){ toast('更新に失敗しました：' + error.message, true); return; }
-
-  await logChange('request_item_dates', item.id, field, item[field], newVal, item.category);
-  if(newStatus !== item.status){
-    await logChange('request_item_dates', item.id, 'status', item.status, newStatus, item.category);
-  }
-
-  item[field] = newVal;
-  item.status = newStatus;
-  renderProgSheet();
-  render();
 }
 
-document.getElementById('prog-complete-btn').addEventListener('click', async () => {
+document.getElementById('prog-complete-btn').addEventListener('click', async (e) => {
   const item = findItem(activeProgId);
   if(!item) return;
 
-  if(item.completed && !item.reflected_to_stock){
-    // 取り消し（工程A/Bの状態は維持）
-    const { error } = await sbClient.from('request_item_dates').update({
-      completed: false, completed_by: null, completed_at: null, grace_ends_at: null
-    }).eq('id', item.id);
-    if(error){ toast('取り消しに失敗しました：' + error.message, true); return; }
-    await logChange('request_item_dates', item.id, 'completed', true, false, item.category);
-    item.completed = false;
-    item.grace_ends_at = null;
-    toast(`${displayCategory(item.category, item.item_name)}：完成前の状態に戻しました`);
-  } else if(item.stage1_done && item.stage2_done && !item.completed){
-    const graceEnds = new Date(Date.now() + 60*1000).toISOString();
-    const { error } = await sbClient.from('request_item_dates').update({
-      completed: true, completed_by: currentUser.name, completed_at: new Date().toISOString(), grace_ends_at: graceEnds
-    }).eq('id', item.id);
-    if(error){ toast('完成操作に失敗しました：' + error.message, true); return; }
-    await logChange('request_item_dates', item.id, 'completed', false, true, item.category);
-    item.completed = true;
-    item.grace_ends_at = graceEnds;
-  } else {
-    return;
+  const btn = e.currentTarget;
+  if(btn.disabled) return; // 処理中、または元々押せない状態
+  if(!(item.completed && !item.reflected_to_stock) && !(item.stage1_done && item.stage2_done && !item.completed)){
+    return; // どちらの操作対象にも当てはまらない
   }
+  btn.disabled = true;
 
-  renderProgSheet();
-  render();
+  try{
+    if(item.completed && !item.reflected_to_stock){
+      // 取り消し（工程A/Bの状態は維持）
+      const { error } = await sbClient.from('request_item_dates').update({
+        completed: false, completed_by: null, completed_at: null, grace_ends_at: null
+      }).eq('id', item.id);
+      if(error){ toast('取り消しに失敗しました：' + error.message, true); return; }
+      await logChange('request_item_dates', item.id, 'completed', true, false, item.category);
+      item.completed = false;
+      item.grace_ends_at = null;
+      toast(`${displayCategory(item.category, item.item_name)}：完成前の状態に戻しました`);
+    } else {
+      const graceEnds = new Date(Date.now() + 60*1000).toISOString();
+      const { error } = await sbClient.from('request_item_dates').update({
+        completed: true, completed_by: currentUser.name, completed_at: new Date().toISOString(), grace_ends_at: graceEnds
+      }).eq('id', item.id);
+      if(error){ toast('完成操作に失敗しました：' + error.message, true); return; }
+      await logChange('request_item_dates', item.id, 'completed', false, true, item.category);
+      item.completed = true;
+      item.grace_ends_at = graceEnds;
+    }
+  } finally {
+    renderProgSheet(); // ここでボタンの有効／無効を現在の状態に合わせて再設定する
+    render();
+  }
 });
 
 // =============================================
@@ -872,9 +896,15 @@ function isAnySheetOpen(){
       || document.getElementById('proc-overlay').classList.contains('show');
 }
 
+let realtimeDebounceHandle = null;
+
 function requestReload(){
-  if(isAnySheetOpen()){ realtimeReloadPending = true; return; }
-  loadCalendarItems();
+  // 短時間に複数件の変更通知が来ても、まとめて1回だけ再読み込みする
+  clearTimeout(realtimeDebounceHandle);
+  realtimeDebounceHandle = setTimeout(() => {
+    if(isAnySheetOpen()){ realtimeReloadPending = true; return; }
+    loadCalendarItems();
+  }, 500);
 }
 
 function subscribeRealtime(){
