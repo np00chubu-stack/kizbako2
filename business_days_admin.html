@@ -309,6 +309,13 @@ select.role-select{font-size:12px;padding:5px 6px;border:1px solid var(--line);b
   <p class="desc">自分（このアカウント）が受け取る通知の種類を選べます。</p>
   <div class="card">
     <div class="notif-setting-row">
+      <span>依頼の通知を受け取る</span>
+      <label class="notif-toggle">
+        <input type="checkbox" id="pref-request" checked onchange="saveAdminNotifPref()">
+        <span class="track"></span>
+      </label>
+    </div>
+    <div class="notif-setting-row">
       <span>希望日変更の通知を受け取る</span>
       <label class="notif-toggle">
         <input type="checkbox" id="pref-date-change" checked onchange="saveAdminNotifPref()">
@@ -385,9 +392,10 @@ function showFormMsg(text, type){
 async function loadAdminNotifPref(){
   const { data } = await sbClient
     .from('notification_prefs')
-    .select('allow_date_change, allow_urgent, allow_cancel')
+    .select('allow_request, allow_date_change, allow_urgent, allow_cancel')
     .eq('email', currentUser.email)
     .maybeSingle();
+  document.getElementById('pref-request').checked = data ? data.allow_request : true;
   document.getElementById('pref-date-change').checked = data ? data.allow_date_change : true;
   document.getElementById('pref-urgent').checked = data ? data.allow_urgent : true;
   document.getElementById('pref-cancel').checked = data ? data.allow_cancel : true;
@@ -459,6 +467,7 @@ async function subscribeToPush(){
 async function saveAdminNotifPref(){
   await sbClient.from('notification_prefs').upsert({
     email: currentUser.email,
+    allow_request: document.getElementById('pref-request').checked,
     allow_date_change: document.getElementById('pref-date-change').checked,
     allow_urgent: document.getElementById('pref-urgent').checked,
     allow_cancel: document.getElementById('pref-cancel').checked
