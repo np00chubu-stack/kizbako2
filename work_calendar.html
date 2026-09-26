@@ -423,7 +423,7 @@ function reqCardHtml(it){
     <div class="req-card ${stageClass} ${cancelledClass}" data-item="${it.id}">
       <div class="rq-line"><span class="rq-name">${escapeHtml(displayCategory(it.category, it.item_name))}${urgentTag}</span><span class="rq-size">${escapeHtml(it.sizeText)}</span></div>
       <div class="rq-row">
-        <span class="rq-qtyteam"><span class="rq-qty">${it.qty}</span><span class="rq-team">${escapeHtml(it.team_abbr)}</span></span>
+        <span class="rq-qtyteam"><span class="rq-qty">${it.qty}</span>${it.team_abbr ? `<span class="rq-team">${escapeHtml(it.team_abbr)}</span>` : ''}</span>
         <span class="rq-requester">${escapeHtml(it.requester_name)}</span>
       </div>
     </div>`;
