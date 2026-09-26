@@ -9,14 +9,14 @@
 body{font-family:-apple-system,'Hiragino Kaku Gothic ProN','Yu Gothic',YuGothic,sans-serif;background:#e2e6ec;color:#333;min-height:100vh}
 .container{max-width:1800px;margin:24px auto;padding:0 20px 80px}
 h1{font-size:22px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
-
+ 
 .login-box{max-width:360px;margin:80px auto;text-align:center}
 .login-box h1{border:none;margin-bottom:20px}
 .btn-google{padding:13px 24px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
 .btn-google:hover{background:#2c5282}
 #auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
 .login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:4px;margin-bottom:14px}
-
+ 
 /* 凡例 */
 .legend-row{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:16px;font-size:13px;color:#666}
 .legend-item{display:flex;align-items:center;gap:5px}
@@ -26,15 +26,15 @@ h1{font-size:22px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .legend-dot.st-blue{background:#e3eefb;border-color:#2e6ba6}
 .legend-dot.st-ready{background:#fbe7ee;border-color:#b23b63}
 .legend-dot.st-done{background:#fbf1c7;border-color:#8a6d12}
-
+ 
 #load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
 .empty-note{text-align:center;color:#999;font-size:13px;padding:30px 0}
-
+ 
 /* 週ブロック */
 .week-block{margin-bottom:22px}
 .week-label{font-size:14px;font-weight:bold;color:#1a3a5c;margin-bottom:6px}
 .week-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:12px}
-
+ 
 .day-col{display:flex;flex-direction:column;background:#fff;border:2.5px solid #2b3a4a;border-radius:0;overflow:hidden;min-height:150px;min-width:0}
 .day-head{display:flex;align-items:baseline;justify-content:space-between;padding:11px 13px 9px;border-bottom:2px solid #2b3a4a;background:#dde2ea}
 .day-head .dh-date{font-size:17px;font-weight:bold;color:#04101c}
@@ -43,7 +43,7 @@ h1{font-size:22px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .day-head .dh-total.zero{background:#f0f0f0;color:#aaa}
 .day-body{padding:10px;display:flex;flex-direction:column;gap:8px}
 .day-empty{font-size:10px;color:#bbb;text-align:center;padding:10px 4px}
-
+ 
 .req-card{position:relative;background:#fff;border:1px solid #6b7684;border-radius:0;padding:9px 11px 8px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:box-shadow .15s ease}
 .req-card.st-pink{background:#e4f3e8}
 .req-card.st-blue{background:#e3eefb}
@@ -52,7 +52,7 @@ h1{font-size:22px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .req-card.pressing{box-shadow:0 0 0 2px #1a3a5c inset}
 .req-card.is-cancelled{opacity:.55}
 .req-card.is-cancelled .rq-name,.req-card.is-cancelled .rq-size{text-decoration:line-through}
-
+ 
 .rq-line{display:flex;align-items:flex-start;gap:5px;flex-wrap:wrap}
 .rq-name{flex:1 1 auto}
 .rq-name{font-size:13.5px;font-weight:bold;white-space:normal;overflow-wrap:break-word;word-break:normal;min-width:40px;flex:1 1 auto}
@@ -63,7 +63,7 @@ h1{font-size:22px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .rq-qtyteam{display:inline-flex;align-items:center;gap:4px}
 .rq-team{font-weight:bold;font-size:11.5px;color:#fff;background:#6a4fa8;padding:2px 8px;border-radius:0}
 .rq-requester{font-size:11px;color:#999}
-
+ 
 /* 土曜帯 */
 .sat-strip{margin-top:6px}
 .sat-day{max-width:220px;background:#dbe4f3;border:1.4px dashed #1a3a5c;border-radius:0;overflow:hidden}
@@ -71,26 +71,26 @@ h1{font-size:22px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .sat-day .day-head .dh-dow{color:rgba(255,255,255,.75)}
 .sat-day .day-head .dh-total{background:rgba(255,255,255,.25);color:#fff}
 .sat-flag{font-size:9.5px;font-weight:bold;color:#1a3a5c;padding:5px 9px 0}
-
+ 
 /* 猶予バナー */
 .grace-banner{position:fixed;left:12px;right:12px;bottom:14px;max-width:520px;margin:0 auto;z-index:60;background:#16181b;color:#fff;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:bold;display:none;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 10px 20px rgba(0,0,0,.3)}
 .grace-banner.show{display:flex}
 .grace-banner button{appearance:none;border:none;background:rgba(255,255,255,.18);color:#fff;font-weight:bold;font-size:11px;padding:6px 12px;border-radius:4px;cursor:pointer;flex-shrink:0}
-
+ 
 .toast-wrap{position:fixed;left:0;right:0;bottom:74px;display:flex;justify-content:center;z-index:61;pointer-events:none;padding:0 14px}
 .toast{pointer-events:auto;max-width:360px;background:#16181b;color:#fff;font-size:12px;font-weight:bold;line-height:1.5;padding:9px 14px;border-radius:6px;box-shadow:0 10px 20px rgba(0,0,0,.3);opacity:0;transform:translateY(6px);transition:opacity .2s ease,transform .2s ease}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.warn{background:#c4531f}
-
+ 
 /* ボトムシート共通 */
 .sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:70}
 .sheet-overlay.show{display:flex;align-items:flex-end;justify-content:center}
 .sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:0;padding:20px;max-width:520px;margin:0 auto;z-index:71;max-height:82vh;overflow-y:auto}
 .sheet-title{font-size:15px;font-weight:bold;color:#1a3a5c}
 .sheet-sub{font-size:11px;color:#777;margin-top:3px}
-
+ 
 .sheet-diagram{margin-top:16px;height:140px;border-radius:0;background:#eef1f6;border:1.4px dashed #7c8798;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#aaa;font-size:11px}
-
+ 
 .prog-rows{margin-top:16px;display:flex;flex-direction:column;gap:9px}
 .prog-row{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:#eef1f6;border-radius:0}
 .pr-label{font-size:13px;font-weight:bold}
@@ -98,18 +98,18 @@ h1{font-size:22px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .pr-switch.p1.on{background:#2f7d4f;border-color:#2f7d4f;color:#fff}
 .pr-switch.p2.on{background:#2e6ba6;border-color:#2e6ba6;color:#fff}
 .pr-switch:disabled{cursor:not-allowed;opacity:.5}
-
+ 
 .prog-complete{width:100%;margin-top:16px;appearance:none;border:none;cursor:pointer;font-weight:bold;font-size:13.5px;padding:13px 0;border-radius:0;background:#f0f0f0;color:#aaa}
 .prog-complete.ready{background:#f3d251;color:#5b4600}
 .prog-complete.completed{background:#fce4d6;color:#c4531f}
 .prog-complete:disabled{cursor:not-allowed}
 .prog-hint{margin-top:8px;font-size:10.5px;color:#888;text-align:center;line-height:1.6}
-
+ 
 .qty-edit-area{margin-top:16px;padding-top:16px;border-top:1px solid #eee}
 .qty-edit-area .qe-title{font-size:12px;font-weight:bold;color:#1a3a5c;margin-bottom:8px}
 .qty-edit-area input[type="number"]{width:100%;padding:8px;border:1px solid #8a8f99;border-radius:0;font-size:14px;margin-bottom:8px}
 .btn-save-qty{width:100%;padding:10px;background:#1a3a5c;color:#fff;border:none;border-radius:0;font-size:13.5px;font-weight:bold;cursor:pointer}
-
+ 
 .btn-close-sheet{width:100%;padding:10px;background:#fff;border:1px solid #999;color:#555;border-radius:0;font-size:14px;cursor:pointer;margin-top:14px}
 </style>
 <link rel="manifest" href="manifest.json">
@@ -120,24 +120,24 @@ h1{font-size:22px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 </head>
 <body>
 <div class="container">
-
+ 
 <div id="auth-loading">読み込み中...</div>
-
+ 
 <div id="auth-login" class="login-box" style="display:none">
   <h1>🗓️ 作業カレンダー</h1>
   <button class="btn-google" onclick="loginWithGoogle()">Googleでログイン</button>
   <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#c53030"></div>
 </div>
-
+ 
 <div id="auth-denied" class="login-box" style="display:none">
   <h1>🗓️ 作業カレンダー</h1>
   <p style="font-size:14px;color:#c53030">このページは作業者・管理者のみ利用できます。</p>
 </div>
-
+ 
 <div id="app-content" style="display:none">
   <h1>🗓️ 作業カレンダー</h1>
   <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
-
+ 
   <div class="legend-row">
     <div class="legend-item"><span class="legend-dot st-none"></span>受付済み</div>
     <div class="legend-item"><span class="legend-dot st-pink"></span>工程Aのみ</div>
@@ -145,19 +145,19 @@ h1{font-size:22px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
     <div class="legend-item"><span class="legend-dot st-ready"></span>両方完了（未完成）</div>
     <div class="legend-item"><span class="legend-dot st-done"></span>完成</div>
   </div>
-
+ 
   <div id="calendar-content"></div>
   <div id="load-error" style="display:none"></div>
 </div>
-
+ 
 </div>
-
+ 
 <div class="grace-banner" id="grace-banner">
   <span id="grace-text"></span>
   <button id="grace-cancel-btn">取り消す</button>
 </div>
 <div class="toast-wrap"><div class="toast" id="toast"></div></div>
-
+ 
 <!-- 手順書ポップアップ（プレースホルダー） -->
 <div class="sheet-overlay" id="proc-overlay" onclick="closeProcSheet(event)">
   <div class="sheet" onclick="event.stopPropagation()">
@@ -167,7 +167,7 @@ h1{font-size:22px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
     <button class="btn-close-sheet" onclick="closeProcSheet()">閉じる</button>
   </div>
 </div>
-
+ 
 <!-- 進捗操作メニュー（長押しで開く） -->
 <div class="sheet-overlay" id="prog-overlay" onclick="closeProgSheet(event)">
   <div class="sheet" onclick="event.stopPropagation()">
@@ -189,15 +189,15 @@ h1{font-size:22px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
     <button class="btn-close-sheet" onclick="closeProgSheet()">閉じる</button>
   </div>
 </div>
-
+ 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+ 
 let currentUser = { email: '', name: '', role: '' };
-
+ 
 async function logChange(tableName, recordId, fieldName, oldValue, newValue, itemLabel, byName, byEmail){
   await sbClient.from('change_history').insert({
     table_name: tableName,
@@ -215,18 +215,18 @@ let rawItems = [];       // request_item_datesの生データ（キャッシュ�
 let activeProcId = null;
 let activeProgId = null;
 let graceTimerHandle = null;
-
+ 
 function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
+ 
 // 依頼フォームの階層カテゴリ「3000まで」「3001以上」は、サイズで自動振り分けするための
 // 内部区分にすぎず、品目名として意味を持たないため、画面表示からは常に除外する。
 const HIDDEN_CATEGORY_LABELS = ['3000まで', '3001以上'];
 function displayCategory(cat, itemName){
   return HIDDEN_CATEGORY_LABELS.includes(cat) ? (itemName || '') : (cat || '');
 }
-
+ 
 // =============================================
 // JST基準の日付ユーティリティ
 // =============================================
@@ -261,14 +261,14 @@ function getThisMondayJST(){
 function endOfMonth(d){
   return new Date(d.getFullYear(), d.getMonth()+1, 0);
 }
-
+ 
 // =============================================
 // データ読み込み
 // =============================================
 async function loadCalendarItems(){
   const monday = getThisMondayJST();
   const mondayStr = dateToYmd(monday);
-
+ 
   const { data, error } = await sbClient
     .from('request_item_dates')
     .select(`
@@ -282,15 +282,15 @@ async function loadCalendarItems(){
     .gte('delivery_date', mondayStr)
     .order('delivery_date', { ascending: true })
     .order('created_at', { ascending: true });
-
-
+ 
+ 
   if(error){
     document.getElementById('load-error').style.display = 'block';
     document.getElementById('load-error').textContent = '依頼データの取得に失敗しました：' + error.message;
     return;
   }
   document.getElementById('load-error').style.display = 'none';
-
+ 
   // まず全件を整形（絞り込みはまだしない）
   const allItems = (data || []).map(row => {
     const item = row.request_items || {};
@@ -316,17 +316,17 @@ async function loadCalendarItems(){
       team_abbr: (item.team_master && item.team_master.team_abbr) || ''
     };
   });
-
+ 
   // 猶予期限切れのものを先に在庫反映する（allItemsのreflected_to_stockが更新される）
   await reflectExpiredGraceItems(allItems);
-
+ 
   // 反映後の状態を踏まえて、表示対象を絞り込む
   rawItems = allItems.filter(it => {
     if(it.canceled_at) return true;
     if(it.reflected_to_stock) return false;
     return ['受付済み','作業中','発注可能'].includes(it.status);
   });
-
+ 
   // 表示範囲の決定：今週月曜〜（来月末 と 実データの最大納入日 のうち遅い方）
   let finalEnd = endOfMonth(addDays(endOfMonth(monday), 1)); // 来月末
   rawItems.forEach(it => {
@@ -334,22 +334,22 @@ async function loadCalendarItems(){
     if(d > finalEnd) finalEnd = d;
   });
   const finalEndStr = dateToYmd(finalEnd);
-
+ 
   const { data: exRows } = await sbClient
     .from('business_day_exceptions')
     .select('exception_date, is_business_day')
     .gte('exception_date', mondayStr)
     .lte('exception_date', finalEndStr)
     .eq('is_business_day', true);
-
+ 
   const satExceptionSet = new Set((exRows || [])
     .filter(r => ymdToDate(r.exception_date).getDay() === 6)
     .map(r => r.exception_date));
-
+ 
   buildWeeks(monday, finalEnd, satExceptionSet);
   render();
 }
-
+ 
 // =============================================
 // 猶予期限切れの完成データを在庫反映する（表示上のみの更新。DBへの反映はSupabase側の自動処理が担当）
 // =============================================
@@ -359,13 +359,13 @@ async function reflectExpiredGraceItems(items){
     it.completed && !it.reflected_to_stock && it.grace_ends_at && new Date(it.grace_ends_at) <= now
   );
   if(!targets.length) return;
-
+ 
   for(const it of targets){
     it.status = '発注可能';
     it.reflected_to_stock = true;
   }
 }
-
+ 
 // =============================================
 // 週データの構築
 // =============================================
@@ -399,7 +399,7 @@ function buildWeeks(monday, finalEnd, satExceptionSet){
     cur = addDays(cur, 7);
   }
 }
-
+ 
 // =============================================
 // 進捗ステージの色クラス判定
 // =============================================
@@ -410,11 +410,11 @@ function computeStageClass(item){
   if(item.stage2_done) return 'st-blue';
   return '';
 }
-
+ 
 function totalOf(items){
   return items.filter(it => !it.canceled_at).reduce((sum, it) => sum + (it.qty || 0), 0);
 }
-
+ 
 function reqCardHtml(it){
   const stageClass = computeStageClass(it);
   const cancelledClass = it.canceled_at ? 'is-cancelled' : '';
@@ -423,12 +423,12 @@ function reqCardHtml(it){
     <div class="req-card ${stageClass} ${cancelledClass}" data-item="${it.id}">
       <div class="rq-line"><span class="rq-name">${escapeHtml(displayCategory(it.category, it.item_name))}${urgentTag}</span><span class="rq-size">${escapeHtml(it.sizeText)}</span></div>
       <div class="rq-row">
-        <span class="rq-qtyteam"><span class="rq-qty">${it.qty}</span><span class="rq-team">${escapeHtml(it.team_abbr)}</span></span>
+        <span class="rq-qtyteam"><span class="rq-qty">${it.qty}</span>${it.team_abbr ? `<span class="rq-team">${escapeHtml(it.team_abbr)}</span>` : ''}</span>
         <span class="rq-requester">${escapeHtml(it.requester_name)}</span>
       </div>
     </div>`;
 }
-
+ 
 function dayColHtml(day){
   const total = totalOf(day.items);
   const body = day.items.length ? day.items.map(reqCardHtml).join('') : `<div class="day-empty">依頼なし</div>`;
@@ -441,7 +441,7 @@ function dayColHtml(day){
       <div class="day-body">${body}</div>
     </div>`;
 }
-
+ 
 function satStripHtml(saturday){
   if(!saturday) return '';
   const total = totalOf(saturday.items);
@@ -458,7 +458,7 @@ function satStripHtml(saturday){
       </div>
     </div>`;
 }
-
+ 
 function render(){
   const el = document.getElementById('calendar-content');
   if(!weeks.length){
@@ -474,18 +474,18 @@ function render(){
   bindCardEvents();
   updateGraceBanner();
 }
-
+ 
 function findItem(id){
   return rawItems.find(it => it.id === id);
 }
-
+ 
 // =============================================
 // タップ（手順書）／長押し（進捗操作）の分離
 // =============================================
 let pressTimer = null;
 let longPressFired = false;
 let pressStartXY = null;
-
+ 
 function positionSheetToView(overlayId){
   const sheet = document.querySelector('#' + overlayId + ' .sheet');
   if(!sheet || !window.visualViewport) return;
@@ -494,7 +494,7 @@ function positionSheetToView(overlayId){
     const bottomY = vv.offsetTop + vv.height;
     sheet.style.bottom = 'auto';
     sheet.style.top = Math.max(0, bottomY - sheet.offsetHeight) + 'px';
-
+ 
     const centerX = vv.offsetLeft + vv.width / 2;
     sheet.style.right = 'auto';
     sheet.style.left = Math.max(0, centerX - sheet.offsetWidth / 2) + 'px';
@@ -504,7 +504,7 @@ function positionSheetToView(overlayId){
   vv.addEventListener('scroll', apply);
   sheet._vvApply = apply;
 }
-
+ 
 function clearSheetPosition(overlayId){
   const sheet = document.querySelector('#' + overlayId + ' .sheet');
   if(!sheet || !window.visualViewport) return;
@@ -518,12 +518,12 @@ function clearSheetPosition(overlayId){
   sheet.style.left = '';
   sheet.style.right = '';
 }
-
+ 
 function cardAt(target){ return target.closest ? target.closest('.req-card') : null; }
-
+ 
 function bindCardEvents(){
   const root = document.getElementById('calendar-content');
-
+ 
   root.onpointerdown = (e) => {
     const card = cardAt(e.target);
     if(!card) return;
@@ -558,7 +558,7 @@ function bindCardEvents(){
     if(item) openProcSheet(item);
   });
 }
-
+ 
 // =============================================
 // 手順書ポップアップ（プレースホルダー）
 // =============================================
@@ -574,7 +574,7 @@ function closeProcSheet(e){
   document.getElementById('proc-overlay').classList.remove('show');
   clearSheetPosition('proc-overlay');
 }
-
+ 
 // =============================================
 // 進捗操作メニュー
 // =============================================
@@ -592,11 +592,11 @@ function closeProgSheet(e){
   document.getElementById('prog-overlay').classList.remove('show');
   clearSheetPosition('prog-overlay');
 }
-
+ 
 function renderProgSheet(){
   const item = findItem(activeProgId);
   if(!item) return;
-
+ 
   const p1btn = document.getElementById('prog-p1-btn');
   const p2btn = document.getElementById('prog-p2-btn');
   const locked = item.completed; // 完成後は個別工程の直接変更不可（取り消してから）
@@ -606,11 +606,11 @@ function renderProgSheet(){
   p2btn.textContent = item.stage2_done ? '完了' : '未完了';
   p2btn.className = 'pr-switch p2' + (item.stage2_done ? ' on' : '');
   p2btn.disabled = locked;
-
+ 
   const completeBtn = document.getElementById('prog-complete-btn');
   const hint = document.getElementById('prog-hint');
   const bothDone = item.stage1_done && item.stage2_done;
-
+ 
   if(item.completed && !item.reflected_to_stock){
     completeBtn.textContent = '完成を取り消す';
     completeBtn.className = 'prog-complete completed';
@@ -632,10 +632,10 @@ function renderProgSheet(){
     completeBtn.disabled = true;
     hint.textContent = '工程A・工程Bの両方が完了すると押せるようになります。';
   }
-
+ 
   renderQtyEditArea(item);
 }
-
+ 
 // =============================================
 // 数量変更欄（管理者のみ・対象が「作業中」の場合のみ表示）
 // 依頼者からの連絡を受けて管理者が代理で変更する運用。誰が・いつ変更したかを記録する。
@@ -654,16 +654,16 @@ function renderQtyEditArea(item){
     area.innerHTML = '';
   }
 }
-
+ 
 async function saveQtyChange(){
   const item = findItem(activeProgId);
   if(!item) return;
   const input = document.getElementById('prog-qty-input');
   const msgEl = document.getElementById('prog-qty-msg');
   const newQty = input ? parseInt(input.value, 10) : NaN;
-
+ 
   if(!newQty || newQty < 1){ msgEl.textContent = '数量を入力してください。'; return; }
-
+ 
   const { error } = await sbClient
     .from('request_item_dates')
     .update({
@@ -672,23 +672,23 @@ async function saveQtyChange(){
       last_changed_at: new Date().toISOString()
     })
     .eq('id', item.id);
-
+ 
   if(error){
     msgEl.textContent = '変更に失敗しました：' + error.message;
     return;
   }
-
+ 
   await logChange('request_item_dates', item.id, 'qty', item.qty, newQty, item.category);
-
+ 
   item.qty = newQty;
   renderProgSheet();
   render();
   toast(`${displayCategory(item.category, item.item_name)}：数量を${newQty}に変更しました`);
 }
-
+ 
 document.getElementById('prog-p1-btn').addEventListener('click', () => toggleStage(1));
 document.getElementById('prog-p2-btn').addEventListener('click', () => toggleStage(2));
-
+ 
 async function toggleStage(n){
   const item = findItem(activeProgId);
   if(!item || item.completed) return;
@@ -697,11 +697,11 @@ async function toggleStage(n){
   const atField = `stage${n}_done_at`;
   const otherField = n === 1 ? 'stage2_done' : 'stage1_done';
   const newVal = !item[field];
-
+ 
   const payload = newVal
     ? { [field]: true, [byField]: currentUser.name, [atField]: new Date().toISOString() }
     : { [field]: false, [byField]: null, [atField]: null };
-
+ 
   // 工程A・Bのどちらかが完了した時点で「受付済み」→「作業中」に、
   // 両方とも未完了に戻った場合は「作業中」→「受付済み」に連動させる
   // （行全体の上書きではなく、statusカラムのみ追加で送る）
@@ -713,25 +713,25 @@ async function toggleStage(n){
     newStatus = '受付済み';
     payload.status = newStatus;
   }
-
+ 
   const { error } = await sbClient.from('request_item_dates').update(payload).eq('id', item.id);
   if(error){ toast('更新に失敗しました：' + error.message, true); return; }
-
+ 
   await logChange('request_item_dates', item.id, field, item[field], newVal, item.category);
   if(newStatus !== item.status){
     await logChange('request_item_dates', item.id, 'status', item.status, newStatus, item.category);
   }
-
+ 
   item[field] = newVal;
   item.status = newStatus;
   renderProgSheet();
   render();
 }
-
+ 
 document.getElementById('prog-complete-btn').addEventListener('click', async () => {
   const item = findItem(activeProgId);
   if(!item) return;
-
+ 
   if(item.completed && !item.reflected_to_stock){
     // 取り消し（工程A/Bの状態は維持）
     const { error } = await sbClient.from('request_item_dates').update({
@@ -754,11 +754,11 @@ document.getElementById('prog-complete-btn').addEventListener('click', async () 
   } else {
     return;
   }
-
+ 
   renderProgSheet();
   render();
 });
-
+ 
 // =============================================
 // 猶予バナー・自動反映タイマー
 // =============================================
@@ -766,7 +766,7 @@ function updateGraceBanner(){
   const active = rawItems.filter(it => it.completed && !it.reflected_to_stock && it.grace_ends_at);
   const banner = document.getElementById('grace-banner');
   if(!active.length){ banner.classList.remove('show'); return; }
-
+ 
   const nearest = active.reduce((a,b) => new Date(a.grace_ends_at) < new Date(b.grace_ends_at) ? a : b);
   const remain = Math.max(0, Math.ceil((new Date(nearest.grace_ends_at) - Date.now())/1000));
   const m = Math.floor(remain/60), s = remain%60;
@@ -777,7 +777,7 @@ function updateGraceBanner(){
   banner.classList.add('show');
   document.getElementById('grace-cancel-btn').onclick = () => revertFromBanner(nearest.id);
 }
-
+ 
 async function revertFromBanner(itemId){
   const item = findItem(itemId);
   if(!item || item.reflected_to_stock) return;
@@ -791,7 +791,7 @@ async function revertFromBanner(itemId){
   toast(`${displayCategory(item.category, item.item_name)}：完成前の状態に戻しました`);
   render();
 }
-
+ 
 function toast(message, warn){
   const el = document.getElementById('toast');
   el.textContent = message;
@@ -799,7 +799,7 @@ function toast(message, warn){
   clearTimeout(toast._t);
   toast._t = setTimeout(() => { el.classList.remove('show'); }, 3600);
 }
-
+ 
 // 1秒ごとに猶予表示を更新し、期限切れがあれば反映処理を回してリロードする
 function startGraceTicker(){
   clearInterval(graceTimerHandle);
@@ -813,7 +813,7 @@ function startGraceTicker(){
     }
   }, 1000);
 }
-
+ 
 // =============================================
 // 認証
 // =============================================
@@ -826,63 +826,63 @@ async function loginWithGoogle(){
     document.getElementById('auth-msg').textContent = 'ログインに失敗しました：' + error.message;
   }
 }
-
+ 
 async function initAuth(){
   const { data: { user } } = await sbClient.auth.getUser();
-
+ 
   if(!user){
     document.getElementById('auth-loading').style.display='none';
     document.getElementById('auth-login').style.display='block';
     return;
   }
-
+ 
   const { data: allowRow, error: allowErr } = await sbClient
     .from('users_allowlist')
     .select('name, role')
     .eq('email', user.email)
     .maybeSingle();
-
+ 
   if(allowErr || !allowRow || !allowRow.name || !['作業者','管理者'].includes(allowRow.role)){
     document.getElementById('auth-loading').style.display='none';
     document.getElementById('auth-denied').style.display='block';
     return;
   }
-
+ 
   currentUser.email = user.email;
   currentUser.name = allowRow.name;
   currentUser.role = allowRow.role;
-
+ 
   document.getElementById('login-name-display').textContent = currentUser.name;
   document.getElementById('auth-loading').style.display='none';
   document.getElementById('app-content').style.display='block';
-
+ 
   await loadCalendarItems();
   startGraceTicker();
   subscribeRealtime();
   renderFooterNav(currentUser.role, 'workCalendar');
 }
-
+ 
 // =============================================
 // Realtime購読
 // =============================================
 let realtimeReloadPending = false;
-
+ 
 function isAnySheetOpen(){
   return document.getElementById('prog-overlay').classList.contains('show')
       || document.getElementById('proc-overlay').classList.contains('show');
 }
-
+ 
 function requestReload(){
   if(isAnySheetOpen()){ realtimeReloadPending = true; return; }
   loadCalendarItems();
 }
-
+ 
 function subscribeRealtime(){
   sbClient
     .channel('work_calendar_changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'request_item_dates' }, requestReload)
     .subscribe();
-
+ 
   setInterval(() => {
     if(realtimeReloadPending && !isAnySheetOpen()){
       realtimeReloadPending = false;
@@ -890,7 +890,7 @@ function subscribeRealtime(){
     }
   }, 1500);
 }
-
+ 
 // =============================================
 // 共通フッターナビ（依頼者・作業者はタブバー／管理者はホームへ戻るリンク）
 // =============================================
@@ -906,7 +906,7 @@ function subscribeRealtime(){
 `;
   document.head.appendChild(style);
 })();
-
+ 
 const FNAV_ICONS = {
   home: '<path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 001 1h10a1 1 0 001-1v-9"/>',
   form: '<path d="M4 3h13l4 4v14a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M8 9h8M8 13h8M8 17h5"/>',
@@ -920,13 +920,13 @@ const FNAV_ICONS = {
 function fIcon(name){
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${FNAV_ICONS[name]}</svg>`;
 }
-
+ 
 function renderFooterNav(role, activeKey){
   const NAV_URLS = {
     home: 'home.html', form: 'formB_size.html', mypage: 'mypage.html',
     stock: 'stock_view.html', workCalendar: 'work_calendar.html', requestCalendar: 'request_calendar.html'
   };
-
+ 
   if(role === '管理者'){
     const back = document.createElement('a');
     back.href = NAV_URLS.home;
@@ -935,10 +935,10 @@ function renderFooterNav(role, activeKey){
     document.body.appendChild(back);
     return;
   }
-
+ 
   const bar = document.createElement('div');
   bar.className = 'footer-tabbar';
-
+ 
   if(role === '作業者'){
     bar.innerHTML = `
       <a class="ftab ${activeKey==='home'?'active':''}" href="${NAV_URLS.home}">${fIcon('home')}<span>ホーム</span></a>
@@ -954,11 +954,11 @@ function renderFooterNav(role, activeKey){
       <a class="ftab ${activeKey==='stock'?'active':''}" href="${NAV_URLS.stock}">${fIcon('stock')}<span>在庫</span></a>
       <a class="ftab ${activeKey==='mypage'?'active':''}" href="${NAV_URLS.mypage}">${fIcon('user')}<span>マイページ</span></a>`;
   }
-
+ 
   document.body.appendChild(bar);
   document.body.style.paddingBottom = '68px';
 }
-
+ 
 initAuth();
 </script>
 <script>
