@@ -10,35 +10,35 @@
 body{font-family:'Meiryo','Yu Gothic',sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
 .container{max-width:1100px;margin:24px auto;padding:0 12px 80px}
 h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c;padding-bottom:8px;margin-bottom:20px}
-
+ 
 .login-box{max-width:360px;margin:80px auto;text-align:center}
 .login-box h1{border:none;margin-bottom:20px}
 .btn-google{padding:13px 24px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:bold;cursor:pointer}
 .btn-google:hover{background:#2c5282}
 #auth-loading{text-align:center;padding:60px 0;color:#666;font-size:14px}
 .login-name-bar{font-size:12px;color:#555;background:#eef3f8;padding:8px 12px;border-radius:6px;margin-bottom:14px}
-
+ 
 #load-error{text-align:center;color:#c53030;font-size:13px;padding:20px 0}
 .empty-note{text-align:center;color:#999;font-size:13px;padding:30px 0}
-
+ 
 /* 月切替バー */
 .month-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px}
 .month-nav button{appearance:none;border:1px solid #1a3a5c;background:#fff;color:#1a3a5c;border-radius:8px;width:44px;height:44px;font-size:18px;font-weight:bold;cursor:pointer;flex-shrink:0}
 .month-nav button:active{background:#eef3f8}
 .month-nav .month-label{font-size:16px;font-weight:bold;color:#1a3a5c;min-width:120px;text-align:center}
 .month-total-bar{text-align:center;font-size:13px;font-weight:bold;color:#1a3a5c;margin-bottom:16px}
-
+ 
 /* カレンダーコンテナ（横スクロール可能化） */
 #calendar-content {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 8px;
 }
-
+ 
 /* 週ブロック */
 .week-block{margin-bottom:14px}
 .week-grid{display:grid;grid-template-columns:repeat(5, minmax(140px, 1fr));gap:6px}
-
+ 
 /* モバイル向けスタイル調整 */
 @media (max-width:600px){
   /* 5列が潰れすぎないよう横幅を確保（横スクロールで閲覧） */
@@ -79,7 +79,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
   }
   .urgent-tag{font-size:6.5px;padding:0 3px; margin-left:2px;}
 }
-
+ 
 /* ピンチアウト（ズームイン）時、または解像度変更時に自動で省略を解除して全容を表示 */
 @media (max-width:600px) and (min-resolution: 1.2dppx), (min-width: 601px) {
   .rq-name, .rq-size, .rq-requester, .rq-team {
@@ -89,7 +89,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
     text-overflow: clip !important;
   }
 }
-
+ 
 .day-col{display:flex;flex-direction:column;background:#fff;border:1px solid #e2e6ec;border-radius:8px;overflow:hidden;min-height:100px}
 .day-col.out-of-month{background:#f7f7f8;opacity:.55}
 .day-head{display:flex;align-items:baseline;justify-content:space-between;padding:6px 8px 5px;border-bottom:1px solid #e2e6ec;background:#f7f9fc}
@@ -99,11 +99,11 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .day-head .dh-total.zero{background:#f0f0f0;color:#aaa}
 .day-body{padding:5px;display:flex;flex-direction:column;gap:4px}
 .day-empty{font-size:9px;color:#bbb;text-align:center;padding:8px 2px}
-
+ 
 .req-card{background:#fff;border:1px solid #e2e6ec;border-radius:6px;padding:5px 6px}
 .req-card.is-cancelled{opacity:.55}
 .req-card.is-cancelled .rq-name,.req-card.is-cancelled .rq-size{text-decoration:line-through}
-
+ 
 .rq-line{display:flex;flex-direction:column;gap:1px}
 .rq-name{font-size:10.5px;font-weight:bold;min-width:0}
 .rq-size{font-size:9px;color:#888;flex-shrink:0}
@@ -113,7 +113,7 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 .rq-team{font-weight:bold;font-size:8.5px;color:#fff;background:#6a4fa8;padding:1px 5px;border-radius:999px}
 .rq-requester{font-size:8.5px;color:#999}
 .urgent-tag{font-size:7.5px;font-weight:bold;color:#fff;background:#c4531f;padding:1px 4px;border-radius:999px;margin-left:3px; vertical-align: middle;}
-
+ 
 /* 土曜帯 */
 .sat-strip{margin-top:6px}
 .sat-day{max-width:200px;background:#e6ecf7;border:1.4px dashed #1a3a5c;border-radius:8px;overflow:hidden}
@@ -130,57 +130,57 @@ h1{font-size:18px;font-weight:bold;color:#1a3a5c;border-bottom:2px solid #1a3a5c
 </head>
 <body>
 <div class="container">
-
+ 
 <div id="auth-loading">読み込み中...</div>
-
+ 
 <div id="auth-login" class="login-box" style="display:none">
   <h1>📅 依頼カレンダー</h1>
   <button class="btn-google" onclick="loginWithGoogle()">Googleでログイン</button>
   <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#c53030"></div>
 </div>
-
+ 
 <div id="auth-denied" class="login-box" style="display:none">
   <h1>📅 依頼カレンダー</h1>
   <p style="font-size:14px;color:#c53030">このアカウントはまだ利用登録されていません。管理者に連絡してください。</p>
 </div>
-
+ 
 <div id="app-content" style="display:none">
   <h1>📅 依頼カレンダー</h1>
   <div class="login-name-bar">ログイン中：<span id="login-name-display"></span> さん</div>
-
+ 
   <div class="month-nav">
     <button onclick="changeMonth(-1)">◀</button>
     <span class="month-label" id="month-label"></span>
     <button onclick="changeMonth(1)">▶</button>
   </div>
   <div class="month-total-bar" id="month-total-bar"></div>
-
+ 
   <div id="calendar-content"></div>
   <div id="load-error" style="display:none"></div>
 </div>
-
+ 
 </div>
-
+ 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = 'https://tguqfgdodevwowydkrkq.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OH2iHpq9DIukdzNMUR0lyw_sfVyATp6';
 const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+ 
 let currentUser = { email: '', name: '', role: '' };
 let weeks = [];
 let rawItems = [];
 let viewYear, viewMonth; // viewMonth: 1-12
-
+ 
 function escapeHtml(s){
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
+ 
 const HIDDEN_CATEGORY_LABELS = ['3000まで', '3001以上'];
 function displayCategory(cat, itemName){
   return HIDDEN_CATEGORY_LABELS.includes(cat) ? (itemName || '') : (cat || '');
 }
-
+ 
 // =============================================
 // JST基準の日付ユーティリティ
 // =============================================
@@ -205,7 +205,7 @@ function dowLabel(d){
 function formatMD(d){
   return `${d.getMonth()+1}/${d.getDate()}`;
 }
-
+ 
 // =============================================
 // 1年より前の依頼日データをアーカイブへ移動
 // =============================================
@@ -216,7 +216,7 @@ async function runArchive(){
     console.log('archive rpc error', e);
   }
 }
-
+ 
 // =============================================
 // 月移動
 // =============================================
@@ -226,34 +226,34 @@ function changeMonth(delta){
   if(viewMonth < 1){ viewMonth = 12; viewYear--; }
   loadCalendarItems();
 }
-
+ 
 function getMonthDisplayRange(year, month){
   const firstDay = new Date(year, month-1, 1);
   const lastDay = new Date(year, month, 0);
-
+ 
   const firstDow = firstDay.getDay();
   const startDiff = (firstDow === 0) ? -6 : (1 - firstDow);
   const rangeStart = addDays(firstDay, startDiff);
-
+ 
   const lastDow = lastDay.getDay();
   const endDiff = (lastDow === 0) ? -2 : (5 - lastDow);
   const rangeEnd = addDays(lastDay, endDiff >= 0 ? endDiff : endDiff);
-
+ 
   return { rangeStart, rangeEnd, firstDay, lastDay };
 }
-
+ 
 // =============================================
 // データ読み込み
 // =============================================
 async function loadCalendarItems(){
   document.getElementById('month-label').textContent = `${viewYear}年${viewMonth}月`;
-
+ 
   const { rangeStart, rangeEnd, firstDay, lastDay } = getMonthDisplayRange(viewYear, viewMonth);
   const rangeStartStr = dateToYmd(rangeStart);
   const rangeEndStr = dateToYmd(rangeEnd);
   const monthFirstStr = dateToYmd(firstDay);
   const monthLastStr = dateToYmd(lastDay);
-
+ 
   const { data, error } = await sbClient
     .from('request_item_dates')
     .select(`
@@ -263,14 +263,14 @@ async function loadCalendarItems(){
     .gte('delivery_date', rangeStartStr)
     .lte('delivery_date', rangeEndStr)
     .order('delivery_date', { ascending: true });
-
+ 
   if(error){
     document.getElementById('load-error').style.display = 'block';
     document.getElementById('load-error').textContent = '依頼データの取得に失敗しました：' + error.message;
     return;
   }
   document.getElementById('load-error').style.display = 'none';
-
+ 
   rawItems = (data || []).map(row => {
     const item = row.request_items || {};
     const req = item.requests || {};
@@ -289,27 +289,27 @@ async function loadCalendarItems(){
       team_abbr: (item.team_master && item.team_master.team_abbr) || ''
     };
   });
-
+ 
   const { data: exRows } = await sbClient
     .from('business_day_exceptions')
     .select('exception_date, is_business_day')
     .gte('exception_date', rangeStartStr)
     .lte('exception_date', rangeEndStr)
     .eq('is_business_day', true);
-
+ 
   const satExceptionSet = new Set((exRows || [])
     .filter(r => ymdToDate(r.exception_date).getDay() === 6)
     .map(r => r.exception_date));
-
+ 
   const monthTotal = rawItems
     .filter(it => it.delivery_date >= monthFirstStr && it.delivery_date <= monthLastStr && !it.canceled_at)
     .reduce((sum, it) => sum + (it.qty || 0), 0);
   document.getElementById('month-total-bar').textContent = `月合計：${monthTotal}`;
-
+ 
   buildWeeks(rangeStart, rangeEnd, satExceptionSet);
   render();
 }
-
+ 
 function buildWeeks(rangeStart, rangeEnd, satExceptionSet){
   weeks = [];
   let cur = rangeStart;
@@ -341,11 +341,11 @@ function buildWeeks(rangeStart, rangeEnd, satExceptionSet){
     cur = addDays(cur, 7);
   }
 }
-
+ 
 function totalOf(items){
   return items.filter(it => !it.canceled_at).reduce((sum, it) => sum + (it.qty || 0), 0);
 }
-
+ 
 function reqCardHtml(it){
   const cancelledClass = it.canceled_at ? 'is-cancelled' : '';
   const catText = displayCategory(it.category, it.item_name);
@@ -355,12 +355,12 @@ function reqCardHtml(it){
     <div class="req-card ${cancelledClass}">
       <div class="rq-line"><span class="rq-name">${escapeHtml(nameLine)}${urgentTag}</span><span class="rq-size">${escapeHtml(it.sizeText)}</span></div>
       <div class="rq-row">
-        <span class="rq-qtyteam"><span class="rq-qty">${it.qty}</span><span class="rq-team">${escapeHtml(it.team_abbr)}</span></span>
+        <span class="rq-qtyteam"><span class="rq-qty">${it.qty}</span>${it.team_abbr ? `<span class="rq-team">${escapeHtml(it.team_abbr)}</span>` : ''}</span>
         <span class="rq-requester">${escapeHtml(it.requester_name)}</span>
       </div>
     </div>`;
 }
-
+ 
 function dayColHtml(day){
   const total = totalOf(day.items);
   const body = day.items.length ? day.items.map(reqCardHtml).join('') : `<div class="day-empty">依頼なし</div>`;
@@ -373,7 +373,7 @@ function dayColHtml(day){
       <div class="day-body">${body}</div>
     </div>`;
 }
-
+ 
 function satStripHtml(saturday){
   if(!saturday) return '';
   const total = totalOf(saturday.items);
@@ -390,7 +390,7 @@ function satStripHtml(saturday){
       </div>
     </div>`;
 }
-
+ 
 function render(){
   const el = document.getElementById('calendar-content');
   if(!weeks.length){
@@ -404,7 +404,7 @@ function render(){
     </div>
   `).join('');
 }
-
+ 
 // =============================================
 // 認証
 // =============================================
@@ -417,53 +417,53 @@ async function loginWithGoogle(){
     document.getElementById('auth-msg').textContent = 'ログインに失敗しました：' + error.message;
   }
 }
-
+ 
 async function initAuth(){
   const { data: { user } } = await sbClient.auth.getUser();
-
+ 
   if(!user){
     document.getElementById('auth-loading').style.display='none';
     document.getElementById('auth-login').style.display='block';
     return;
   }
-
+ 
   const { data: allowRow, error: allowErr } = await sbClient
     .from('users_allowlist')
     .select('name, role')
     .eq('email', user.email)
     .maybeSingle();
-
+ 
   if(allowErr || !allowRow || !allowRow.name){
     document.getElementById('auth-loading').style.display='none';
     document.getElementById('auth-denied').style.display='block';
     return;
   }
-
+ 
   currentUser.email = user.email;
   currentUser.name = allowRow.name;
   currentUser.role = allowRow.role;
-
+ 
   document.getElementById('login-name-display').textContent = currentUser.name;
   document.getElementById('auth-loading').style.display='none';
   document.getElementById('app-content').style.display='block';
-
+ 
   const today = new Date();
   viewYear = today.getFullYear();
   viewMonth = today.getMonth() + 1;
-
+ 
   await runArchive();
   await loadCalendarItems();
   subscribeRealtime();
   renderFooterNav(currentUser.role, 'requestCalendar');
 }
-
+ 
 function subscribeRealtime(){
   sbClient
     .channel('request_calendar_changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'request_item_dates' }, loadCalendarItems)
     .subscribe();
 }
-
+ 
 (function(){
   const style = document.createElement('style');
   style.textContent = `
@@ -475,7 +475,7 @@ function subscribeRealtime(){
 `;
   document.head.appendChild(style);
 })();
-
+ 
 const FNAV_ICONS = {
   home: '<path d="M4 11l8-7 8 7"/><path d="M6 10v9a1 1 0 001 1h10a1 1 0 001-1v-9"/>',
   form: '<path d="M4 3h13l4 4v14a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M8 9h8M8 13h8M8 17h5"/>',
@@ -489,13 +489,13 @@ const FNAV_ICONS = {
 function fIcon(name){
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${FNAV_ICONS[name]}</svg>`;
 }
-
+ 
 function renderFooterNav(role, activeKey){
   const NAV_URLS = {
     home: 'home.html', form: 'formB_size.html', mypage: 'mypage.html',
     stock: 'stock_view.html', workCalendar: 'work_calendar.html', requestCalendar: 'request_calendar.html'
   };
-
+ 
   if(role === '管理者'){
     const back = document.createElement('a');
     back.href = NAV_URLS.home;
@@ -504,10 +504,10 @@ function renderFooterNav(role, activeKey){
     document.body.appendChild(back);
     return;
   }
-
+ 
   const bar = document.createElement('div');
   bar.className = 'footer-tabbar';
-
+ 
   if(role === '作業者'){
     bar.innerHTML = `
       <a class="ftab ${activeKey==='home'?'active':''}" href="${NAV_URLS.home}">${fIcon('home')}<span>ホーム</span></a>
@@ -523,11 +523,11 @@ function renderFooterNav(role, activeKey){
       <a class="ftab ${activeKey==='stock'?'active':''}" href="${NAV_URLS.stock}">${fIcon('stock')}<span>在庫</span></a>
       <a class="ftab ${activeKey==='mypage'?'active':''}" href="${NAV_URLS.mypage}">${fIcon('user')}<span>マイページ</span></a>`;
   }
-
+ 
   document.body.appendChild(bar);
   document.body.style.paddingBottom = '68px';
 }
-
+ 
 initAuth();
 </script>
 <script>
