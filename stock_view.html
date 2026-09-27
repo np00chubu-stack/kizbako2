@@ -1325,8 +1325,7 @@ async function cycleDeliveryMark(stockItemId, markKey){
     alert('配送済みマークの更新に失敗しました。もう一度お試しください。');
     return;
   }
-  const exMark = historyExtras(row);
-  await logChange('stock_items', stockItemId, `delivery_marks.${markKey}`, current, next, row.item_name, undefined, undefined, exMark.requesterName, exMark.deliveryDate, exMark.sizeTxt);
+  // change_historyへの記録はupdate_delivery_mark関数側で自動的に行われるため、ここでは呼ばない
 
   // 15時の一括処理が既に今日実行済みの後で新たに配送済みにした場合（臨時便など）は、
   // 自動では確定させず、管理者に確認したうえで手動で確定させる
