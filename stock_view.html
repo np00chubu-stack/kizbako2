@@ -298,7 +298,14 @@ let deliveryModeOn = false;
 let showHiddenIndividual = false;
 
 function individualVisibleFilter(r){
-  return r.item_type === 'individual' && (!r.is_hidden || showHiddenIndividual);
+  if(r.item_type !== 'individual') return false;
+  if(!r.is_hidden) return true;
+  if(!showHiddenIndividual) return false;
+  // 「非表示も表示」トグルには、直近1ヶ月以内に非表示になったものだけを出す
+  if(!r.hidden_at) return true; // 日時が記録されていない古いデータは念のため表示する
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+  return new Date(r.hidden_at) >= oneMonthAgo;
 }
 
 function toggleShowHiddenIndividual(checked){
@@ -350,7 +357,7 @@ function historyExtras(stockRow){
 }
 let stockItemsCache = [];   // stock_items 全件
 let ordersCache = {};       // stock_item_id -> 有効な注文の配列（共通品は班ごとに複数件持ちうる）
-let dateInfoCache = {};     // request_item_date_id -> { delivery_date }
+let dateInfoCache = {};     // request_item_date_id -> { delivery_date, qty }
 let teams = [];             // team_master 全件（sort_order順）
 
 let lockSettings = { start: null, end: null };
@@ -431,7 +438,9 @@ function renderIndividualTable(rows){
   const sorted = [...rows].sort((a,b) => {
     const da = a.request_item_date_id ? (dateInfoCache[a.request_item_date_id]?.delivery_date || '') : '';
     const db = b.request_item_date_id ? (dateInfoCache[b.request_item_date_id]?.delivery_date || '') : '';
-    return da.localeCompare(db);
+    const dateCompare = da.localeCompare(db);
+    if(dateCompare !== 0) return dateCompare;
+    return String(a.id).localeCompare(String(b.id));
   });
 
   const rowsHtml = sorted.map(row => {
@@ -457,9 +466,9 @@ function renderIndividualTable(rows){
     const fieldLabel = order
       ? (order.mode === '数量'
           ? (dateInfo && dateInfo.qty && order.qty < dateInfo.qty ? `${order.qty}/${dateInfo.qty}` : order.qty)
-          : (order.mode === '日付' ? (order.desired_date ? order.desired_date.slice(5).replace('-', '/') : '日') : '○'))
+          : (order.mode === '日付' ? (order.desired_date ? order.desired_date.slice(5).replace('-', '/') : '日') : (dateInfo && dateInfo.qty != null ? dateInfo.qty : '○')))
       : 'ー';
-    const fieldContent = isCircle ? '<span class="order-circle-dot"></span>' : escapeHtml(String(fieldLabel));
+    const fieldContent = escapeHtml(String(fieldLabel));
     const firstWaveBadge = (order && order.is_first_wave) ? '<span class="first-wave-badge">1便</span>' : '';
     const disabledClass = clickable ? '' : 'disabled';
     const onclickAttr = clickable
@@ -636,7 +645,7 @@ function openOrderSheet(stockItemId, itemType, teamId){
         <label class="${selCls('日付')}" id="mode-lbl-date"><input type="radio" name="order-mode" value="日付" ${chkAttr('日付')} onchange="onOrderModeChange()"> 日付</label>
       </div>`
       : `<div class="mode-row" id="order-mode-row">
-        <label class="${selCls('○')}" id="mode-lbl-circle"><input type="radio" name="order-mode" value="○" ${chkAttr('○')} onchange="onOrderModeChange()"> ○</label>
+        <label class="${selCls('○')}" id="mode-lbl-circle"><input type="radio" name="order-mode" value="○" ${chkAttr('○')} onchange="onOrderModeChange()"> ○（全数）</label>
         <label class="${selCls('数量')}" id="mode-lbl-qty"><input type="radio" name="order-mode" value="数量" ${chkAttr('数量')} onchange="onOrderModeChange()"> 数量</label>
         <label class="${selCls('日付')}" id="mode-lbl-date"><input type="radio" name="order-mode" value="日付" ${chkAttr('日付')} onchange="onOrderModeChange()"> 日付</label>
       </div>`;
@@ -664,6 +673,11 @@ function openOrderSheet(stockItemId, itemType, teamId){
         <button class="btn-sheet-cancel" onclick="closeOrderSheet()">やめる</button>
       </div>
       ${existing ? `<button class="btn-cancel-order-link" onclick="cancelOrder()">この発注を取消す</button>` : ''}
+      ${(currentUser.role === '管理者' && itemType === 'individual')
+        ? (row.is_hidden
+            ? `<button class="btn-cancel-order-link" onclick="toggleHideStockItem(false)">非表示を解除する</button>`
+            : `<button class="btn-cancel-order-link" onclick="toggleHideStockItem(true)">この品目を非表示にする</button>`)
+        : ''}
     `;
     document.getElementById('order-sheet-viewonly').innerHTML = '';
   } else {
@@ -899,6 +913,36 @@ async function cancelOrder(){
 }
 
 // =============================================
+// 個人依頼品の非表示・非表示解除（管理者のみ）
+// =============================================
+async function toggleHideStockItem(hide){
+  const { stockItemId } = orderSheetState;
+  const row = stockItemsCache.find(r => r.id === stockItemId);
+  if(!row) return;
+
+  const confirmMsg = hide ? 'この品目を非表示にしますか？' : 'この品目の非表示を解除しますか？';
+  if(!confirm(confirmMsg)) return;
+
+  const nowIso = hide ? new Date().toISOString() : null;
+  const { error } = await sbClient
+    .from('stock_items')
+    .update({ is_hidden: hide, hidden_at: nowIso })
+    .eq('id', stockItemId);
+  if(error){
+    document.getElementById('order-sheet-msg').textContent = '処理に失敗しました：' + error.message;
+    return;
+  }
+
+  const exHide = historyExtras(row);
+  await logChange('stock_items', stockItemId, 'is_hidden', !hide, hide, row.item_name, undefined, undefined, exHide.requesterName, exHide.deliveryDate, exHide.sizeTxt);
+  row.is_hidden = hide;
+  row.hidden_at = nowIso;
+
+  closeOrderSheet();
+  await loadStockItems();
+}
+
+// =============================================
 // 補充シート（共通品・作業者/管理者のみ）
 // =============================================
 let replenishState = { stockItemId: null, qty: 1, mode: 'add' };
@@ -1067,12 +1111,14 @@ async function finalizeAndClearOne(item, key, byName){
   // 個人依頼品で、配送済み確定と同時に在庫数が0になっているものは、
   // データは残したまま一覧表示からのみ外す（非表示化）。カラム単位の更新のみ行う。
   if(key === 'individual' && item.item_type === 'individual' && (item.stock_qty ?? 0) === 0){
-    const { error: hideErr } = await sbClient.from('stock_items').update({ is_hidden: true }).eq('id', item.id);
+    const hiddenAtNow = new Date().toISOString();
+    const { error: hideErr } = await sbClient.from('stock_items').update({ is_hidden: true, hidden_at: hiddenAtNow }).eq('id', item.id);
     if(hideErr){
       errors.push(`${item.item_name || ''}：非表示化に失敗しました（${hideErr.message}）`);
     } else {
       await logChange('stock_items', item.id, 'is_hidden', false, true, item.item_name, actorName, null);
       item.is_hidden = true;
+      item.hidden_at = hiddenAtNow;
     }
   }
 
@@ -1143,10 +1189,11 @@ async function loadStockItems(){
 
   const { data: items, error: itemsErr } = await sbClient
     .from('stock_items')
-    .select('id, item_type, item_name, size_l, size_w, size_h, requester_name, stock_qty, min_line, request_item_date_id, delivery_marks, is_hidden')
+    .select('id, item_type, item_name, size_l, size_w, size_h, requester_name, stock_qty, min_line, request_item_date_id, delivery_marks, is_hidden, hidden_at')
     .eq('is_deleted', false)
     .order('sort_order', { ascending: true })
-    .order('item_name', { ascending: true });
+    .order('item_name', { ascending: true })
+    .order('id', { ascending: true });
 
   if(itemsErr){
     document.getElementById('load-error').style.display = 'block';
@@ -1164,11 +1211,12 @@ async function loadStockItems(){
   if(dateIds.length){
     const { data: dateRows } = await sbClient
       .from('request_item_dates')
-      .select('id, delivery_date, request_items ( is_urgent, team_master ( team_abbr ) )')
+      .select('id, delivery_date, qty, request_items ( is_urgent, team_master ( team_abbr ) )')
       .in('id', dateIds);
     (dateRows || []).forEach(d => {
       dateInfoCache[d.id] = {
         delivery_date: d.delivery_date,
+        qty: d.qty,
         is_urgent: !!(d.request_items && d.request_items.is_urgent),
         team_abbr: (d.request_items && d.request_items.team_master && d.request_items.team_master.team_abbr) || ''
       };
