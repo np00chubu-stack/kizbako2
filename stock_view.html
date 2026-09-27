@@ -780,14 +780,20 @@ async function submitOrder(){
     let updErr;
     if(currentUser.role === '管理者'){
       ({ error: updErr } = await sbClient.from('stock_orders').update({ qty: cumulativeQty, is_first_wave: isFirstWave }).eq('id', existingOrderId));
+      if(updErr){
+        msgEl.textContent = '発注に失敗しました：' + updErr.message;
+        return;
+      }
+      // 管理者はupdate_stock_order_qty関数を経由しないため、記録はここで行う
+      await logChange('stock_orders', existingOrderId, 'qty', existingQty, cumulativeQty, stockRow?.item_name, undefined, undefined, exOrder.requesterName, exOrder.deliveryDate, exOrder.sizeTxt);
     } else {
       ({ error: updErr } = await sbClient.rpc('update_stock_order_qty', { p_order_id: existingOrderId, p_new_qty: cumulativeQty, p_is_first_wave: isFirstWave }));
+      if(updErr){
+        msgEl.textContent = '発注に失敗しました：' + updErr.message;
+        return;
+      }
+      // change_historyへの記録はupdate_stock_order_qty関数側で自動的に行われるため、ここでは呼ばない
     }
-    if(updErr){
-      msgEl.textContent = '発注に失敗しました：' + updErr.message;
-      return;
-    }
-    await logChange('stock_orders', existingOrderId, 'qty', existingQty, cumulativeQty, stockRow?.item_name, undefined, undefined, exOrder.requesterName, exOrder.deliveryDate, exOrder.sizeTxt);
   } else {
     // 新規登録を先に行い、成功を確認してから既存の発注を取消す（モードが変わった場合、または○／日付の場合）
     const payload = {
