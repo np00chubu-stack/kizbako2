@@ -537,7 +537,7 @@ function rowHtml(row){
   const typeInfo = TYPE_LABELS[type] || { label:'その他', cls:'other' };
   const proxy = isProxy(row);
   const review = isReview(row);
-  const target = row.item_label || TABLE_LABELS[row.table_name] || '';
+  const target = (row.item_label || TABLE_LABELS[row.table_name] || '') + (row.size_text ? `（${row.size_text}）` : '');
   const change = needsChangeLine(row.field_name)
     ? `<div class="d-change">${escapeHtml(valueText(row.field_name, row.old_value))}<span class="arrow">→</span>${escapeHtml(valueText(row.field_name, row.new_value))}</div>`
     : '';
