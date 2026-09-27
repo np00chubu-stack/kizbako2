@@ -831,7 +831,7 @@ async function submitOrder(){
 
   // 共通品は発注確定と同時に在庫を引当減算する（DB側の関数で安全に引き算する）
   if(isCommon && commonStockDelta !== 0){
-    const { error: stockErr } = await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: commonStockDelta });
+    const { error: stockErr } = await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: commonStockDelta, p_action: 'order' });
     if(stockErr){
       msgEl.textContent = '発注は登録されましたが、在庫の更新に失敗しました（在庫が変動した可能性があります）。画面を更新して在庫数をご確認ください。';
       return;
@@ -893,7 +893,7 @@ async function cancelOrder(){
 
   // 共通品は発注時に引当減算しているため、取消時は在庫を戻す（DB側の関数で安全に足し戻す）
   if(itemType === 'common' && orderSheetState.existingQty){
-    await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: -orderSheetState.existingQty });
+    await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: -orderSheetState.existingQty, p_action: 'cancel' });
   }
 
   // 個人品の場合、依頼側のステータスを「発注可能」に戻す（マイページに反映させるため）
@@ -999,7 +999,7 @@ async function submitReplenish(){
   if(!stockRow) return;
 
   const delta = mode === 'add' ? -qty : qty; // adjust_stock_qtyはp_deltaを引く仕様のため、増やす時はマイナスで渡す
-  const { error } = await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: delta });
+  const { error } = await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: delta, p_action: 'replenish' });
   if(error){
     document.getElementById('replenish-msg').textContent = (mode === 'add' ? '補充' : '調整') + 'に失敗しました：' + error.message;
     return;
