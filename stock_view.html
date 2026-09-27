@@ -824,14 +824,20 @@ async function submitOrder(){
       let cancelErr;
       if(currentUser.role === '管理者'){
         ({ error: cancelErr } = await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId));
+        if(cancelErr){
+          msgEl.textContent = '発注は完了しましたが、古い発注の取消に失敗しました：' + cancelErr.message;
+          return;
+        }
+        // 管理者はcancel_stock_order関数を経由しないため、記録はここで行う
+        await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockRow?.item_name, undefined, undefined, exOrder.requesterName, exOrder.deliveryDate, exOrder.sizeTxt);
       } else {
         ({ error: cancelErr } = await sbClient.rpc('cancel_stock_order', { order_id: existingOrderId }));
+        if(cancelErr){
+          msgEl.textContent = '発注は完了しましたが、古い発注の取消に失敗しました：' + cancelErr.message;
+          return;
+        }
+        // change_historyへの記録はcancel_stock_order関数側で自動的に行われるため、ここでは呼ばない
       }
-      if(cancelErr){
-        msgEl.textContent = '発注は完了しましたが、古い発注の取消に失敗しました：' + cancelErr.message;
-        return;
-      }
-      await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockRow?.item_name, undefined, undefined, exOrder.requesterName, exOrder.deliveryDate, exOrder.sizeTxt);
     }
   }
 
@@ -871,19 +877,24 @@ async function cancelOrder(){
 
   if(!confirm('この発注を取消しますか？')) return;
 
+  const exCancel = historyExtras(stockRowCheck);
   let error;
   if(currentUser.role === '管理者'){
     ({ error } = await sbClient.from('stock_orders').update({ is_canceled: true }).eq('id', existingOrderId));
+    if(error){
+      document.getElementById('order-sheet-msg').textContent = '取消に失敗しました：' + error.message;
+      return;
+    }
+    // 管理者はcancel_stock_order関数を経由しないため、記録はここで行う
+    await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockItemsCache.find(r => r.id === orderSheetState.stockItemId)?.item_name, undefined, undefined, exCancel.requesterName, exCancel.deliveryDate, exCancel.sizeTxt);
   } else {
     ({ error } = await sbClient.rpc('cancel_stock_order', { order_id: existingOrderId }));
+    if(error){
+      document.getElementById('order-sheet-msg').textContent = '取消に失敗しました：' + error.message;
+      return;
+    }
+    // change_historyへの記録はcancel_stock_order関数側で自動的に行われるため、ここでは呼ばない
   }
-  if(error){
-    document.getElementById('order-sheet-msg').textContent = '取消に失敗しました：' + error.message;
-    return;
-  }
-
-  const exCancel = historyExtras(stockRowCheck);
-  await logChange('stock_orders', existingOrderId, 'is_canceled', false, true, stockItemsCache.find(r => r.id === orderSheetState.stockItemId)?.item_name, undefined, undefined, exCancel.requesterName, exCancel.deliveryDate, exCancel.sizeTxt);
 
   // 発注を取消したら、対応する配送済み(グレー)表示も一緒に消す（キー単位の更新）
   if(markCheck){
