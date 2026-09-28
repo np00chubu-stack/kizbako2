@@ -631,7 +631,7 @@ function openOrderSheet(stockItemId, itemType, teamId){
       const ownQty = orderSheetState.existingQty || 0;
       qtyMax = Math.max(0, stockQty + ownQty);
     } else {
-      qtyMax = Math.min(qtyMax, Math.max(0, stockQty - qtyBase));
+      qtyMax = Math.min(qtyMax, Math.max(0, stockQty));
     }
     qtyMax = Number.isFinite(qtyMax) ? qtyMax : '';
     const isCommon = itemType === 'common';
@@ -765,8 +765,8 @@ async function submitOrder(){
     }
   } else if(mode === '数量'){
     const stockQty = stockRow?.stock_qty ?? 0;
-    const baseQty = (existingMode === '数量') ? existingQty : 0;
-    if(baseQty + qty > stockQty){
+    // stock_qtyは既発注分が引かれた後の残数のため、今回追加する数量だけを比べる
+    if(qty > stockQty){
       msgEl.textContent = `在庫数（${stockQty}個）を超えています。`;
       return;
     }
