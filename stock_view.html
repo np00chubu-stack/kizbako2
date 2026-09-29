@@ -839,7 +839,7 @@ async function submitOrder(){
       // 管理者はupdate_stock_order_qty関数を経由しないため、記録はここで行う
       await logChange('stock_orders', existingOrderId, 'qty', existingQty, cumulativeQty, stockRow?.item_name, undefined, undefined, exOrder.requesterName, exOrder.deliveryDate, exOrder.sizeTxt);
     } else {
-      ({ error: updErr } = await sbClient.rpc('update_stock_order_qty', { p_order_id: existingOrderId, p_new_qty: cumulativeQty, p_is_first_wave: isFirstWave }));
+      ({ error: updErr } = await sbClient.rpc('update_stock_order_qty', { p_order_id: existingOrderId, p_new_qty: cumulativeQty, p_is_first_wave: isFirstWave, p_color_id: colorId }));
       if(updErr){
         msgEl.textContent = '発注に失敗しました：' + updErr.message;
         return;
