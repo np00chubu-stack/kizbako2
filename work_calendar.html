@@ -637,12 +637,12 @@ function renderProgSheet(){
 }
 
 // =============================================
-// 数量変更欄（管理者のみ・対象が「作業中」の場合のみ表示）
+// 数量変更欄（管理者のみ・対象が「受付済み」または「作業中」で、かつ完成操作前の場合のみ表示）
 // 依頼者からの連絡を受けて管理者が代理で変更する運用。誰が・いつ変更したかを記録する。
 // =============================================
 function renderQtyEditArea(item){
   const area = document.getElementById('prog-qty-area');
-  if(currentUser.role === '管理者' && item.status === '作業中' && !item.canceled_at){
+  if(currentUser.role === '管理者' && (item.status === '受付済み' || item.status === '作業中') && !item.completed && !item.canceled_at){
     area.innerHTML = `
       <div class="qty-edit-area">
         <div class="qe-title">数量変更（管理者操作）</div>
