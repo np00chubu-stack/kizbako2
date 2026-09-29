@@ -190,7 +190,22 @@ const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = { email: '', name: '' }; // ログイン中のユーザー情報
 
-// 中3日ルール：JST基準で「今日+3日」を返す（急ぎでない場合の最短納入日）
+// 営業日の例外（business_day_exceptions）：日付文字列 → true(営業)/false(休業)
+let BUSINESS_EXC = {};
+
+function ymdOf(dt){
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+
+// 営業日か判定：例外設定があればそれを優先、なければ月〜金が営業日
+function isBusinessDayLocal(dt){
+  const exc = BUSINESS_EXC[ymdOf(dt)];
+  if(exc !== undefined) return exc;
+  const dow = dt.getDay();
+  return dow >= 1 && dow <= 5;
+}
+
+// 中3日ルール：JST基準の今日から数えて、間に3営業日を挟んだ次の営業日（＝今日の翌営業日から数えて4番目の営業日）を返す
 function minAllowedDateStr(){
   const fmt = new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit' });
   const parts = fmt.formatToParts(new Date());
@@ -198,12 +213,41 @@ function minAllowedDateStr(){
   const m = parseInt(parts.find(p=>p.type==='month').value,10);
   const d = parseInt(parts.find(p=>p.type==='day').value,10);
   const dt = new Date(y, m-1, d);
-  dt.setDate(dt.getDate()+3);
-  const yy = dt.getFullYear();
-  const mm = String(dt.getMonth()+1).padStart(2,'0');
-  const dd = String(dt.getDate()).padStart(2,'0');
-  return `${yy}-${mm}-${dd}`;
+  let count = 0;
+  while(count < 4){
+    dt.setDate(dt.getDate()+1);
+    if(isBusinessDayLocal(dt)) count++;
+  }
+  return ymdOf(dt);
 }
+
+// すべての品目の日付欄の最小日付を更新し直す（営業日の例外を読み込んだ後に使う）
+function refreshAllDateMins(){
+  document.querySelectorAll('[id^="dates-"]').forEach(el=>{
+    const id = el.id.replace('dates-','');
+    if(/^\d+$/.test(id)) applyDateMinForItem(parseInt(id,10));
+  });
+}
+
+// スマホ（iPhone等）は日付選択で選べない日付を灰色にできないため、選んだ時点でチェックして弾く
+document.addEventListener('change', function(e){
+  const t = e.target;
+  if(!t || !t.matches || !t.matches('input[type="date"]') || !t.value) return;
+  let urgentEl = null;
+  if(t.classList.contains('date-input')){
+    const container = t.closest('[id^="dates-"]');
+    if(container) urgentEl = document.getElementById('urgent-' + container.id.replace('dates-',''));
+  } else {
+    const cls = [...t.classList].find(c=>/^c-date-\d+$/.test(c));
+    if(cls) urgentEl = document.getElementById('c-urgent-' + cls.replace('c-date-',''));
+  }
+  if(urgentEl && urgentEl.checked) return;
+  const min = minAllowedDateStr();
+  if(t.value < min){
+    t.value = '';
+    alert('納入日は中3日ルールにより ' + min + ' 以降を選んでください。（急ぎの場合は「急ぎ」をONにしてください）');
+  }
+});
 
 // 急ぎチェックボックスの状態に応じて、その品目の日付欄すべてのmin属性を更新する
 function applyDateMinForItem(id){
@@ -1299,6 +1343,20 @@ async function loadMasters(){
   if(!teamErr && teamRows){
     TEAMS = teamRows;
   }
+
+  // 営業日の例外（祝日・土曜出勤など）を読み込み、中3日の計算に反映する
+  try{
+    const todayStr = ymdOf(new Date());
+    const { data: excRows, error: excErr } = await sbClient
+      .from('business_day_exceptions')
+      .select('exception_date, is_business_day')
+      .gte('exception_date', todayStr);
+    if(!excErr && excRows){
+      BUSINESS_EXC = {};
+      excRows.forEach(r=>{ BUSINESS_EXC[r.exception_date] = r.is_business_day; });
+      refreshAllDateMins();
+    }
+  }catch(e){ /* 読み込み失敗時は土日のみ休業として計算する */ }
 
   const { data: pendingRows, error: pendingErr } = await sbClient
     .from('pending_categories')
