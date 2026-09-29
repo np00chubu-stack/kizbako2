@@ -159,6 +159,7 @@ select.role-select{font-size:12px;padding:5px 6px;border:1px solid var(--line);b
     <button class="tab-btn" data-tab="users" onclick="switchTab('users')">ユーザー管理</button>
     <button class="tab-btn" data-tab="stock" onclick="switchTab('stock')">共通品管理</button>
     <button class="tab-btn" data-tab="team" onclick="switchTab('team')">班管理</button>
+    <button class="tab-btn" data-tab="color" onclick="switchTab('color')">色管理</button>
     <button class="tab-btn" data-tab="newsize" onclick="switchTab('newsize')">新サイズ承認待ち<span id="newsize-badge" class="badge" style="display:none"></span></button>
     <button class="tab-btn" data-tab="locktime" onclick="switchTab('locktime')">ロック時間</button>
     <button class="tab-btn" data-tab="notif" onclick="switchTab('notif')">通知設定</button>
@@ -280,6 +281,21 @@ select.role-select{font-size:12px;padding:5px 6px;border:1px solid var(--line);b
   <div id="team-load-error" style="display:none"></div>
   </div>
 
+  <div id="tab-color" class="tab-panel">
+  <p class="desc">個人依頼品の発注時に選べる色の一覧です。ここに登録した色が、発注シートの色選択に表示されます。</p>
+
+  <div class="card">
+    <div class="form-group"><label>色の名前</label><input type="text" id="cl-name" placeholder="例：黒"></div>
+    <div class="form-group"><label>色</label><input type="color" id="cl-code" value="#1a3a5c"></div>
+    <button class="btn-submit" id="btn-color-add" onclick="submitColor()">登録する</button>
+    <div id="color-msg"></div>
+  </div>
+
+  <div class="list-title">登録済みの色</div>
+  <div id="color-list"></div>
+  <div id="color-load-error" style="display:none"></div>
+  </div>
+
   <div id="tab-newsize" class="tab-panel">
   <p class="desc">依頼フォームで「新サイズ」として送信された内容の一覧です。既にカテゴリ一覧にあるカテゴリのサイズは「サイズ登録する」で1件ずつ登録できます。まだ一覧にない新しいカテゴリは、そのカテゴリ名で累計（過去に承認・却下した分も含む）がしきい値に達するまでカテゴリ一覧に反映されず、達した時点で「カテゴリ一覧に昇格する」ボタンから一括登録します。「登録しない」を押すと一覧から消えるだけで、依頼データ自体は削除されません。</p>
 
@@ -308,13 +324,6 @@ select.role-select{font-size:12px;padding:5px 6px;border:1px solid var(--line);b
   <div id="tab-notif" class="tab-panel">
   <p class="desc">自分（このアカウント）が受け取る通知の種類を選べます。</p>
   <div class="card">
-    <div class="notif-setting-row">
-      <span>依頼の通知を受け取る</span>
-      <label class="notif-toggle">
-        <input type="checkbox" id="pref-request" checked onchange="saveAdminNotifPref()">
-        <span class="track"></span>
-      </label>
-    </div>
     <div class="notif-setting-row">
       <span>希望日変更の通知を受け取る</span>
       <label class="notif-toggle">
@@ -372,7 +381,7 @@ function updateStatusStyle(){
 // =============================================
 // タブ切替
 // =============================================
-const TAB_LOADERS = { size: loadSizes, clients: loadClients, users: loadUsers, stock: loadStockMaster, team: loadTeamMaster, newsize: loadNewSizeQueue, locktime: loadLockTime, notif: loadAdminNotifPref };
+const TAB_LOADERS = { size: loadSizes, clients: loadClients, users: loadUsers, stock: loadStockMaster, team: loadTeamMaster, color: loadColorMaster, newsize: loadNewSizeQueue, locktime: loadLockTime, notif: loadAdminNotifPref };
 const loadedTabs = new Set(['holiday']);
 function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -392,10 +401,9 @@ function showFormMsg(text, type){
 async function loadAdminNotifPref(){
   const { data } = await sbClient
     .from('notification_prefs')
-    .select('allow_request, allow_date_change, allow_urgent, allow_cancel')
+    .select('allow_date_change, allow_urgent, allow_cancel')
     .eq('email', currentUser.email)
     .maybeSingle();
-  document.getElementById('pref-request').checked = data ? data.allow_request : true;
   document.getElementById('pref-date-change').checked = data ? data.allow_date_change : true;
   document.getElementById('pref-urgent').checked = data ? data.allow_urgent : true;
   document.getElementById('pref-cancel').checked = data ? data.allow_cancel : true;
@@ -467,7 +475,6 @@ async function subscribeToPush(){
 async function saveAdminNotifPref(){
   await sbClient.from('notification_prefs').upsert({
     email: currentUser.email,
-    allow_request: document.getElementById('pref-request').checked,
     allow_date_change: document.getElementById('pref-date-change').checked,
     allow_urgent: document.getElementById('pref-urgent').checked,
     allow_cancel: document.getElementById('pref-cancel').checked
@@ -1079,6 +1086,138 @@ function renderTeamMasterList(){
       <button class="btn-delete" onclick="unhideTeam('${row.id}')">再表示する</button>
     </div>`).join('') : '<div class="empty-msg">非表示の班はありません</div>';
 }
+
+// =============================================
+// 色管理（color_master）
+// =============================================
+let lastColorRows = [];
+
+async function submitColor(){
+  const name = document.getElementById('cl-name').value.trim();
+  const code = document.getElementById('cl-code').value;
+
+  showMsg('color-msg', '', '');
+  if(!name){ showMsg('color-msg', '色の名前を入力してください。', 'err'); return; }
+
+  const dup = lastColorRows.some(r => r.color_name === name);
+  if(dup){ showMsg('color-msg', '同じ名前の色がすでに登録されています。', 'err'); return; }
+
+  const btn = document.getElementById('btn-color-add');
+  btn.disabled = true; btn.textContent = '登録中...';
+
+  const maxOrder = lastColorRows.reduce((m, r) => Math.max(m, r.sort_order ?? 0), 0);
+
+  const { error } = await sbClient.from('color_master').insert({
+    color_name: name,
+    color_code: code,
+    sort_order: maxOrder + 1
+  });
+
+  btn.disabled = false; btn.textContent = '登録する';
+
+  if(error){
+    showMsg('color-msg', '登録に失敗しました：' + error.message, 'err');
+    return;
+  }
+  showMsg('color-msg', '登録しました。', 'ok');
+  document.getElementById('cl-name').value = '';
+  await loadColorMaster();
+}
+
+async function saveColorName(id){
+  const input = document.getElementById('color-name-' + id);
+  const msgEl = document.getElementById('color-name-msg-' + id);
+  const newVal = input.value.trim();
+
+  if(!newVal){
+    msgEl.textContent = '名前を入力してください。';
+    return;
+  }
+  msgEl.textContent = '';
+
+  const { error } = await sbClient.from('color_master').update({ color_name: newVal }).eq('id', id);
+  if(error){
+    msgEl.textContent = '保存に失敗しました：' + error.message;
+    return;
+  }
+  msgEl.textContent = '保存しました。';
+  const row = lastColorRows.find(r => r.id === id);
+  if(row) row.color_name = newVal;
+}
+
+async function saveColorCode(id, newVal){
+  const { error } = await sbClient.from('color_master').update({ color_code: newVal }).eq('id', id);
+  const msgEl = document.getElementById('color-code-msg-' + id);
+  if(error){
+    if(msgEl) msgEl.textContent = '保存に失敗しました：' + error.message;
+    return;
+  }
+  if(msgEl) msgEl.textContent = '保存しました。';
+  const row = lastColorRows.find(r => r.id === id);
+  if(row) row.color_code = newVal;
+}
+
+async function moveColor(id, direction){
+  const list = [...lastColorRows].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const idx = list.findIndex(r => r.id === id);
+  const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if(idx === -1 || targetIdx < 0 || targetIdx >= list.length) return;
+
+  const rowA = list[idx];
+  const rowB = list[targetIdx];
+  const orderA = rowA.sort_order ?? 0;
+  const orderB = rowB.sort_order ?? 0;
+
+  const { error: errA } = await sbClient.from('color_master').update({ sort_order: orderB }).eq('id', rowA.id);
+  const { error: errB } = await sbClient.from('color_master').update({ sort_order: orderA }).eq('id', rowB.id);
+  if(errA || errB){ alert('並び替えに失敗しました：' + (errA || errB).message); return; }
+  await loadColorMaster();
+}
+
+async function loadColorMaster(){
+  const { data, error } = await sbClient
+    .from('color_master')
+    .select('id, color_name, color_code, sort_order')
+    .order('sort_order');
+
+  const errEl = document.getElementById('color-load-error');
+  if(error){
+    errEl.style.display = 'block';
+    errEl.textContent = '一覧の取得に失敗しました：' + error.message;
+    return;
+  }
+  errEl.style.display = 'none';
+  lastColorRows = data || [];
+  renderColorMasterList();
+}
+
+function renderColorMasterList(){
+  const listEl = document.getElementById('color-list');
+  const sorted = [...lastColorRows].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+  listEl.innerHTML = sorted.length ? sorted.map((row, idx) => `
+    <div class="mrow">
+      <div class="mrow-main">
+        <span style="display:inline-block;width:16px;height:16px;border-radius:3px;background:${escapeHtml(row.color_code)};border:1px solid #999;vertical-align:middle;margin-right:6px"></span>
+        <div class="minline-edit">
+          <label>名前</label>
+          <input type="text" id="color-name-${row.id}" value="${escapeHtml(row.color_name || '')}">
+          <button class="btn-small" onclick="saveColorName('${row.id}')">変更する</button>
+          <span id="color-name-msg-${row.id}" class="minline-msg"></span>
+        </div>
+        <div class="minline-edit">
+          <label>色</label>
+          <input type="color" value="${escapeHtml(row.color_code || '#000000')}" onchange="saveColorCode('${row.id}', this.value)">
+          <span id="color-code-msg-${row.id}" class="minline-msg"></span>
+        </div>
+      </div>
+      <div class="mrow-btns">
+        <button class="btn-small" onclick="moveColor('${row.id}','up')" ${idx === 0 ? 'disabled' : ''}>↑</button>
+        <button class="btn-small" onclick="moveColor('${row.id}','down')" ${idx === sorted.length - 1 ? 'disabled' : ''}>↓</button>
+      </div>
+    </div>`).join('') : '<div class="empty-msg">登録されている色はありません</div>';
+}
+
 
 // =============================================
 // 新サイズ承認待ち（request_items.is_new_size）
