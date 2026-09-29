@@ -199,6 +199,8 @@ const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = { email: '', name: '', role: '' };
 
 async function logChange(tableName, recordId, fieldName, oldValue, newValue, itemLabel, byName, byEmail){
+  // 履歴画面でサイズ・依頼者・納入日が表示されるよう、対象明細の情報も一緒に記録する
+  const target = (typeof rawItems !== 'undefined' && tableName === 'request_item_dates') ? rawItems.find(it => it.id === recordId) : null;
   await sbClient.from('change_history').insert({
     table_name: tableName,
     record_id: recordId,
@@ -206,6 +208,9 @@ async function logChange(tableName, recordId, fieldName, oldValue, newValue, ite
     old_value: oldValue === null || oldValue === undefined ? null : String(oldValue),
     new_value: newValue === null || newValue === undefined ? null : String(newValue),
     item_label: itemLabel || null,
+    requester_name: (target && target.requester_name) || null,
+    delivery_date: (target && target.delivery_date) || null,
+    size_text: (target && target.sizeText) || null,
     changed_by_name: byName !== undefined ? byName : currentUser.name,
     changed_by_email: byEmail !== undefined ? byEmail : currentUser.email
   });
