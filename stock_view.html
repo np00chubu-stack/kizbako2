@@ -896,7 +896,8 @@ async function submitOrder(){
 
   // 共通品は発注確定と同時に在庫を引当減算する（DB側の関数で安全に引き算する）
   if(isCommon && commonStockDelta !== 0){
-    const { error: stockErr } = await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: commonStockDelta, p_action: 'order' });
+    // 数量を増やす時は'order'、自班の発注数を減らす時（差分がマイナス）は在庫を戻す操作なので'cancel'として渡す
+    const { error: stockErr } = await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: commonStockDelta, p_action: (commonStockDelta > 0 ? 'order' : 'cancel') });
     if(stockErr){
       msgEl.textContent = '発注は登録されましたが、在庫の更新に失敗しました（在庫が変動した可能性があります）。画面を更新して在庫数をご確認ください。';
       return;
@@ -963,7 +964,10 @@ async function cancelOrder(){
 
   // 共通品は発注時に引当減算しているため、取消時は在庫を戻す（DB側の関数で安全に足し戻す）
   if(itemType === 'common' && orderSheetState.existingQty){
-    await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: -orderSheetState.existingQty, p_action: 'cancel' });
+    const { error: restoreErr } = await sbClient.rpc('adjust_stock_qty', { p_stock_item_id: stockItemId, p_delta: -orderSheetState.existingQty, p_action: 'cancel' });
+    if(restoreErr){
+      alert('発注は取消しましたが、在庫数を戻す処理に失敗しました。在庫数がずれている可能性があります。管理者にご連絡ください。\n（' + restoreErr.message + '）');
+    }
   }
 
   // 個人品の場合、依頼側のステータスを「発注可能」に戻す（マイページに反映させるため）
