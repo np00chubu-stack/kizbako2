@@ -1145,122 +1145,29 @@ async function loadColorMaster(){
   colorMasterCache = error ? [] : (data || []);
 }
 
-// =============================================
-// 15時解除時の一括処理：配送済み・未確定の発注を確定させる
-// 共通品は在庫を正式に減算、個人依頼品は発注時点で既に在庫反映済みのため
-// フラグのみ更新する。カラム単位の更新のみ行う。
-// =============================================
-// =============================================
-// 15時解除時の一括処理：配送済み・未確定の発注を確定させる
-// 在庫の減算は発注確定時（submitOrder）に引当として既に行っているため、
-// ここでは発注の確定フラグ更新と、配送済み(グレー)表示の解除のみを行う。
-// カラム単位の更新のみ行う。
-// =============================================
-// 1件分の「発注を確定させ、グレー表示を解除する」処理（一括処理・個別処理の両方から使う）
-async function finalizeAndClearOne(item, key, byName){
-  const actorName = byName || 'システム（自動確定）';
-  const teamId = key === 'individual' ? null : key;
-  const errors = [];
-
-  let orderQuery = sbClient
-    .from('stock_orders')
-    .select('id')
-    .eq('stock_item_id', item.id)
-    .eq('is_canceled', false)
-    .eq('is_finalized', false);
-  orderQuery = teamId ? orderQuery.eq('team_id', teamId) : orderQuery.is('team_id', null);
-  const { data: orderRows } = await orderQuery;
-
-  for(const o of (orderRows || [])){
-    const { error: finErr } = await sbClient.from('stock_orders').update({ is_finalized: true, finalized_at: new Date().toISOString() }).eq('id', o.id);
-    if(finErr){
-      errors.push(`${item.item_name || ''}：発注確定処理に失敗しました（${finErr.message}）`);
-      continue;
-    }
-    await logChange('stock_orders', o.id, 'is_finalized', false, true, null, actorName, null);
-  }
-
-  // 対応する発注が無い場合も含め、グレー表示は解除する（キー単位の更新）
-  const { error: markErr } = await sbClient.rpc('update_delivery_mark', { p_stock_item_id: item.id, p_mark_key: key, p_mark_value: null });
-  if(markErr){
-    errors.push(`${item.item_name || ''}：配送済み表示の解除に失敗しました（${markErr.message}）`);
-  } else {
-    const newMarks = { ...(item.delivery_marks || {}) };
-    delete newMarks[key];
-    item.delivery_marks = newMarks;
-  }
-
-  // 個人依頼品で、配送済み確定と同時に在庫数が0になっているものは、
-  // データは残したまま一覧表示からのみ外す（非表示化）。カラム単位の更新のみ行う。
-  if(key === 'individual' && item.item_type === 'individual' && (item.stock_qty ?? 0) === 0){
-    const hiddenAtNow = new Date().toISOString();
-    const { error: hideErr } = await sbClient.from('stock_items').update({ is_hidden: true, hidden_at: hiddenAtNow }).eq('id', item.id);
-    if(hideErr){
-      errors.push(`${item.item_name || ''}：非表示化に失敗しました（${hideErr.message}）`);
-    } else {
-      await logChange('stock_items', item.id, 'is_hidden', false, true, item.item_name, actorName, null);
-      item.is_hidden = true;
-      item.hidden_at = hiddenAtNow;
-    }
-  }
-
-  return errors;
-}
-
 function todayYmdLocal(){
   const d = getAdjustedNow();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
-async function performFinalization(){
+// =============================================
+// 15時解除時の一括確定は、DB側の run_daily_finalization 関数が担当する。
+// 通常はpg_cronが毎分呼んで自動実行する。ここは「画面を開いた時の安全網」で、
+// cronが止まっていた日に備えて同じ関数を呼ぶだけ。
+// 時刻・実行済みの判定はすべて関数側で行うため、誰が何度呼んでも二重には実行されない。
+// =============================================
+async function triggerServerFinalization(){
   if(!lockSettings.end) return false;
   const now = getAdjustedNow();
   const nowStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':00';
   if(nowStr < lockSettings.end) return false;
 
-  const todayStr = todayYmdLocal();
-
-  // 15時の一括処理は1日1回だけ。既に今日実行済みなら、以降にグレーにした分は
-  // cycleDeliveryMark側で都度その場で個別処理するため、ここでは何もしない
-  const { data: settingsRow } = await sbClient
-    .from('business_settings')
-    .select('id, finalization_last_date')
-    .limit(1)
-    .maybeSingle();
-  if(settingsRow && settingsRow.finalization_last_date === todayStr) return false;
-
-  const { data: items, error } = await sbClient
-    .from('stock_items')
-    .select('id, item_type, item_name, stock_qty, delivery_marks')
-    .eq('is_deleted', false);
-
-  if(error || !items || !items.length) return false;
-
-  // 配送済み(グレー)になっているキー（個人依頼品はindividual、共通品は班ID）を洗い出す
-  const targets = [];
-  items.forEach(item => {
-    const marks = item.delivery_marks || {};
-    Object.keys(marks).forEach(key => {
-      if(marks[key] === 'delivered') targets.push({ item, key });
-    });
-  });
-
-  const allErrors = [];
-  for(const { item, key } of targets){
-    const errs = await finalizeAndClearOne(item, key);
-    allErrors.push(...errs);
+  const { data, error } = await sbClient.rpc('run_daily_finalization');
+  if(error){
+    console.error('[一括確定] 失敗:', error.message);
+    return false;
   }
-
-  if(settingsRow){
-    await sbClient.from('business_settings').update({ finalization_last_date: todayStr }).eq('id', settingsRow.id);
-  }
-
-  if(allErrors.length){
-    console.error('[一括確定処理] 失敗:', allErrors);
-    alert(`一括確定処理で${allErrors.length}件失敗しました。管理者にご確認ください。\n` + allErrors.join('\n'));
-  }
-
-  return true;
+  return data === true;
 }
 
 async function loadStockItems(){
@@ -1268,7 +1175,7 @@ async function loadStockItems(){
   updateLockBanner();
   await loadTeams();
   await loadColorMaster();
-  await performFinalization();
+  await triggerServerFinalization();
 
   const { data: items, error: itemsErr } = await sbClient
     .from('stock_items')
@@ -1424,14 +1331,11 @@ async function cycleDeliveryMark(stockItemId, markKey){
       if(settingsRow && settingsRow.finalization_last_date === todayYmdLocal()){
         const doFinalize = confirm('本日の一括処理はすでに完了しています。この分を今すぐ確定させますか？\n（「キャンセル」を選ぶと、グレー表示のまま次回の一括処理まで待機します）');
         if(doFinalize){
-          const errs = await finalizeAndClearOne(row, markKey, currentUser.name);
-          if(errs.length){
-            alert('確定処理に失敗しました：\n' + errs.join('\n'));
+          const { error: finError } = await sbClient.rpc('finalize_delivery_mark', { p_stock_item_id: stockItemId, p_mark_key: markKey });
+          if(finError){
+            alert('確定処理に失敗しました：' + finError.message);
           }
-          const individualRows2 = stockItemsCache.filter(individualVisibleFilter);
-          const commonRows2 = stockItemsCache.filter(r => r.item_type === 'common' && !r.is_hidden);
-          renderIndividualTable(individualRows2);
-          renderCommonTable(commonRows2);
+          await loadStockItems();
         }
       }
     }
@@ -1597,7 +1501,7 @@ function subscribeRealtime(){
     await syncServerTime();
     await loadLockSettings();
     updateLockBanner();
-    const changed = await performFinalization();
+    const changed = await triggerServerFinalization();
     if(changed || wasLocked !== isLocked) loadStockItems();
   }, 60000);
 }
