@@ -369,7 +369,7 @@ function renderReadyCard(row){
       <div class="ready-main">
         <div class="rc-date mono">希望日 ${escapeHtml(shortDate(row.delivery_date))}</div>
         <div class="rc-name">${orderedBadge}${escapeHtml(displayCategory(row.category, row.item_name))}${urgentTag}</div>
-        <div class="rc-detail">${escapeHtml(sizeText(row))}　${escapeHtml(String(row.qty))}c/s</div>
+        <div class="rc-detail">${escapeHtml(sizeText(row))}　${escapeHtml(qtyLabel(row))}</div>
       </div>
       <div class="ready-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
     </div>`;
@@ -389,7 +389,7 @@ function renderListRow(row){
       <div class="pr-date mono">${escapeHtml(shortDate(row.delivery_date))}</div>
       <div class="pr-main">
         <div class="pr-name">${escapeHtml(displayCategory(row.category, row.item_name))}${urgentTag}</div>
-        <div class="pr-detail">${escapeHtml(sizeText(row))}　${escapeHtml(String(row.qty))}c/s</div>
+        <div class="pr-detail">${escapeHtml(sizeText(row))}　${escapeHtml(qtyLabel(row))}</div>
       </div>
       <span class="status-pill ${cls}">${statusIcon(cls)}<span>${escapeHtml(label)}</span></span>
     </div>`;
@@ -510,7 +510,7 @@ function openSheet(dateRowId){
 
   document.getElementById('sheet-detail').innerHTML = `
     <div class="mrow"><span class="mk">サイズ</span><span class="mv">${escapeHtml(sizeText(row))}</span></div>
-    <div class="mrow"><span class="mk">納入日</span><span class="mv mono">${escapeHtml(row.delivery_date)}（${escapeHtml(String(row.qty))}c/s）</span></div>
+    <div class="mrow"><span class="mk">納入日</span><span class="mv mono">${escapeHtml(row.delivery_date)}（${escapeHtml(qtyLabel(row))}）</span></div>
     <div class="mrow"><span class="mk">ステータス</span><span class="mv">${escapeHtml(statusLabel)}</span></div>
     ${row.client_name ? `<div class="mrow"><span class="mk">客先名</span><span class="mv">${escapeHtml(row.client_name)}</span></div>` : ''}
     ${row.note_item ? `<div class="mrow"><span class="mk">備考</span><span class="mv">${escapeHtml(row.note_item)}</span></div>` : ''}
@@ -931,6 +931,10 @@ async function loadMyItems(){
     const deliveredDateIds = await getDeliveredDateIds(orderedIds);
     const finalizedDateIds = await getFinalizedDateIds(orderedIds);
     myItems = myItems.filter(r => !(r.status === '発注済み・受取待ち' && (deliveredDateIds.has(r.id) || finalizedDateIds.has(r.id))));
+    // 一部だけ確定済みの明細には、確定済みの数量を持たせる（表示用）
+    myItems.forEach(r => {
+      if(r.status === '発注済み・受取待ち' && finalizedDateIds.qtyByDateId[r.id] > 0) r.finalized_qty = finalizedDateIds.qtyByDateId[r.id];
+    });
   }
 
   // 発注可能なもののうち、部分発注（数量モード）で一部だけ発注済みのものの進捗を取得
@@ -1005,6 +1009,7 @@ async function getDeliveredDateIds(dateIds){
 // =============================================
 async function getFinalizedDateIds(dateIds){
   const finalizedSet = new Set();
+  finalizedSet.qtyByDateId = {};   // 明細ごとの「確定済みの数量」（数量指定の発注の合計）
   if(!dateIds.length) return finalizedSet;
 
   const { data: stockRows, error: stockErr } = await sbClient
@@ -1020,7 +1025,7 @@ async function getFinalizedDateIds(dateIds){
 
   const { data: orderRows, error: orderErr } = await sbClient
     .from('stock_orders')
-    .select('stock_item_id, is_finalized')
+    .select('stock_item_id, is_finalized, mode, qty')
     .in('stock_item_id', stockIds)
     .eq('is_canceled', false);
   if(orderErr || !orderRows) return finalizedSet;
@@ -1031,13 +1036,22 @@ async function getFinalizedDateIds(dateIds){
     if(!dId) return;
     if(!stat[dId]) stat[dId] = { total: 0, finalized: 0 };
     stat[dId].total++;
-    if(o.is_finalized === true) stat[dId].finalized++;
+    if(o.is_finalized === true){
+      stat[dId].finalized++;
+      if(o.mode === '数量') finalizedSet.qtyByDateId[dId] = (finalizedSet.qtyByDateId[dId] || 0) + (o.qty || 0);
+    }
   });
   Object.keys(stat).forEach(dId => {
     if(stat[dId].total > 0 && stat[dId].total === stat[dId].finalized) finalizedSet.add(dId);
   });
 
   return finalizedSet;
+}
+
+// 数量の表示（一部が確定済みの明細は「うち○個は確定済み」を添える）
+function qtyLabel(row){
+  const base = `${row.qty}c/s`;
+  return row.finalized_qty ? `${base}（うち${row.finalized_qty}個は確定済み）` : base;
 }
 
 function icon(name){
