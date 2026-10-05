@@ -354,6 +354,8 @@ function needsChangeLine(field){
 // 「要確認」判定：一度確定・完了扱いにしたものを後から取り消した操作
 function isReview(row){
   const f = row.field_name || '';
+  // 自動確定（毎日15時の一括確定）による解除は、人の操作ではないので「要確認」にしない
+  if(row.changed_by_name === 'システム（自動確定）') return false;
   if(f === 'completed' && row.old_value === 'true' && row.new_value === 'false') return true;
   if(f === 'reflected_to_stock' && row.old_value === 'true' && row.new_value === 'false') return true;
   if(f === 'is_finalized' && row.old_value === 'true' && row.new_value === 'false') return true;
@@ -426,6 +428,9 @@ async function loadActorOptions(){
   const sysOpt = document.createElement('option');
   sysOpt.value = 'システム（自動反映）'; sysOpt.textContent = 'システム（自動反映）';
   sel.appendChild(sysOpt);
+  const sysOpt2 = document.createElement('option');
+  sysOpt2.value = 'システム（自動確定）'; sysOpt2.textContent = 'システム（自動確定）';
+  sel.appendChild(sysOpt2);
 }
 
 function renderChips(){
